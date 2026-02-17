@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuration
-const STRATA_ROOT = path.resolve(__dirname, '../packages/strata-ds');
+const STRATA_ROOT = path.resolve(__dirname, '../../../../Strata Design System');
 const CATALYST_ROOT = path.resolve(__dirname, '../');
 
 const MAPPINGS = [
