@@ -13,10 +13,12 @@ import MAC from "./MAC"
 import Transactions from "./Transactions"
 import CRM from "./CRM"
 import Pricing from "./Pricing"
+
+import Home from "./Home"
 import Navbar from "./components/Navbar"
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'login' | 'dashboard' | 'detail' | 'quote-detail' | 'order-detail' | 'ack-detail' | 'workspace' | 'inventory' | 'catalogs' | 'mac' | 'transactions' | 'crm' | 'pricing'>('login')
+  const [currentPage, setCurrentPage] = useState<'login' | 'home' | 'dashboard' | 'detail' | 'quote-detail' | 'order-detail' | 'ack-detail' | 'workspace' | 'inventory' | 'catalogs' | 'mac' | 'transactions' | 'crm' | 'pricing' | 'orders' | 'facilities' | 'shelves'>('login')
 
   const handleNavigate = (page: string) => {
     // Map generic page names to specific state keys if needed, or just use directly
@@ -44,7 +46,9 @@ function App() {
 
       <div className={currentPage !== 'login' && currentPage !== 'detail' && currentPage !== 'workspace' ? 'pt-24' : ''}>
         {currentPage === 'login' ? (
-          <Login onLoginSuccess={() => setCurrentPage('dashboard')} />
+          <Login onLoginSuccess={() => setCurrentPage('home')} />
+        ) : currentPage === 'home' ? (
+          <Home />
         ) : currentPage === 'dashboard' ? (
           <Dashboard onLogout={() => setCurrentPage('login')} onNavigateToDetail={() => setCurrentPage('detail')} onNavigateToWorkspace={() => setCurrentPage('workspace')} onNavigate={handleNavigate} />
         ) : currentPage === 'inventory' ? (
@@ -64,6 +68,12 @@ function App() {
           <CRM onLogout={() => setCurrentPage('login')} onNavigateToDetail={() => setCurrentPage('detail')} onNavigateToWorkspace={() => setCurrentPage('workspace')} onNavigate={handleNavigate} />
         ) : currentPage === 'pricing' ? (
           <Pricing onLogout={() => setCurrentPage('login')} onNavigateToDetail={() => setCurrentPage('detail')} onNavigateToWorkspace={() => setCurrentPage('workspace')} onNavigate={handleNavigate} />
+        ) : currentPage === 'orders' ? (
+          <div className="p-8"><h1 className="text-2xl font-brand">Order Management (Placeholder)</h1></div>
+        ) : currentPage === 'facilities' ? (
+          <div className="p-8"><h1 className="text-2xl font-brand">Facilities (Placeholder)</h1></div>
+        ) : currentPage === 'shelves' ? (
+          <div className="p-8"><h1 className="text-2xl font-brand">Shelves (Placeholder)</h1></div>
         ) : currentPage === 'detail' ? (
           <Detail onBack={() => setCurrentPage('dashboard')} onLogout={() => setCurrentPage('login')} onNavigateToWorkspace={() => setCurrentPage('workspace')} />
         ) : currentPage === 'quote-detail' ? (

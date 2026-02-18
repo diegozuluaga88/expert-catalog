@@ -1,28 +1,69 @@
 import { Menu, MenuButton, MenuItem, MenuItems, Transition, Popover, PopoverButton, PopoverPanel } from '@headlessui/react'
 import { Fragment } from 'react'
 import {
-    HomeIcon, CubeIcon, ClipboardDocumentListIcon, ArrowTrendingUpIcon,
-    Squares2X2Icon, SunIcon, MoonIcon, ChevronDownIcon,
-    UserIcon, DocumentTextIcon, ChartBarIcon, ExclamationCircleIcon,
-    CalendarIcon, EllipsisHorizontalIcon, ArrowRightOnRectangleIcon, BriefcaseIcon, CheckIcon,
-    BookOpenIcon, TruckIcon, TagIcon, UsersIcon,
-    CalculatorIcon, CubeTransparentIcon,
-    BanknotesIcon,
-    UserGroupIcon,
-    CurrencyDollarIcon,
-    FolderIcon,
-    WrenchScrewdriverIcon,
-    PhotoIcon,
-    CreditCardIcon,
-    ArrowPathRoundedSquareIcon
-} from '@heroicons/react/24/outline';
+    ChevronDownIcon,
+    BellIcon, SunIcon, MoonIcon, EllipsisHorizontalIcon, ArrowRightOnRectangleIcon, CheckIcon,
+    BriefcaseIcon, CalculatorIcon, WrenchScrewdriverIcon, PhotoIcon, CreditCardIcon, DocumentTextIcon, BanknotesIcon, BookOpenIcon, ExclamationCircleIcon
+} from '@heroicons/react/24/outline'; // Using outline for all nav icons
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
 
-import ActionCenter from './notifications/ActionCenter';
+import ActionCenter from './notifications/ActionCenter'; // Restore ActionCenter
 
 import logoLightBrand from '../assets/logo-light-brand.png';
 import logoDarkBrand from '../assets/logo-dark-brand.png';
+
+// Custom Icons provided by user
+function NavHomeIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M6 19H9V13H15V19H18V10L12 5.5L6 10V19ZM4 21V9L12 3L20 9V21H13V15H11V21H4Z" fill="currentColor" />
+        </svg>
+    )
+}
+
+function NavDashboardIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 4H9C9.26522 4 9.51957 4.10536 9.70711 4.29289C9.89464 4.48043 10 4.73478 10 5V11C10 11.2652 9.89464 11.5196 9.70711 11.7071C9.51957 11.8946 9.26522 12 9 12H5C4.73478 12 4.48043 11.8946 4.29289 11.7071C4.10536 11.5196 4 11.2652 4 11V5C4 4.73478 4.10536 4.48043 4.29289 4.29289C4.48043 4.10536 4.73478 4 5 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 16H9C9.26522 16 9.51957 16.1054 9.70711 16.2929C9.89464 16.4804 10 16.7348 10 17V19C10 19.2652 9.89464 19.5196 9.70711 19.7071C9.51957 19.8946 9.26522 20 9 20H5C4.73478 20 4.48043 19.8946 4.29289 19.7071C4.10536 19.5196 4 19.2652 4 19V17C4 16.7348 4.10536 16.4804 4.29289 16.2929C4.48043 16.1054 4.73478 16 5 16Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 12H19C19.2652 12 19.5196 12.1054 19.7071 12.2929C19.8946 12.4804 20 12.7348 20 13V19C20 19.2652 19.8946 19.5196 19.7071 19.7071C19.5196 19.8946 19.2652 20 19 20H15C14.7348 20 14.4804 19.8946 14.2929 19.7071C14.1054 19.5196 14 19.2652 14 19V13C14 12.7348 14.1054 12.4804 14.2929 12.2929C14.4804 12.1054 14.7348 12 15 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 4H19C19.2652 4 19.5196 4.10536 19.7071 4.29289C19.8946 4.48043 20 4.73478 20 5V7C20 7.26522 19.8946 7.51957 19.7071 7.70711C19.5196 7.89464 19.2652 8 19 8H15C14.7348 8 14.4804 7.89464 14.2929 7.70711C14.1054 7.51957 14 7.26522 14 7V5C14 4.73478 14.1054 4.48043 14.2929 4.29289C14.4804 4.10536 14.7348 4 15 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    )
+}
+
+function NavInventoryIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M4 19H6V11H18V19H20V8.35L12 5.15L4 8.35V19ZM2 21V7L12 3L22 7V21H16V13H8V21H2ZM9 21V19H11V21H9ZM11 18V16H13V18H11ZM13 21V19H15V21H13Z" fill="currentColor" />
+        </svg>
+    )
+}
+
+function NavOrdersIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15.5 19.925L11.25 15.675L12.65 14.275L15.5 17.125L21.15 11.475L22.55 12.875L15.5 19.925ZM21 10H19V5H17V8H7V5H5V19H11V21H5C4.45 21 3.97917 20.8042 3.5875 20.4125C3.19583 20.0208 3 19.55 3 19V5C3 4.45 3.19583 3.97917 3.5875 3.5875C3.97917 3.19583 4.45 3 5 3H9.175C9.35833 2.41667 9.71667 1.9375 10.25 1.5625C10.7833 1.1875 11.3667 1 12 1C12.6667 1 13.2625 1.1875 13.7875 1.5625C14.3125 1.9375 14.6667 2.41667 14.85 3H19C19.55 3 20.0208 3.19583 20.4125 3.5875C20.8042 3.97917 21 4.45 21 5V10ZM12 5C12.2833 5 12.5208 4.90417 12.7125 4.7125C12.9042 4.52083 13 4.28333 13 4C13 3.71667 12.9042 3.47917 12.7125 3.2875C12.5208 3.09583 12.2833 3 12 3C11.7167 3 11.4792 3.09583 11.2875 3.2875C11.0958 3.47917 11 3.71667 11 4C11 4.28333 11.0958 4.52083 11.2875 4.7125C11.4792 4.90417 11.7167 5 12 5Z" fill="currentColor" />
+        </svg>
+    )
+}
+
+function NavShelvesIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 20 18" fill="none">
+            <path d="M16 12H14V14H16M16 8H14V10H16M18 16H10V14H12V12H10V10H12V8H10V6H18M8 4H6V2H8M8 8H6V6H8M8 12H6V10H8M8 16H6V14H8M4 4H2V2H4M4 8H2V6H4M4 12H2V10H4M4 16H2V14H4M10 4V0H0V18H20V4H10Z" fill="currentColor" />
+        </svg>
+    )
+}
+
+function NavFacilitiesIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M3 23V1H5V3H19V1H21V23H19V21H5V23H3ZM5 11H7V7H13V11H19V5H5V11ZM5 19H11V15H17V19H19V13H5V19ZM9 11H11V9H9V11ZM13 19H15V17H13V19Z" fill="currentColor" />
+        </svg>
+    )
+}
 
 // Update supported tabs
 export type NavTab = 'Overview' | 'Inventory' | 'Catalogs' | 'MAC' | 'Transactions' | 'CRM' | 'Pricing';
@@ -31,10 +72,22 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
     return (
         <button
             onClick={onClick}
-            className={`relative flex items-center justify-center h-9 px-2 rounded-full transition-all duration-300 group overflow-hidden ${active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
+            className={`
+                group flex items-center justify-center h-10 rounded-full transition-all duration-300 ease-out
+                ${active
+                    ? 'bg-primary text-primary-foreground px-4 shadow-sm'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground px-2.5 hover:px-4'
+                }
+            `}
         >
-            <span className="relative z-10">{icon}</span>
-            <span className={`ml-2 text-sm font-medium whitespace-nowrap max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 transition-all duration-300 ease-in-out ${active ? 'max-w-xs opacity-100' : ''}`}>
+            <span className="w-5 h-5 shrink-0 flex items-center justify-center">{icon}</span>
+            <span className={`
+                overflow-hidden whitespace-nowrap transition-all duration-300 ease-out font-medium text-sm
+                ${active
+                    ? 'max-w-[150px] opacity-100 ml-2'
+                    : 'max-w-0 opacity-0 ml-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-2'
+                }
+            `}>
                 {label}
             </span>
         </button>
@@ -53,14 +106,13 @@ export default function Navbar({ onLogout, activeTab = 'Overview', onNavigateToW
     const { currentTenant, tenants, setTenant } = useTenant()
 
     const navigation = [
-        { name: 'Dashboard', page: 'dashboard', icon: HomeIcon },
-        { name: 'Catalogs', page: 'catalogs', icon: BookOpenIcon },
-        { name: 'Inventory', page: 'inventory', icon: CubeTransparentIcon },
-        { name: 'MAC', page: 'mac', icon: ArrowPathRoundedSquareIcon },
-        { name: 'Transactions', page: 'transactions', icon: BanknotesIcon },
-        { name: 'CRM', page: 'crm', icon: UserGroupIcon },
-        { name: 'Pricing', page: 'pricing', icon: CurrencyDollarIcon },
-    ];
+        { name: 'Home', page: 'home', icon: NavHomeIcon },
+        { name: 'Dashboard', page: 'dashboard', icon: NavDashboardIcon },
+        { name: 'Inventory', page: 'inventory', icon: NavInventoryIcon },
+        { name: 'Orders', page: 'orders', icon: NavOrdersIcon },
+        { name: 'Facilities', page: 'facilities', icon: NavFacilitiesIcon },
+        { name: 'Shelves', page: 'shelves', icon: NavShelvesIcon },
+    ]
 
     return (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 min-w-[60vw] max-w-fit lg:min-w-0 lg:max-w-7xl lg:w-[80vw]">
@@ -141,7 +193,7 @@ export default function Navbar({ onLogout, activeTab = 'Overview', onNavigateToW
 
                     <Popover className="relative">
                         <PopoverButton className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors outline-none">
-                            <Squares2X2Icon className="w-5 h-5" />
+                            <NavDashboardIcon className="w-5 h-5" />
                         </PopoverButton>
                         <Transition
                             as={Fragment}
@@ -177,7 +229,7 @@ export default function Navbar({ onLogout, activeTab = 'Overview', onNavigateToW
                                                 title: "Platform",
                                                 apps: [
                                                     { icon: <BriefcaseIcon className="w-6 h-6" />, label: "My Work Space", color: "text-zinc-900", bg: "bg-primary", isHighlighted: true, onClick: onNavigateToWorkspace },
-                                                    { icon: <HomeIcon className="w-6 h-6" />, label: "Portal", color: "text-zinc-900 dark:text-primary", bg: "bg-primary/10", onClick: () => onNavigate('dashboard') },
+                                                    { icon: <NavHomeIcon className="w-6 h-6" />, label: "Portal", color: "text-zinc-900 dark:text-primary", bg: "bg-primary/10", onClick: () => onNavigate('dashboard') },
                                                 ]
                                             },
                                             {
@@ -250,7 +302,7 @@ export default function Navbar({ onLogout, activeTab = 'Overview', onNavigateToW
                                     <div className="hidden lg:grid grid-cols-3 gap-2">
                                         {[
                                             { icon: <BriefcaseIcon className="w-6 h-6" />, label: "My Work Space", color: "text-zinc-900", bg: "bg-primary", isHighlighted: true, onClick: onNavigateToWorkspace },
-                                            { icon: <HomeIcon className="w-6 h-6" />, label: "Portal", color: "text-zinc-900 dark:text-primary", bg: "bg-primary/10", onClick: () => onNavigate('dashboard') },
+                                            { icon: <NavHomeIcon className="w-6 h-6" />, label: "Portal", color: "text-zinc-900 dark:text-primary", bg: "bg-primary/10", onClick: () => onNavigate('dashboard') },
                                             { icon: <CalculatorIcon className="w-6 h-6" />, label: "Quoting", color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-500/10" },
                                             { icon: <WrenchScrewdriverIcon className="w-6 h-6" />, label: "Configurator", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10" },
                                             { icon: <PhotoIcon className="w-6 h-6" />, label: "Marketing", color: "text-pink-600 dark:text-pink-400", bg: "bg-pink-50 dark:bg-pink-500/10" },
