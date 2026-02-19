@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils'
 export function AiActionsAccordion() {
     return (
         <div className="w-full">
-            <div className="flex items-center gap-1.5 mb-2 text-xs font-bold tracking-wider text-green-600 dark:text-green-400 uppercase">
+            <div className="flex items-center gap-1.5 mb-2 text-xs font-bold tracking-wider text-green-600 dark:text-brand-400 uppercase">
                 <SparklesIcon className="w-3.5 h-3.5" />
                 AI ACTIONS
             </div>
@@ -15,7 +15,7 @@ export function AiActionsAccordion() {
                     <div className="overflow-hidden border rounded-xl border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm dark:shadow-none">
                         <Disclosure.Button className="flex items-center justify-between w-full px-5 py-3 text-left transition-colors bg-zinc-50 dark:bg-zinc-900/30 hover:bg-zinc-100 dark:hover:bg-zinc-900/50">
                             <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/10 dark:bg-brand-500/10 text-green-600 dark:text-brand-400">
                                     <SparklesIcon className="w-5 h-5" />
                                 </div>
                                 <span className="font-semibold text-zinc-900 dark:text-white">Auto-fix discrepancies (3)</span>
@@ -23,7 +23,7 @@ export function AiActionsAccordion() {
 
                             <div className="flex items-center gap-3">
                                 <button
-                                    className="px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-950 bg-green-500 dark:bg-green-400 rounded-md hover:bg-green-600 dark:hover:bg-green-500 transition-colors shadow-sm"
+                                    className="px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-950 bg-green-500 dark:bg-brand-400 rounded-md hover:bg-green-600 dark:hover:bg-brand-500 transition-colors shadow-sm"
                                     onClick={(e) => { e.stopPropagation(); /* Handler */ }}
                                 >
                                     Fix with AI

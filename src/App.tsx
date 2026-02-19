@@ -71,9 +71,9 @@ function App() {
         ) : currentPage === 'orders' ? (
           <div className="p-8"><h1 className="text-2xl font-brand">Order Management (Placeholder)</h1></div>
         ) : currentPage === 'facilities' ? (
-          <div className="p-8"><h1 className="text-2xl font-brand">Facilities (Placeholder)</h1></div>
+          <div className="p-8"><h1 className="text-2xl font-brand">Catalog (Placeholder)</h1></div>
         ) : currentPage === 'shelves' ? (
-          <div className="p-8"><h1 className="text-2xl font-brand">Shelves (Placeholder)</h1></div>
+          <div className="p-8"><h1 className="text-2xl font-brand">Profile (Placeholder)</h1></div>
         ) : currentPage === 'detail' ? (
           <Detail onBack={() => setCurrentPage('dashboard')} onLogout={() => setCurrentPage('login')} onNavigateToWorkspace={() => setCurrentPage('workspace')} />
         ) : currentPage === 'quote-detail' ? (

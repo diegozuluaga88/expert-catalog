@@ -110,8 +110,8 @@ export default function Navbar({ onLogout, activeTab = 'Overview', onNavigateToW
         { name: 'Dashboard', page: 'dashboard', icon: NavDashboardIcon },
         { name: 'Inventory', page: 'inventory', icon: NavInventoryIcon },
         { name: 'Orders', page: 'orders', icon: NavOrdersIcon },
-        { name: 'Facilities', page: 'facilities', icon: NavFacilitiesIcon },
-        { name: 'Shelves', page: 'shelves', icon: NavShelvesIcon },
+        { name: 'Profile', page: 'shelves', icon: NavShelvesIcon },
+        { name: 'Catalog', page: 'facilities', icon: NavFacilitiesIcon },
     ]
 
     return (
