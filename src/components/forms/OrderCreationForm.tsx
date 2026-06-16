@@ -42,7 +42,7 @@ const MOCK_CUSTOMERS = [
     { id: 'CUST-001', name: 'City Builders Inc.' },
     { id: 'CUST-002', name: 'Metro Construction' },
     { id: 'CUST-003', name: 'Riverside Developers' },
-    { id: 'CUST-004', name: 'Apex Architecture' },
+    { id: 'CUST-004', name: 'Apex Furniture' },
 ];
 
 export default function OrderCreationForm({ initialData, onSubmit, onCancel, isTemplate }: OrderCreationFormProps) {

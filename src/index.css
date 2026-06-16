@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.cdnfonts.com/css/pp-monument-extended');
 @import './styles/theme.css';
 
 @tailwind base;
@@ -69,3 +71,177 @@
         @apply bg-zinc-400 dark:bg-zinc-600;
     }
 }
+
+/* AI Agent Avatar Glow Animation */
+@keyframes ai-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(16, 185, 129, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.15); }
+    50% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), 0 0 0 1px rgba(16, 185, 129, 0.3); }
+}
+
+.animate-ai-glow {
+    animation: ai-glow 2.5s ease-in-out infinite;
+}
+
+/* Demo Spotlight Animations */
+@keyframes scan {
+    0%, 100% { top: 0%; }
+    50% { top: 100%; }
+}
+
+@keyframes upload {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+@keyframes demo-spotlight-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4), 0 0 20px hsl(var(--primary) / 0.15); }
+    50% { box-shadow: 0 0 0 4px hsl(var(--primary) / 0.6), 0 0 40px hsl(var(--primary) / 0.3); }
+}
+
+.demo-spotlight-active {
+    animation: demo-spotlight-pulse 1s ease-in-out 3;
+    position: relative;
+    z-index: 1;
+}
+
+.demo-spotlight-steady {
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3), 0 0 15px hsl(var(--primary) / 0.1);
+    transition: box-shadow 0.5s ease-out;
+    position: relative;
+    z-index: 1;
+}
+
+/* NOTE: a previous `:root { --bg, --card, --border, --brand-* ... }` block
+   was removed here — it shadowed the theme tokens defined in
+   `./styles/theme.css` (which provides both light and dark values via
+   `.dark` selector). The override pinned `--card` to `#FAFAFA` even in
+   dark mode, so `bg-card` rendered as cream on a dark background. The
+   override variables had zero usages in src/, so removing them only
+   restores the theme.css fallback. If you need any of these tokens in
+   the future, define them in theme.css with both light and dark values. */
+
+html, body { font-family: Inter, system-ui, sans-serif; }
+
+/* Subtle dotted page backdrop behind modal (for demo; shows the modal pops) */
+.page-backdrop {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15,23,42,0.06) 1px, transparent 0);
+  background-size: 18px 18px;
+}
+.dark .page-backdrop {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+}
+
+/* Scrollbar polish */
+.scroll-polish::-webkit-scrollbar { width: 10px; height: 10px; }
+.scroll-polish::-webkit-scrollbar-thumb {
+  background: #D0D4D8;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.scroll-polish::-webkit-scrollbar-thumb:hover { background: #B4BBC2; background-clip: padding-box; border: 2px solid transparent; }
+.scroll-polish::-webkit-scrollbar-track { background: transparent; }
+.dark .scroll-polish::-webkit-scrollbar-thumb { background: #3f3f46; background-clip: padding-box; }
+.dark .scroll-polish::-webkit-scrollbar-thumb:hover { background: #52525b; background-clip: padding-box; }
+
+/* Tiny reveal animation for the modal */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.anim-fadeup { animation: fadeUp 260ms cubic-bezier(.2,.7,.2,1) both; }
+
+@keyframes fadeIn { from {opacity:0} to {opacity:1} }
+.anim-fadein { animation: fadeIn 160ms ease-out both; }
+
+/* Backdrop */
+.modal-backdrop {
+  background: rgba(11, 11, 12, 0.35);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+}
+
+/* Field card hover */
+.field-row { transition: background 120ms ease, border-color 120ms ease; }
+.field-row:hover { background: #FBFBFC; }
+.dark .field-row:hover { background: rgba(255, 255, 255, 0.03); }
+
+/* Accent chevrons, shimmer, etc */
+.shimmer::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(198,228,51,0.25) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: shimmerMove 1.6s linear infinite;
+}
+@keyframes shimmerMove { to { transform: translateX(100%); } }
+
+/* Checkbox subtle */
+input[type="checkbox"].strata-check {
+  appearance: none;
+  width: 16px; height: 16px;
+  border: 1.5px solid #B4BBC2;
+  border-radius: 4px;
+  display: inline-block;
+  background: #fff;
+  position: relative;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+input[type="checkbox"].strata-check:checked {
+  background: #0B0B0C; border-color: #0B0B0C;
+}
+.dark input[type="checkbox"].strata-check {
+  border-color: #52525b; background: #18181b;
+}
+.dark input[type="checkbox"].strata-check:checked {
+  background: #fafafa; border-color: #fafafa;
+}
+.dark input[type="checkbox"].strata-check:checked::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><path d='M3.5 8.5l3 3 6-6' stroke='%230B0B0C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+input[type="checkbox"].strata-check:checked::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><path d='M3.5 8.5l3 3 6-6' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-size: 14px 14px; background-position: center; background-repeat: no-repeat;
+}
+
+/* Mono tag pills */
+.tag-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 11px;
+  letter-spacing: -0.005em;
+  color: #546070;
+  background: #F4F4F1;
+  border: 1px solid #E5E5E5;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.dark .tag-mono {
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Eyebrow */
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: #546070;
+}
+.dark .eyebrow { color: #a1a1aa; }
+
+/* Progress segments */
+.seg {
+  height: 6px; border-radius: 999px; overflow: hidden;
+  background: #EBECEE; display: flex; gap: 2px;
+}
+.seg > span { display:block; height: 100%; }
+.dark .seg { background: rgba(255, 255, 255, 0.08); }
+
+/* Ring ticks for circular progress */
+.ring-wrap { position: relative; width: 72px; height: 72px; }
+.ring-wrap svg { transform: rotate(-90deg); }
+
