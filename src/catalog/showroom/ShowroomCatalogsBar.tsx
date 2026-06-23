@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { RefreshCw, Upload, ChevronDown, CheckCircle2 } from 'lucide-react'
+import { RefreshCw, Upload, CheckCircle2 } from 'lucide-react'
 import { CATALOGS } from '../data/catalogs'
 import type { Catalog } from '../types'
 
-// Etapa 9.7 — Showroom: traer catálogos + sincronización (ligero, reusa CATALOGS y el patrón de
-// CatalogLibrary). El botón Import abre el CatalogImportModal ya portado (lo cablea ShowroomPage).
+// Etapa 9.8 — Showroom: barra compacta de catálogos en UNA línea (detalles en hover) + Import + Sync.
+// Reusa CATALOGS y el patrón de sync de CatalogLibrary. Optimizado en espacio (DS).
 
 interface ShowroomCatalogsBarProps {
   onImport: () => void
 }
 
 export default function ShowroomCatalogsBar({ onImport }: ShowroomCatalogsBarProps) {
-  const [open, setOpen] = useState(true)
   const [catalogs, setCatalogs] = useState<Catalog[]>(CATALOGS)
   const [syncingId, setSyncingId] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -29,56 +28,42 @@ export default function ShowroomCatalogsBar({ onImport }: ShowroomCatalogsBarPro
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 p-3">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-2 text-sm font-bold text-foreground"
-        >
-          Connected Catalogs
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {catalogs.length}
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+      <span className="text-sm font-bold text-foreground">Connected Catalogs</span>
+      <span className="rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
+        {catalogs.length}
+      </span>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {catalogs.map((c) => (
+          <span
+            key={c.id}
+            title={`${c.items} items · ${c.status} · synced ${c.lastSync}`}
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-background py-1 pl-3 pr-1 text-xs"
+          >
+            <span className="font-medium text-foreground">{c.name}</span>
+            <button
+              type="button"
+              disabled={syncingId === c.id}
+              onClick={() => sync(c)}
+              aria-label={`Sync ${c.name}`}
+              title={`Sync ${c.name}`}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${syncingId === c.id ? 'animate-spin' : ''}`} />
+            </button>
           </span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
-        <button
-          type="button"
-          onClick={onImport}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Upload className="h-4 w-4" />
-          Import Catalog
-        </button>
+        ))}
       </div>
 
-      {open && (
-        <div className="flex flex-wrap gap-2 border-t border-border p-3">
-          {catalogs.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">{c.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {c.items} items · {c.status} · {c.lastSync}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={syncingId === c.id}
-                onClick={() => sync(c)}
-                title="Sync catalog"
-                aria-label={`Sync ${c.name}`}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 ${syncingId === c.id ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={onImport}
+        className="ml-auto inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        <Upload className="h-4 w-4" />
+        Import Catalog
+      </button>
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg">

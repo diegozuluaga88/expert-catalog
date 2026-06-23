@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart } from 'lucide-react'
 import type { Category, Product, ProductSortKey } from '../types'
 import {
   UNIFIED_PRODUCTS,
@@ -77,6 +77,7 @@ export default function ShowroomPage() {
   const [sortOpen, setSortOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [quoteProducts, setQuoteProducts] = useState<Product[] | null>(null)
   const [showCompare, setShowCompare] = useState(false)
@@ -104,6 +105,18 @@ export default function ShowroomPage() {
     setSearch('')
     setPage(1)
   }
+  const clearAll = () => {
+    resetFacets()
+    setShowFavoritesOnly(false)
+  }
+  const hasActiveFilters =
+    selectedBrands.size > 0 ||
+    selectedCategories.size > 0 ||
+    selectedFeatures.size > 0 ||
+    selectedPrices.size > 0 ||
+    selectedColors.size > 0 ||
+    search.trim() !== '' ||
+    showFavoritesOnly
 
   // Dataset por taxonomía (Products | Materials) y facetas derivadas de ese subconjunto
   const taxoProducts = useMemo(
@@ -139,7 +152,10 @@ export default function ShowroomPage() {
         )
       const matchesColor =
         selectedColors.size === 0 || (p.colorways ?? []).some((c) => selectedColors.has(c.name))
-      return matchesSearch && matchesBrand && matchesCategory && matchesFeatures && matchesPrice && matchesColor
+      const matchesFav = !showFavoritesOnly || favorites.has(p.id)
+      return (
+        matchesSearch && matchesBrand && matchesCategory && matchesFeatures && matchesPrice && matchesColor && matchesFav
+      )
     })
     const sorted = [...list]
     switch (sort) {
@@ -165,7 +181,7 @@ export default function ShowroomPage() {
         sorted.sort((a, b) => Number(b.popular ?? false) - Number(a.popular ?? false))
     }
     return sorted
-  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedFeatures, selectedPrices, selectedColors, sort])
+  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
@@ -294,7 +310,10 @@ export default function ShowroomPage() {
       <ShowroomCatalogsBar onImport={() => setShowImport(true)} />
 
       {/* Brand pills */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Filter by brand
+        </span>
         <button
           type="button"
           onClick={() => {
@@ -324,6 +343,15 @@ export default function ShowroomPage() {
             {b}
           </button>
         ))}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="ml-1 text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
@@ -387,6 +415,24 @@ export default function ShowroomPage() {
       {/* Main: sidebar + grid */}
       <div className="flex gap-6">
         <aside className="hidden w-56 shrink-0 lg:block">
+          {/* Favorites submenu */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowFavoritesOnly((v) => !v)
+              setPage(1)
+            }}
+            className={`mb-3 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+              showFavoritesOnly ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-foreground hover:bg-muted'
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${showFavoritesOnly ? 'fill-destructive text-destructive' : ''}`} />
+            Favorites
+            <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              {favorites.size}
+            </span>
+          </button>
+
           <div className="flex items-center gap-2 text-sm font-bold text-foreground">
             <SlidersHorizontal className="h-4 w-4" />
             Filter
