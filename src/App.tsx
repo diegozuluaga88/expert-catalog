@@ -3,16 +3,19 @@ import { useAuth } from './context/AuthContext'
 import Login from "./Login"
 import OCRTracking from "./OCRTracking"
 import FeedbackBoard from "./FeedbackBoard"
+import CatalogPage from "./catalog/CatalogPage"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 
-type Page = 'ocr-tracking' | 'feedback'
+type Page = 'ocr-tracking' | 'feedback' | 'catalog'
 
 function App() {
   const { user, initialLoading, signOut, showSessionWarning, refreshSession } = useAuth()
   const [currentPage, setCurrentPage] = useState<Page>('ocr-tracking')
 
   const handleNavigate = (page: string) => {
-    setCurrentPage(page === 'feedback' ? 'feedback' : 'ocr-tracking')
+    if (page === 'feedback') setCurrentPage('feedback')
+    else if (page === 'catalog') setCurrentPage('catalog')
+    else setCurrentPage('ocr-tracking')
   }
 
   const handleLogout = () => {
@@ -35,6 +38,8 @@ function App() {
     <div className="min-h-screen bg-background text-foreground">
       {currentPage === 'feedback' ? (
         <FeedbackBoard onLogout={handleLogout} onNavigate={handleNavigate} />
+      ) : currentPage === 'catalog' ? (
+        <CatalogPage onLogout={handleLogout} onNavigate={handleNavigate} />
       ) : (
         <OCRTracking onLogout={handleLogout} onNavigate={handleNavigate} />
       )}

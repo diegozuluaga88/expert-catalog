@@ -3,7 +3,7 @@
   --color-foreground: #02060C;
   --color-card: #fafafa;
   --color-card-foreground: #02060C;
-  --color-popover: #fafafa;
+  --color-popover: #f4f4f0;
   --color-popover-foreground: #02060C;
   --color-primary: #E6F993;
   --color-primary-foreground: #02060C;
@@ -32,6 +32,16 @@
   --color-sidebar-accent-foreground: #02060C;
   --color-sidebar-border: #D0D4D8;
   --color-sidebar-ring: #959DA7;
+  --color-status-success: #16a34a;
+  --color-status-success-foreground: #ffffff;
+  --color-status-warning: #b45309;
+  --color-status-warning-foreground: #ffffff;
+  --color-status-error: #C11736;
+  --color-status-error-foreground: #ffffff;
+  --color-status-info: #2563eb;
+  --color-status-info-foreground: #ffffff;
+  --color-status-ai: #8b5cf6;
+  --color-status-ai-foreground: #ffffff;
   --color-brand-50: #fdfee7;
   --color-brand-100: #F4F8E1;
   --color-brand-200: #F4FFC9;
@@ -110,6 +120,11 @@
   --color-indigo-800: #3730a3;
   --color-indigo-900: #312e81;
   --color-indigo-950: #1e1b4b;
+  --color-violet-300: #c4b5fd;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
   --color-white: #ffffff;
   --color-black: #000000;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
