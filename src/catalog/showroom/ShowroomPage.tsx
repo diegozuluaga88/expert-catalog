@@ -1,0 +1,455 @@
+import { useMemo, useState } from 'react'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft } from 'lucide-react'
+import type { Product, ProductSortKey } from '../types'
+import {
+  UNIFIED_PRODUCTS,
+  UNIFIED_PRICE_RANGES,
+  getProductContext,
+} from './data/unifiedProducts'
+import ProductCatalogCard from '../shop/ProductCatalogCard'
+import BulkActionsBar from '../shop/BulkActionsBar'
+import RequestQuoteModal from '../shop/RequestQuoteModal'
+import CompareModal from '../shop/CompareModal'
+import GenerateReportModal from '../shop/GenerateReportModal'
+import ProductDetailPage from '../browse/ProductDetailPage'
+
+// Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
+// (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
+
+const PAGE_SIZE = 8
+type Taxonomy = 'products' | 'materials'
+
+const SORT_OPTIONS: { key: ProductSortKey; label: string }[] = [
+  { key: 'relevant', label: 'Most Relevant' },
+  { key: 'top-rated', label: 'Top Rated' },
+  { key: 'price-asc', label: 'Price ↑' },
+  { key: 'price-desc', label: 'Price ↓' },
+  { key: 'lead-time', label: 'Shortest Lead Time' },
+  { key: 'in-stock', label: 'In Stock First' },
+  { key: 'newest', label: 'Newest' },
+]
+
+function leadRank(p: Product): number {
+  const lt = (p.leadTime ?? '').toLowerCase()
+  if (lt.includes('in stock')) return 0
+  const m = lt.match(/(\d+)/)
+  return m ? Number(m[1]) : 99
+}
+
+function FilterSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children?: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border-b border-border py-3">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between text-sm font-semibold text-foreground"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && children && <div className="mt-3 space-y-2">{children}</div>}
+    </div>
+  )
+}
+
+export default function ShowroomPage() {
+  const [taxonomy, setTaxonomy] = useState<Taxonomy>('products')
+  const [search, setSearch] = useState('')
+  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set())
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set())
+  const [selectedPrices, setSelectedPrices] = useState<Set<string>>(new Set())
+  const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())
+  const [sort, setSort] = useState<ProductSortKey>('relevant')
+  const [sortOpen, setSortOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [quoteProducts, setQuoteProducts] = useState<Product[] | null>(null)
+  const [showCompare, setShowCompare] = useState(false)
+  const [showReport, setShowReport] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
+
+  const toggleFromSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) =>
+    setter((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  const toggleFilter = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, value: string) => {
+    toggleFromSet(setter, value)
+    setPage(1)
+  }
+  const resetFacets = () => {
+    setSelectedBrands(new Set())
+    setSelectedCategories(new Set())
+    setSelectedFeatures(new Set())
+    setSelectedPrices(new Set())
+    setSelectedColors(new Set())
+    setSearch('')
+    setPage(1)
+  }
+
+  // Dataset por taxonomía (Products | Materials) y facetas derivadas de ese subconjunto
+  const taxoProducts = useMemo(
+    () => UNIFIED_PRODUCTS.filter((p) => (taxonomy === 'materials' ? !!p.isMaterial : !p.isMaterial)),
+    [taxonomy]
+  )
+  const brands = useMemo(() => Array.from(new Set(taxoProducts.map((p) => p.brand!).filter(Boolean))), [taxoProducts])
+  const categories = useMemo(
+    () => Array.from(new Set(taxoProducts.map((p) => p.category!).filter(Boolean))),
+    [taxoProducts]
+  )
+  const features = useMemo(() => Array.from(new Set(taxoProducts.flatMap((p) => p.tags ?? []))), [taxoProducts])
+  const colors = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const p of taxoProducts) for (const c of p.colorways ?? []) if (!map.has(c.name)) map.set(c.name, c.hex)
+    return Array.from(map, ([name, hex]) => ({ name, hex }))
+  }, [taxoProducts])
+
+  const filtered = useMemo(() => {
+    const list = taxoProducts.filter((p) => {
+      const q = search.trim().toLowerCase()
+      const matchesSearch =
+        !q || p.name.toLowerCase().includes(q) || (p.brand ?? '').toLowerCase().includes(q)
+      const matchesBrand = selectedBrands.size === 0 || (p.brand ? selectedBrands.has(p.brand) : false)
+      const matchesCategory =
+        selectedCategories.size === 0 || (p.category ? selectedCategories.has(p.category) : false)
+      const matchesFeatures =
+        selectedFeatures.size === 0 || (p.tags ?? []).some((t) => selectedFeatures.has(t))
+      const matchesPrice =
+        selectedPrices.size === 0 ||
+        UNIFIED_PRICE_RANGES.some(
+          (r) => selectedPrices.has(r.label) && (p.price ?? 0) >= r.min && (p.price ?? 0) < r.max
+        )
+      const matchesColor =
+        selectedColors.size === 0 || (p.colorways ?? []).some((c) => selectedColors.has(c.name))
+      return matchesSearch && matchesBrand && matchesCategory && matchesFeatures && matchesPrice && matchesColor
+    })
+    const sorted = [...list]
+    switch (sort) {
+      case 'top-rated':
+        sorted.sort((a, b) => (b.dealerRating ?? 0) - (a.dealerRating ?? 0))
+        break
+      case 'price-asc':
+        sorted.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))
+        break
+      case 'price-desc':
+        sorted.sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
+        break
+      case 'lead-time':
+      case 'in-stock':
+        sorted.sort((a, b) => leadRank(a) - leadRank(b))
+        break
+      case 'newest':
+        sorted.sort(
+          (a, b) => Number(b.tags?.includes('New') ?? false) - Number(a.tags?.includes('New') ?? false)
+        )
+        break
+      default:
+        sorted.sort((a, b) => Number(b.popular ?? false) - Number(a.popular ?? false))
+    }
+    return sorted
+  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedFeatures, selectedPrices, selectedColors, sort])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const activeSortLabel = SORT_OPTIONS.find((o) => o.key === sort)?.label ?? 'Sort'
+  const selectedProducts = UNIFIED_PRODUCTS.filter((p) => selected.has(p.id))
+
+  const taxoClass = (active: boolean) =>
+    `rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+      active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+    }`
+
+  const checkRow = (item: string, set: Set<string>, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+    const checked = set.has(item)
+    return (
+      <label key={item} className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+        <span
+          onClick={() => toggleFilter(setter, item)}
+          className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+            checked ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
+          }`}
+        >
+          {checked && <Check className="h-3 w-3" />}
+        </span>
+        {item}
+      </label>
+    )
+  }
+
+  // ── Detalle rico (drill-down) ─────────────────────────────────────────────
+  const ctx = detailId ? getProductContext(detailId) : undefined
+  if (ctx) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setDetailId(null)}
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Showroom
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuoteProducts([ctx.product])}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Request Quote
+          </button>
+        </div>
+        <ProductDetailPage
+          manufacturer={ctx.manufacturer}
+          category={ctx.category}
+          product={ctx.product}
+          onBack={() => setDetailId(null)}
+        />
+        {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
+      </div>
+    )
+  }
+
+  // ── Storefront grid ───────────────────────────────────────────────────────
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Showroom</h1>
+          <p className="text-sm text-muted-foreground">Browse products and materials in one place.</p>
+        </div>
+        {/* Products | Materials toggle */}
+        <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+          <button
+            type="button"
+            onClick={() => {
+              setTaxonomy('products')
+              resetFacets()
+            }}
+            className={taxoClass(taxonomy === 'products')}
+          >
+            Products
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTaxonomy('materials')
+              resetFacets()
+            }}
+            className={taxoClass(taxonomy === 'materials')}
+          >
+            Materials
+          </button>
+        </div>
+      </div>
+
+      {/* Brand pills */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedBrands(new Set())
+            setPage(1)
+          }}
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            selectedBrands.size === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          All
+        </button>
+        {brands.map((b) => (
+          <button
+            key={b}
+            type="button"
+            onClick={() => {
+              setSelectedBrands(new Set([b]))
+              setPage(1)
+            }}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              selectedBrands.size === 1 && selectedBrands.has(b)
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {b}
+          </button>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            placeholder="Search showroom..."
+            className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+          />
+        </div>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setSortOpen((o) => !o)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            {activeSortLabel}
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+          {sortOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
+              <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-border bg-card p-1 shadow-lg">
+                {SORT_OPTIONS.map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => {
+                      setSort(o.key)
+                      setSortOpen(false)
+                      setPage(1)
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                  >
+                    {o.label}
+                    {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Main: sidebar + grid */}
+      <div className="flex gap-6">
+        <aside className="hidden w-56 shrink-0 lg:block">
+          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filter
+          </div>
+          <FilterSection title="Category">
+            {categories.map((c) => checkRow(c, selectedCategories, setSelectedCategories))}
+          </FilterSection>
+          <FilterSection title="Brand" defaultOpen>
+            {brands.map((b) => checkRow(b, selectedBrands, setSelectedBrands))}
+          </FilterSection>
+          <FilterSection title="Features">
+            {features.map((f) => checkRow(f, selectedFeatures, setSelectedFeatures))}
+          </FilterSection>
+          <FilterSection title="Price Range">
+            {UNIFIED_PRICE_RANGES.map((r) => checkRow(r.label, selectedPrices, setSelectedPrices))}
+          </FilterSection>
+          <FilterSection title="Color">
+            <div className="flex flex-wrap gap-2">
+              {colors.map((c) => {
+                const checked = selectedColors.has(c.name)
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    title={c.name}
+                    onClick={() => toggleFilter(setSelectedColors, c.name)}
+                    className={`h-6 w-6 rounded-full border transition-transform ${
+                      checked ? 'border-foreground ring-2 ring-primary' : 'border-border'
+                    }`}
+                    style={{ backgroundColor: c.hex }}
+                  />
+                )
+              })}
+            </div>
+          </FilterSection>
+        </aside>
+
+        <div className="flex-1">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {pageItems.map((p) => (
+              <ProductCatalogCard
+                key={p.id}
+                product={p}
+                selected={selected.has(p.id)}
+                favorite={favorites.has(p.id)}
+                onToggleSelect={(id) => toggleFromSet(setSelected, id)}
+                onToggleFavorite={(id) => toggleFromSet(setFavorites, id)}
+                onRequestQuote={(prod) => setQuoteProducts([prod])}
+                onOpen={(prod) => setDetailId(prod.id)}
+              />
+            ))}
+          </div>
+
+          {pageItems.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">
+              No items match your filters.
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <span className="text-xs text-muted-foreground">
+              Showing {pageItems.length} of {filtered.length} results
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setPage(n)}
+                  className={`h-8 w-8 rounded-md text-sm font-medium transition-colors ${
+                    n === safePage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {selected.size > 0 && (
+        <BulkActionsBar
+          count={selected.size}
+          onDeselectAll={() => setSelected(new Set())}
+          onCompare={() => setShowCompare(true)}
+          onExport={() => setShowReport(true)}
+          onRequestQuote={() => setQuoteProducts(selectedProducts)}
+        />
+      )}
+
+      {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
+      {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
+      {showReport && <GenerateReportModal onClose={() => setShowReport(false)} onExport={() => setShowReport(false)} />}
+    </div>
+  )
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LibraryBig, Settings2, ShoppingBag } from 'lucide-react'
+import { LibraryBig, Settings2, ShoppingBag, Store } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
 import LibraryPage from './browse/LibraryPage'
@@ -8,12 +8,13 @@ import CategoryPage from './browse/CategoryPage'
 import ProductDetailPage from './browse/ProductDetailPage'
 import ManageCatalogs from './manage/ManageCatalogs'
 import ProductCatalogPage from './shop/ProductCatalogPage'
+import ShowroomPage from './showroom/ShowroomPage'
 
 // Etapa 4 — Modo Browse: estructura de catalog-test (Library→Manufacturer→Category→Product),
 // montada dentro de expert-hub. El NavState replica el patrón de `catalog-test/src/App.tsx`.
 // Manage (admin) llega en Etapa 5.
 
-type CatalogMode = 'browse' | 'manage' | 'shop'
+type CatalogMode = 'browse' | 'manage' | 'shop' | 'showroom'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
 
 interface BrowseNav {
@@ -119,9 +120,21 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
             <ShoppingBag className="h-4 w-4" />
             Product Catalog
           </button>
+          <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
+            <Store className="h-4 w-4" />
+            Showroom
+          </button>
         </div>
 
-        {mode === 'browse' ? renderBrowse() : mode === 'manage' ? <ManageCatalogs /> : <ProductCatalogPage />}
+        {mode === 'browse' ? (
+          renderBrowse()
+        ) : mode === 'manage' ? (
+          <ManageCatalogs />
+        ) : mode === 'shop' ? (
+          <ProductCatalogPage />
+        ) : (
+          <ShowroomPage />
+        )}
       </div>
     </>
   )

@@ -11,6 +11,8 @@ interface ProductCatalogCardProps {
   onToggleSelect: (id: string) => void
   onToggleFavorite: (id: string) => void
   onRequestQuote: (product: Product) => void
+  /** Opcional (Showroom Etapa 9): abrir el detalle rico al clic en imagen/nombre. */
+  onOpen?: (product: Product) => void
 }
 
 export default function ProductCatalogCard({
@@ -20,6 +22,7 @@ export default function ProductCatalogCard({
   onToggleSelect,
   onToggleFavorite,
   onRequestQuote,
+  onOpen,
 }: ProductCatalogCardProps) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 hover:border-foreground/20 hover:shadow-sm">
@@ -28,7 +31,10 @@ export default function ProductCatalogCard({
         <img
           src={product.images[0]}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onClick={() => onOpen?.(product)}
+          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+            onOpen ? 'cursor-pointer' : ''
+          }`}
           loading="lazy"
         />
         <button
@@ -69,7 +75,14 @@ export default function ProductCatalogCard({
           </span>
         </div>
 
-        <h3 className="text-sm font-bold leading-tight text-foreground">{product.name}</h3>
+        <h3
+          onClick={() => onOpen?.(product)}
+          className={`text-sm font-bold leading-tight text-foreground ${
+            onOpen ? 'cursor-pointer hover:text-foreground/80' : ''
+          }`}
+        >
+          {product.name}
+        </h3>
         {product.leadTime && <p className="text-xs text-muted-foreground">{product.leadTime}</p>}
 
         {/* Colorways */}

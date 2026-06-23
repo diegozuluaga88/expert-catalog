@@ -66,6 +66,8 @@ export interface Product {
   upholstery?: string
   /** Dimensions (Compare) */
   dimensions?: { width: string; depth: string; height: string; weight: string }
+  /** Showroom (Etapa 9): true si viene de un fabricante de materiales (textiles/acoustics). */
+  isMaterial?: boolean
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
