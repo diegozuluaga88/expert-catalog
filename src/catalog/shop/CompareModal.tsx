@@ -42,17 +42,17 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
             </span>
           ),
         },
-        { label: 'Material', render: () => dash },
-        { label: 'Upholstery', render: () => dash },
+        { label: 'Material', render: (p) => p.material ?? dash },
+        { label: 'Upholstery', render: (p) => p.upholstery ?? dash },
       ],
     },
     {
       title: 'Dimensions',
       rows: [
-        { label: 'Width', render: () => dash },
-        { label: 'Depth', render: () => dash },
-        { label: 'Height', render: () => dash },
-        { label: 'Weight', render: () => dash },
+        { label: 'Width', render: (p) => p.dimensions?.width ?? dash },
+        { label: 'Depth', render: (p) => p.dimensions?.depth ?? dash },
+        { label: 'Height', render: (p) => p.dimensions?.height ?? dash },
+        { label: 'Weight', render: (p) => p.dimensions?.weight ?? dash },
       ],
     },
     {

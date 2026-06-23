@@ -59,6 +59,13 @@ export interface Product {
   tags?: string[]
   /** "Often selected for similar projects" */
   popular?: boolean
+  /** Categoría para el filtro del Product Catalog (Sofas, Chairs, Tables…) */
+  category?: string
+  /** Variants & Finish (Compare) */
+  material?: string
+  upholstery?: string
+  /** Dimensions (Compare) */
+  dimensions?: { width: string; depth: string; height: string; weight: string }
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
