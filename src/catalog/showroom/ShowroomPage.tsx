@@ -14,6 +14,8 @@ import CompareModal from '../shop/CompareModal'
 import GenerateReportModal from '../shop/GenerateReportModal'
 import ProductDetailPage from '../browse/ProductDetailPage'
 import ManufacturerPage from '../browse/ManufacturerPage'
+import CatalogImportModal from '../manage/CatalogImportModal'
+import ShowroomCatalogsBar from './ShowroomCatalogsBar'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -79,6 +81,7 @@ export default function ShowroomPage() {
   const [quoteProducts, setQuoteProducts] = useState<Product[] | null>(null)
   const [showCompare, setShowCompare] = useState(false)
   const [showReport, setShowReport] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [brandName, setBrandName] = useState<string | null>(null)
 
@@ -287,6 +290,9 @@ export default function ShowroomPage() {
         </div>
       </div>
 
+      {/* Connected catalogs (import + sync) */}
+      <ShowroomCatalogsBar onImport={() => setShowImport(true)} />
+
       {/* Brand pills */}
       <div className="flex flex-wrap gap-2">
         <button
@@ -491,6 +497,11 @@ export default function ShowroomPage() {
       {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
       {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
       {showReport && <GenerateReportModal onClose={() => setShowReport(false)} onExport={() => setShowReport(false)} />}
+      <CatalogImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onImportComplete={() => setShowImport(false)}
+      />
     </div>
   )
 }
