@@ -352,6 +352,54 @@ export default function ShowroomPage() {
             Clear filters
           </button>
         )}
+
+        {/* search + sort (right) */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="relative w-44 sm:w-56">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Search showroom..."
+              className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+            />
+          </div>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSortOpen((o) => !o)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              {activeSortLabel}
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </button>
+            {sortOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
+                <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-border bg-card p-1 shadow-lg">
+                  {SORT_OPTIONS.map((o) => (
+                    <button
+                      key={o.key}
+                      type="button"
+                      onClick={() => {
+                        setSort(o.key)
+                        setSortOpen(false)
+                        setPage(1)
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                    >
+                      {o.label}
+                      {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
@@ -363,54 +411,6 @@ export default function ShowroomPage() {
           View {[...selectedBrands][0]} brand page →
         </button>
       )}
-
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Search showroom..."
-            className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-          />
-        </div>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setSortOpen((o) => !o)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            {activeSortLabel}
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </button>
-          {sortOpen && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
-              <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-border bg-card p-1 shadow-lg">
-                {SORT_OPTIONS.map((o) => (
-                  <button
-                    key={o.key}
-                    type="button"
-                    onClick={() => {
-                      setSort(o.key)
-                      setSortOpen(false)
-                      setPage(1)
-                    }}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
-                  >
-                    {o.label}
-                    {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
 
       {/* Main: sidebar + grid */}
       <div className="flex gap-6">
