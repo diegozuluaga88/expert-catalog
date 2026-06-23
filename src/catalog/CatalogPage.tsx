@@ -30,7 +30,7 @@ interface CatalogPageProps {
 }
 
 export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) {
-  const [mode, setMode] = useState<CatalogMode>('browse')
+  const [mode, setMode] = useState<CatalogMode>('showroom')
   const [nav, setNav] = useState<BrowseNav>({ page: 'library' })
   const navigate = (state: BrowseNav) => setNav(state)
 
