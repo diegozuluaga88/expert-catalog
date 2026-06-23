@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft } from 'lucide-react'
-import type { Product, ProductSortKey } from '../types'
+import type { Category, Product, ProductSortKey } from '../types'
 import {
   UNIFIED_PRODUCTS,
   UNIFIED_PRICE_RANGES,
   getProductContext,
+  getManufacturerByName,
 } from './data/unifiedProducts'
 import ProductCatalogCard from '../shop/ProductCatalogCard'
 import BulkActionsBar from '../shop/BulkActionsBar'
@@ -12,6 +13,7 @@ import RequestQuoteModal from '../shop/RequestQuoteModal'
 import CompareModal from '../shop/CompareModal'
 import GenerateReportModal from '../shop/GenerateReportModal'
 import ProductDetailPage from '../browse/ProductDetailPage'
+import ManufacturerPage from '../browse/ManufacturerPage'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -78,6 +80,7 @@ export default function ShowroomPage() {
   const [showCompare, setShowCompare] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [brandName, setBrandName] = useState<string | null>(null)
 
   const toggleFromSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) =>
     setter((prev) => {
@@ -222,6 +225,34 @@ export default function ShowroomPage() {
     )
   }
 
+  // ── Brand page (Etapa 9.5): hero/resources/contactos/categorías; seleccionar categoría filtra el grid ──
+  const brandManufacturer = brandName ? getManufacturerByName(brandName) : undefined
+  if (brandManufacturer) {
+    return (
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={() => setBrandName(null)}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Showroom
+        </button>
+        <ManufacturerPage
+          manufacturer={brandManufacturer}
+          onBack={() => setBrandName(null)}
+          onSelectCategory={(c: Category) => {
+            setTaxonomy(brandManufacturer.type === 'materials' ? 'materials' : 'products')
+            setSelectedBrands(new Set([brandManufacturer.name]))
+            setSelectedCategories(new Set([c.name]))
+            setPage(1)
+            setBrandName(null)
+          }}
+        />
+      </div>
+    )
+  }
+
   // ── Storefront grid ───────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
@@ -288,6 +319,16 @@ export default function ShowroomPage() {
           </button>
         ))}
       </div>
+
+      {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
+        <button
+          type="button"
+          onClick={() => setBrandName([...selectedBrands][0])}
+          className="text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
+        >
+          View {[...selectedBrands][0]} brand page →
+        </button>
+      )}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">

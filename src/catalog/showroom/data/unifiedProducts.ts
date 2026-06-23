@@ -62,6 +62,14 @@ export function getProductContext(id: string): ProductContext | undefined {
   return _index[id]
 }
 
+const _mByName = new Map<string, Manufacturer>()
+for (const m of MANUFACTURERS) _mByName.set(m.name, m)
+
+/** Fabricante por nombre de marca, para la brand page (Etapa 9.5). */
+export function getManufacturerByName(name: string): Manufacturer | undefined {
+  return _mByName.get(name)
+}
+
 export const UNIFIED_BRANDS: string[] = Array.from(new Set(UNIFIED_PRODUCTS.map((p) => p.brand!).filter(Boolean)))
 export const UNIFIED_CATEGORIES: string[] = Array.from(
   new Set(UNIFIED_PRODUCTS.map((p) => p.category!).filter(Boolean))
