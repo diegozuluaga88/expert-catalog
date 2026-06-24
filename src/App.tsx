@@ -4,22 +4,38 @@ import Login from "./Login"
 import OCRTracking from "./OCRTracking"
 import FeedbackBoard from "./FeedbackBoard"
 import CatalogPage from "./catalog/CatalogPage"
+import Transactions from "./Transactions"
+import OrderDetail from "./OrderDetail"
+import AckDetail from "./AckDetail"
+import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 
-type Page = 'ocr-tracking' | 'feedback' | 'catalog'
+type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
+
+export interface ConvertedDocument {
+  id: string
+  vendor: string
+  name: string
+  type: 'po' | 'ack'
+  tab: 'orders' | 'acknowledgments'
+}
 
 function App() {
   const { user, initialLoading, signOut, showSessionWarning, refreshSession } = useAuth()
   const [currentPage, setCurrentPage] = useState<Page>('ocr-tracking')
+  const [convertedDoc, setConvertedDoc] = useState<ConvertedDocument | null>(null)
 
   const handleNavigate = (page: string) => {
-    if (page === 'feedback') setCurrentPage('feedback')
-    else if (page === 'catalog') setCurrentPage('catalog')
-    else setCurrentPage('ocr-tracking')
+    setCurrentPage(page as Page)
   }
 
   const handleLogout = () => {
     signOut()
+  }
+
+  const handleConvertFromOCR = (doc: ConvertedDocument) => {
+    setConvertedDoc(doc)
+    setCurrentPage('transactions')
   }
 
   if (initialLoading) {
@@ -34,15 +50,65 @@ function App() {
     return <Login />
   }
 
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'feedback':
+        return <FeedbackBoard onLogout={handleLogout} onNavigate={handleNavigate} />
+      case 'catalog':
+        return <CatalogPage onLogout={handleLogout} onNavigate={handleNavigate} />
+      case 'transactions':
+        return (
+          <>
+            <Navbar
+              onLogout={handleLogout}
+              activeTab="Transactions"
+              onNavigateToWorkspace={() => setCurrentPage('transactions')}
+              onNavigate={handleNavigate}
+            />
+            <Transactions
+              onLogout={handleLogout}
+              onNavigateToDetail={(type: string) => {
+                if (type === 'order-detail') setCurrentPage('order-detail')
+                if (type === 'ack-detail') setCurrentPage('ack-detail')
+              }}
+              onNavigateToWorkspace={() => setCurrentPage('transactions')}
+              onNavigate={handleNavigate}
+              convertedDoc={convertedDoc}
+            />
+          </>
+        )
+      case 'order-detail':
+        return (
+          <OrderDetail
+            onBack={() => setCurrentPage('transactions')}
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+            onNavigateToWorkspace={() => setCurrentPage('transactions')}
+          />
+        )
+      case 'ack-detail':
+        return (
+          <AckDetail
+            onBack={() => setCurrentPage('transactions')}
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+            onNavigateToWorkspace={() => setCurrentPage('transactions')}
+          />
+        )
+      default:
+        return (
+          <OCRTracking
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+            onConvertDocument={handleConvertFromOCR}
+          />
+        )
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {currentPage === 'feedback' ? (
-        <FeedbackBoard onLogout={handleLogout} onNavigate={handleNavigate} />
-      ) : currentPage === 'catalog' ? (
-        <CatalogPage onLogout={handleLogout} onNavigate={handleNavigate} />
-      ) : (
-        <OCRTracking onLogout={handleLogout} onNavigate={handleNavigate} />
-      )}
+      {renderPage()}
       <SessionExpiryModal
         isOpen={showSessionWarning}
         onExtend={refreshSession}
