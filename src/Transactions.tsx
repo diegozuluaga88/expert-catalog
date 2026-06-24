@@ -22,6 +22,8 @@ import Select from './components/Select'
 import CreateOrderModal from './components/CreateOrderModal'
 import Breadcrumbs from './components/Breadcrumbs'
 import TransactionVerifyPill from './components/TransactionVerifyPill'
+import DocTypeChip from './components/ocr/DocTypeChip'
+import { avatarGradient } from './components/team/teamMembers'
 import DocumentConversionModal from './components/DocumentConversionModal'
 import AckReconciliationModal from './components/AckReconciliationModal'
 import DocumentPreviewModal from './components/DocumentPreviewModal'
@@ -2526,7 +2528,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                             <div
                                                                 key={order.id}
                                                                 className={cn(
-                                                                    "group relative bg-card dark:bg-zinc-800 rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col",
+                                                                    "group relative bg-card rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col",
                                                                     expandedIds.has(order.id) ? 'border-brand-400/50 ring-1 ring-brand-400/20 shadow-lg' : 'border-border shadow-sm hover:shadow-md',
                                                                     (procPhase === 'highlight' || procPhase === 'lupa-active') && order.id === '#ORD-2055' && isContinua && "ring-2 ring-brand-400 ring-offset-2 ring-offset-background shadow-xl shadow-brand-400/20 animate-pulse scale-[1.02]",
                                                                     // Step 3.2: Knoll ACK card highlighting
@@ -2534,28 +2536,27 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                 )}
                                                             >
                                                                 <div className="p-4">
-                                                                    <div className="flex items-center justify-between mb-3">
-                                                                        <div className="flex items-center gap-3">
+                                                                    <div className="flex items-start justify-between gap-2 mb-3">
+                                                                        <div className="flex items-start gap-2.5 min-w-0">
                                                                             {isMultiSelectMode && (
                                                                                 <button
                                                                                     onClick={(e) => { e.stopPropagation(); toggleItem(order.id); }}
-                                                                                    className={cn("h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-all",
+                                                                                    className={cn("h-5 w-5 mt-2 rounded border-2 flex items-center justify-center shrink-0 transition-all",
                                                                                         selectedItems.has(order.id) ? "bg-primary border-primary" : "border-muted-foreground/30 hover:border-primary"
                                                                                     )}
                                                                                 >
                                                                                     {selectedItems.has(order.id) && <CheckIcon className="h-3 w-3 text-primary-foreground" />}
                                                                                 </button>
                                                                             )}
-                                                                            <div className="h-8 w-8 rounded-full bg-violet-600 text-white flex items-center justify-center text-xs font-bold shadow-sm ring-2 ring-white dark:ring-zinc-900">
-                                                                                {order.initials}
+                                                                            <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                                                                <DocumentTextIcon className="h-4 w-4 text-muted-foreground" />
                                                                             </div>
-                                                                            <div className="space-y-0.5">
-                                                                                <h4 className="text-sm font-semibold text-foreground transition-colors">
-                                                                                    {lifecycleTab === 'acknowledgments' ? (order as any).vendor : (order as any).customer}
-                                                                                </h4>
-                                                                                <div className="flex items-center gap-1">
-                                                                                    <p className="text-[10px] text-muted-foreground font-mono">{order.id}</p>
-                                                                                    <TransactionVerifyPill orderId={order.id} compact />
+                                                                            <div className="min-w-0">
+                                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                                    <span className="text-sm font-bold text-foreground truncate">
+                                                                                        {lifecycleTab === 'acknowledgments' ? (order as any).vendor : (order as any).customer}
+                                                                                    </span>
+                                                                                    <DocTypeChip type={lifecycleTab === 'acknowledgments' ? 'Acknowledgment' : lifecycleTab === 'quotes' ? 'Quote' : 'Purchase Order'} size="sm" />
                                                                                     {order.id === '#ORD-7829' && (
                                                                                         <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider">
                                                                                             New
@@ -2582,7 +2583,17 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                                         </>
                                                                                     )}
                                                                                 </div>
+                                                                                <div className="flex items-center gap-1 mt-0.5">
+                                                                                    <span className="text-[11px] text-muted-foreground font-mono truncate">{order.id}</span>
+                                                                                    <TransactionVerifyPill orderId={order.id} compact />
+                                                                                </div>
                                                                             </div>
+                                                                        </div>
+                                                                        <div
+                                                                            title={(order as any).vendor || (order as any).customer}
+                                                                            className={`h-7 w-7 rounded-full bg-gradient-to-br ${avatarGradient(order.id)} flex items-center justify-center text-white text-[10px] font-bold shrink-0`}
+                                                                        >
+                                                                            {order.initials}
                                                                         </div>
                                                                     </div>
 
@@ -2600,7 +2611,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                             </div>
                                                                         )}
 
-                                                                        <div className="flex justify-between items-center text-xs">
+                                                                        <div className="flex justify-between items-center text-sm">
                                                                             <span className="text-muted-foreground">
                                                                                 {lifecycleTab === 'acknowledgments' ? 'Exp. Ship' : 'Amount'}
                                                                             </span>
@@ -2608,9 +2619,9 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                                 {lifecycleTab === 'acknowledgments' ? (order as any).expShipDate : (order as any).amount}
                                                                             </span>
                                                                         </div>
-                                                                        <div className="flex justify-between items-center text-xs">
-                                                                            <span className="text-muted-foreground">Date</span>
-                                                                            <span className="text-foreground">{order.date}</span>
+                                                                        <div className="flex justify-between items-center text-sm">
+                                                                            <span className="text-muted-foreground">{lifecycleTab === 'acknowledgments' ? 'PO #' : 'Project'}</span>
+                                                                            <span className="font-semibold text-foreground truncate ml-2 max-w-[160px]">{lifecycleTab === 'acknowledgments' ? (order as any).relatedPo : (order as any).project}</span>
                                                                         </div>
 
                                                                         {/* ACK with inconsistency: Resolve button */}
@@ -2627,21 +2638,19 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                             </button>
                                                                         )}
 
-                                                                        {/* Use a simple divider */}
-                                                                        <div className="h-px bg-border w-full my-2" />
+                                                                        {/* Footer — date left, status + actions right (homologated with OcrDocCard) */}
+                                                                        <div className="border-t border-border pt-3 mt-1 flex items-center justify-between">
+                                                                            <span className="text-xs text-muted-foreground">{order.date}</span>
 
-                                                                        {/* Inline Actions Row */}
-                                                                        <div className="flex items-center justify-between">
-                                                                            {/* Status Badge */}
-                                                                            <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border shadow-sm",
-                                                                                lifecycleTab === 'acknowledgments' && (order as any).tag
-                                                                                    ? (order as any).tag === 'Inconsistency' ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300 ring-1 ring-inset ring-red-600/20" : "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20"
-                                                                                    : colorStyles[order.statusColor?.split('-')[1]?.replace('text', '').trim()] || "bg-muted text-muted-foreground border-border"
-                                                                            )}>
-                                                                                {lifecycleTab === 'acknowledgments' && (order as any).tag ? (order as any).tag : order.status}
-                                                                            </span>
-
-                                                                            <div className="flex items-center gap-1">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                {/* Status Badge */}
+                                                                                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border shadow-sm",
+                                                                                    lifecycleTab === 'acknowledgments' && (order as any).tag
+                                                                                        ? (order as any).tag === 'Inconsistency' ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300 ring-1 ring-inset ring-red-600/20" : "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20"
+                                                                                        : colorStyles[order.statusColor?.split('-')[1]?.replace('text', '').trim()] || "bg-muted text-muted-foreground border-border"
+                                                                                )}>
+                                                                                    {lifecycleTab === 'acknowledgments' && (order as any).tag ? (order as any).tag : order.status}
+                                                                                </span>
                                                                                 <button
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
@@ -2654,7 +2663,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                                             confidence: 96
                                                                                         });
                                                                                     }}
-                                                                                    className="p-1.5 rounded-md text-muted-foreground hover:text-ai hover:bg-ai/10 transition-all group relative"
+                                                                                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                                                                     title="Preview Document"
                                                                                 >
                                                                                     <DocumentTextIcon className="h-4 w-4" />
@@ -2667,7 +2676,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                                 </button>
                                                                                 <button
                                                                                     onClick={(e) => { e.stopPropagation(); onNavigateToDetail(lifecycleTab === 'quotes' ? 'quote-detail' : lifecycleTab === 'acknowledgments' ? 'ack-detail' : 'order-detail'); }}
-                                                                                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                                                                                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                                                                     title="View Full Details"
                                                                                 >
                                                                                     <ArrowRightIcon className="h-4 w-4" />
