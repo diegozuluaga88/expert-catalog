@@ -142,17 +142,17 @@ export default function ConvertDocumentModal({ isOpen, onClose, document, onConv
                                         <div className="space-y-2 mb-4">
                                             {PROCESSING_STEPS.map((ps, i) => (
                                                 <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                                                    i < processingIdx ? 'bg-success-light dark:bg-success/10' : i === processingIdx ? 'bg-ai-light dark:bg-ai/10' : 'opacity-40'
+                                                    i < processingIdx ? 'bg-green-50 dark:bg-green-500/10' : i === processingIdx ? 'bg-ai-light dark:bg-ai/10' : 'opacity-40'
                                                 }`}>
                                                     {i < processingIdx ? (
-                                                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                                                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                                                     ) : i === processingIdx ? (
                                                         <Loader2 className="h-4 w-4 text-ai shrink-0 animate-spin" />
                                                     ) : (
                                                         <div className="h-4 w-4 rounded-full border border-border shrink-0" />
                                                     )}
                                                     <span className={`text-xs font-medium ${
-                                                        i < processingIdx ? 'text-success' : i === processingIdx ? 'text-ai' : 'text-muted-foreground'
+                                                        i < processingIdx ? 'text-green-600' : i === processingIdx ? 'text-ai' : 'text-muted-foreground'
                                                     }`}>{ps.label}</span>
                                                 </div>
                                             ))}
@@ -169,8 +169,8 @@ export default function ConvertDocumentModal({ isOpen, onClose, document, onConv
                                 {step === 'complete' && (
                                     <div className="p-6">
                                         <div className="text-center mb-6">
-                                            <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-                                                <CheckCircle2 className="h-8 w-8 text-success" />
+                                            <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                                                <CheckCircle2 className="h-8 w-8 text-green-600" />
                                             </div>
                                             <h3 className="text-lg font-bold text-foreground">{typeLabel} Created</h3>
                                             <p className="text-sm text-muted-foreground mt-1">Document is now available in Transactions</p>
@@ -185,7 +185,7 @@ export default function ConvertDocumentModal({ isOpen, onClose, document, onConv
                                                     <p className="text-sm font-bold text-foreground">{generatedId}</p>
                                                     <p className="text-xs text-muted-foreground">{document?.vendor}</p>
                                                 </div>
-                                                <span className="ml-auto text-[10px] font-bold px-2 py-1 rounded-full bg-success-light text-success">Active</span>
+                                                <span className="ml-auto text-[10px] font-bold px-2 py-1 rounded-full bg-green-50 text-green-600">Active</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                 <div><span className="text-muted-foreground">Source:</span> <span className="text-foreground font-medium">{document?.name}</span></div>

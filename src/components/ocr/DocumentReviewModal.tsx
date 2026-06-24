@@ -1,9 +1,12 @@
 import { Fragment, useState, useMemo, useEffect } from 'react'
 import { Dialog, Transition, TransitionChild, DialogPanel } from '@headlessui/react'
-import { X, ExternalLink, CheckCircle2, ChevronDown, Download, FileText, Pencil, Plus, Trash2, Box, Info } from 'lucide-react'
-import type { OcrDocCardData } from './OcrDocCard'
+import { X, ExternalLink, CheckCircle2, ChevronDown, Download, FileText, Pencil, Plus, Trash2, Box, Info, Eye, Link2, CornerDownRight } from 'lucide-react'
+import type { OcrDocCardData, OcrDocType } from './OcrDocCard'
 import CatalogVerifyPill from './CatalogVerifyPill'
 import AITrainingConsentModal from './AITrainingConsentModal'
+import DocTypeChip from './DocTypeChip'
+import PdfPreviewModal from '../comparison/PdfPreviewModal'
+import TransactionVerifyPill from '../TransactionVerifyPill'
 
 interface DocumentReviewModalProps {
     isOpen: boolean
@@ -111,6 +114,82 @@ function formatCurrency(n: number): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 }
 
+// ── Linked Documents (traceability) ───────────────────────────────────────
+// Transaction documents flow through a lifecycle: Quote → Purchase Order →
+// Acknowledgment → Invoice. Linked Documents shows ONLY upstream sources — the
+// documents that led to the current one — never downstream documents (a PO has
+// no Acknowledgment yet at the time it exists). Grounded in the Strata docs
+// (COI-DEMO-FLOWS / referencePoNumber): a PO links to its Quote; an ACK links to
+// its PO and the originating Quote; an Invoice links to its ACK/PO/Quote. Mock
+// data for the demo — a real build would resolve these from the document graph.
+type ChainRelation = 'source' | 'current'
+
+interface LinkedDoc {
+    id: string
+    name: string
+    vendor: string
+    type: OcrDocType
+    relation: ChainRelation
+    relationLabel: string
+    status: string
+    date: string
+    isCurrent: boolean
+}
+
+const LIFECYCLE: { type: OcrDocType; prefix: string }[] = [
+    { type: 'Quote', prefix: 'QT' },
+    { type: 'Purchase Order', prefix: 'PO' },
+    { type: 'Acknowledgment', prefix: 'ACK' },
+    { type: 'Invoice', prefix: 'INV' },
+]
+
+const TYPE_NOUN: Record<OcrDocType, string> = {
+    'Quote': 'quote',
+    'Purchase Order': 'PO',
+    'Acknowledgment': 'ACK',
+    'Invoice': 'invoice',
+}
+
+// Returns the upstream ancestry (oldest → immediate parent) followed by the
+// current document as the final node. Returns just the current node for a Quote
+// (no upstream); the caller renders an empty state in that case.
+function buildUpstreamChain(doc: OcrDocCardData): LinkedDoc[] {
+    const idx = LIFECYCLE.findIndex(s => s.type === doc.type)
+    if (idx === -1) return []
+    const vendorSlug = doc.vendor.replace(/[^A-Za-z0-9]+/g, '') || 'Vendor'
+    const num = doc.name.match(/\d{3,}/)?.[0] ?? '1027'
+    const immediateParentIdx = idx - 1
+    return LIFECYCLE.slice(0, idx + 1).map((stage, i) => {
+        const isCurrent = i === idx
+        const isImmediateParent = i === immediateParentIdx
+        const relationLabel =
+            isCurrent ? 'This document'
+            : isImmediateParent ? `Source ${TYPE_NOUN[stage.type]}`
+            : `Originating ${TYPE_NOUN[stage.type]}`
+        const status = isCurrent
+            ? (doc.status === 'processed' || doc.status === 'completed' ? 'Reviewed' : 'Pending review')
+            : 'Approved'
+        return {
+            id: isCurrent ? doc.id : `${stage.prefix}-${num}`,
+            name: isCurrent ? doc.name : `${stage.prefix}-${num}_${vendorSlug}.pdf`,
+            vendor: doc.vendor,
+            type: stage.type,
+            relation: isCurrent ? 'current' : 'source',
+            relationLabel,
+            status,
+            date: doc.date,
+            isCurrent,
+        }
+    })
+}
+
+function relationBadgeClasses(relation: ChainRelation): string {
+    switch (relation) {
+        case 'source': return 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
+        case 'current': return 'bg-primary text-primary-foreground'
+    }
+}
+
 function EditableValue({ value, editable, onChange }: { value: string; editable?: boolean; onChange?: (v: string) => void }) {
     const [isEditing, setIsEditing] = useState(false)
     const [draft, setDraft] = useState(value)
@@ -142,10 +221,13 @@ function EditableValue({ value, editable, onChange }: { value: string; editable?
 }
 
 export default function DocumentReviewModal({ isOpen, onClose, doc, onSave, onDownloadOriginal }: DocumentReviewModalProps) {
-    const [tab, setTab] = useState<'header' | 'lineItems'>('header')
+    const [tab, setTab] = useState<'header' | 'lineItems' | 'linked'>('header')
     const [exportOpen, setExportOpen] = useState(false)
+    const [previewDoc, setPreviewDoc] = useState<LinkedDoc | null>(null)
 
     const sections = useMemo(() => doc ? buildHeaderSections(doc) : [], [doc])
+    const chain = useMemo(() => doc ? buildUpstreamChain(doc) : [], [doc])
+    const linkedCount = chain.filter(d => !d.isCurrent).length
     // Local mutable copy so users can replace a SKU via the catalog verify popover.
     const [lineItems, setLineItems] = useState<LineItem[]>([])
     // Change tracking — drives whether the consent modal opens on Save.
@@ -259,7 +341,10 @@ export default function DocumentReviewModal({ isOpen, onClose, doc, onSave, onDo
                                     </div>
                                     <div className="min-w-0">
                                         <h2 className="text-xl font-bold text-foreground">Document Review</h2>
-                                        <p className="text-sm text-muted-foreground truncate">{doc.vendor} · {doc.name}</p>
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <p className="text-sm text-muted-foreground truncate">{doc.vendor} · {doc.name}</p>
+                                            <TransactionVerifyPill orderId={doc.id} />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
@@ -310,6 +395,17 @@ export default function DocumentReviewModal({ isOpen, onClose, doc, onSave, onDo
                                         Line Items
                                         <span className="text-[10px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{lineItems.length}</span>
                                         {tab === 'lineItems' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />}
+                                    </button>
+                                    <button
+                                        onClick={() => setTab('linked')}
+                                        className={`relative py-3 text-sm font-bold inline-flex items-center gap-2 transition-colors ${
+                                            tab === 'linked' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <Link2 className="h-3.5 w-3.5" />
+                                        Linked Documents
+                                        <span className="text-[10px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{linkedCount}</span>
+                                        {tab === 'linked' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />}
                                     </button>
                                 </div>
                                 {/* Export dropdown */}
@@ -449,6 +545,82 @@ export default function DocumentReviewModal({ isOpen, onClose, doc, onSave, onDo
                                         </div>
                                     </div>
                                 )}
+
+                                {tab === 'linked' && (
+                                    <div className="max-w-3xl">
+                                        <div className="flex items-start gap-2 mb-5">
+                                            <Link2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                            <div>
+                                                <h3 className="text-sm font-bold text-foreground">Document lifecycle</h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Source documents that led to this one — upstream in the Quote → PO → Acknowledgment → Invoice flow.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {linkedCount === 0 ? (
+                                            <div className="flex flex-col items-center justify-center text-center border border-dashed border-border rounded-xl py-12 px-6">
+                                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                                                    <FileText className="h-5 w-5 text-muted-foreground" />
+                                                </div>
+                                                <p className="text-sm font-semibold text-foreground">This is the originating document</p>
+                                                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                                                    No upstream source documents — a {TYPE_NOUN[doc.type]} starts the transaction chain.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {chain.map((node, i) => (
+                                                    <div key={node.id + i} className="relative">
+                                                        {/* Connector line to the next node */}
+                                                        {i < chain.length - 1 && (
+                                                            <span className="absolute left-[19px] top-[44px] bottom-[-12px] w-px bg-border" aria-hidden="true" />
+                                                        )}
+                                                        <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                                                            node.isCurrent
+                                                                ? 'border-primary bg-primary/10'
+                                                                : 'border-border bg-card hover:bg-muted/30'
+                                                        }`}>
+                                                            {/* Lifecycle node dot */}
+                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+                                                                node.isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                                                            }`}>
+                                                                {node.isCurrent ? <FileText className="h-4 w-4" /> : <CornerDownRight className="h-4 w-4" />}
+                                                            </div>
+
+                                                            {/* Doc info */}
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="text-sm font-bold text-foreground truncate">{node.name}</span>
+                                                                    <DocTypeChip type={node.type} size="sm" />
+                                                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${relationBadgeClasses(node.relation)}`}>
+                                                                        {node.relationLabel}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">
+                                                                    {node.id} · {node.status} · {node.date}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Actions */}
+                                                            {node.isCurrent ? (
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded-full shrink-0">You are here</span>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => setPreviewDoc(node)}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-lg hover:bg-muted transition-colors shrink-0"
+                                                                >
+                                                                    <Eye className="h-3.5 w-3.5" />
+                                                                    Preview
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Footer */}
@@ -487,6 +659,13 @@ export default function DocumentReviewModal({ isOpen, onClose, doc, onSave, onDo
             onAccept={handleConsentAccept}
             onDecline={handleConsentDecline}
             onCancel={handleConsentCancel}
+        />
+
+        {/* Reuses the existing PDF preview component to render a linked document. */}
+        <PdfPreviewModal
+            isOpen={!!previewDoc}
+            onClose={() => setPreviewDoc(null)}
+            doc={previewDoc ? { id: previewDoc.id, name: previewDoc.name, vendor: previewDoc.vendor, type: previewDoc.type } : null}
         />
         </>
     )

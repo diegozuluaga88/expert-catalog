@@ -72,12 +72,12 @@ const OCR_DOCUMENTS: OcrDoc[] = [
 ]
 
 const COLUMNS = [
-    { id: 'identified', label: 'Ingesting', icon: FileText, color: 'text-info', bg: 'bg-info-light dark:bg-info/10', border: 'border-info/20' },
+    { id: 'identified', label: 'Ingesting', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-500/20' },
     { id: 'capturing', label: 'Needs Attention', icon: ScanEye, color: 'text-ai', bg: 'bg-ai-light dark:bg-ai/10', border: 'border-ai/20' },
-    { id: 'inconsistencies', label: 'Awaiting Expert', icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning-light dark:bg-warning/10', border: 'border-warning/20' },
+    { id: 'inconsistencies', label: 'Awaiting Expert', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-500/20' },
     { id: 'in_progress', label: 'In-progress', icon: Loader2, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10', border: 'border-indigo-200 dark:border-indigo-500/20' },
-    { id: 'processed', label: 'Reconciled', icon: CheckCircle2, color: 'text-success', bg: 'bg-success-light dark:bg-success/10', border: 'border-success/20' },
-    { id: 'completed', label: 'Completed', icon: CheckCircle2, color: 'text-success', bg: 'bg-success-light dark:bg-success/10', border: 'border-success/20' },
+    { id: 'processed', label: 'Reconciled', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-500/10', border: 'border-green-500/20' },
+    { id: 'completed', label: 'Completed', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-500/10', border: 'border-green-500/20' },
 ]
 
 interface OCRTrackingProps {

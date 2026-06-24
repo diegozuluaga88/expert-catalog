@@ -15,6 +15,7 @@ import { useTheme, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 import { useTenant } from './TenantContext'
 import Navbar from './components/Navbar'
 import Breadcrumbs from './components/Breadcrumbs'
+import TransactionVerifyPill from './components/TransactionVerifyPill'
 import { POInputsTab } from './components/InputsTab'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -428,6 +429,7 @@ export default function OrderDetail({ onBack, onLogout, onNavigateToWorkspace, o
                             { label: `Order ${orderId}`, active: true }
                         ]}
                     />
+                    <TransactionVerifyPill orderId={orderId} />
                 </div>
             </div>
 

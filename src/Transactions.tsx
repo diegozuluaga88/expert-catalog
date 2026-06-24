@@ -21,6 +21,7 @@ import { useTenant } from './TenantContext'
 import Select from './components/Select'
 import CreateOrderModal from './components/CreateOrderModal'
 import Breadcrumbs from './components/Breadcrumbs'
+import TransactionVerifyPill from './components/TransactionVerifyPill'
 import DocumentConversionModal from './components/DocumentConversionModal'
 import AckReconciliationModal from './components/AckReconciliationModal'
 import DocumentPreviewModal from './components/DocumentPreviewModal'
@@ -2344,6 +2345,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                             <div className="font-medium text-foreground">{lifecycleTab === 'acknowledgments' ? order.vendor : order.customer}</div>
                                                                             <div className="flex items-center gap-2">
                                                                                 <div className="text-xs text-muted-foreground">{order.id}</div>
+                                                                                <TransactionVerifyPill orderId={order.id} compact />
                                                                                 {order.id === '#ORD-7829' && (
                                                                                     <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider">
                                                                                         New
@@ -2553,6 +2555,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                                 </h4>
                                                                                 <div className="flex items-center gap-1">
                                                                                     <p className="text-[10px] text-muted-foreground font-mono">{order.id}</p>
+                                                                                    <TransactionVerifyPill orderId={order.id} compact />
                                                                                     {order.id === '#ORD-7829' && (
                                                                                         <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider">
                                                                                             New

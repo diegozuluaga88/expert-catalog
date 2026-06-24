@@ -96,18 +96,18 @@ const FUNNEL: { id: string; label: string }[] = [
 function severityClasses(s: Severity): string {
     switch (s) {
         case 'Critical': return 'bg-destructive/10 text-destructive'
-        case 'High': return 'bg-warning/10 text-warning'
-        case 'Medium': return 'bg-info/10 text-info'
+        case 'High': return 'bg-amber-500/10 text-amber-600'
+        case 'Medium': return 'bg-blue-500/10 text-blue-600'
         case 'Low': return 'bg-muted text-muted-foreground'
     }
 }
 
 function stateClasses(s: FeedbackState): string {
     switch (s) {
-        case 'Submitted': return 'bg-info/10 text-info'
-        case 'Triaged': return 'bg-warning/10 text-warning'
-        case 'Assigned': return 'bg-info/10 text-info'
-        case 'Resolved': return 'bg-success/10 text-success'
+        case 'Submitted': return 'bg-blue-500/10 text-blue-600'
+        case 'Triaged': return 'bg-amber-500/10 text-amber-600'
+        case 'Assigned': return 'bg-blue-500/10 text-blue-600'
+        case 'Resolved': return 'bg-green-500/10 text-green-600'
         default: return 'bg-muted text-muted-foreground'
     }
 }
@@ -255,7 +255,7 @@ export default function FeedbackBoard({ onLogout, onNavigate }: FeedbackBoardPro
                                             <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{f.date}</td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 {f.jira ? (
-                                                    <a className="inline-flex items-center gap-1 text-info hover:underline cursor-pointer">
+                                                    <a className="inline-flex items-center gap-1 text-blue-600 hover:underline cursor-pointer">
                                                         {f.jira}
                                                         <ExternalLink className="h-3 w-3" />
                                                     </a>

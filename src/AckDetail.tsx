@@ -15,6 +15,7 @@ import { useTheme } from 'strata-design-system'
 import { useTenant } from './TenantContext'
 import Navbar from './components/Navbar'
 import Breadcrumbs from './components/Breadcrumbs'
+import TransactionVerifyPill from './components/TransactionVerifyPill'
 import { ACKInputsTab } from './components/InputsTab'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -534,6 +535,7 @@ export default function AckDetail({ onBack, onLogout, onNavigateToWorkspace, onN
                             { label: 'Acknowledgement #ACK-3099', active: true }
                         ]}
                     />
+                    <TransactionVerifyPill orderId="#ACK-3099" />
                 </div>
             </div>
 
