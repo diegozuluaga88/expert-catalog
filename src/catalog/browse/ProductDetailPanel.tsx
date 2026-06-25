@@ -1,16 +1,18 @@
-// Phase 2 Fix #5 — Product detail modal · centered + tabs at top + sticky identity.
-// Iteración 2 (Diego review):
-//  - Sticky header con name + brand + SKUs + rating + status SIEMPRE visibles
-//  - Tabs visibles desde el inicio (no después de scroll past hero)
-//  - "Quote" como tab separado · ya no es panel sticky right
-//  - Gallery integrado dentro del tab Overview
-//  - Specs tab restaurado con specs + performance + dimensions completo
+// Phase 2 Fix #5 — Product detail modal · iteración 3 (Diego review).
+// Cambios:
+//  - Fixed size · h-[88vh] + max-w-6xl (constant width + height entre productos)
+//  - Image thumbnail visible en sticky identity row (siempre a la vista)
+//  - Quote tab PRIMERO (default) · Overview pasa a 2do
+//  - **Multi-line quote builder** · cliente puede agregar N líneas con variants
+//    distintos (10 black + 5 slate premium leather + 3 olive COM) y agregar
+//    todas al quote como elementos separados. Inspirado en Amazon Business
+//    "Quick Order" multi-line entry.
 
 import React, { Fragment, useEffect, useMemo, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import {
     ArrowUpRight, Ban, ChevronRight, Copy, CheckCircle2, Download, Heart,
-    Sparkles, Star, X,
+    Plus, Sparkles, Star, Trash2, X,
 } from 'lucide-react'
 import type { Category, FabricOption, Finish, Manufacturer, MaterialTier, Product } from '../types'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
@@ -18,7 +20,16 @@ import { getProductVariants } from '../data/productVariants'
 import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
 
-type DetailTab = 'overview' | 'variants' | 'quote' | 'specs' | 'resources'
+type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
+
+interface QuoteLine {
+    id: string
+    qty: number
+    colorwayCode?: string
+    finishId?: string
+    fabricId?: string
+    materialTierId?: string
+}
 
 interface ProductDetailPanelProps {
     open: boolean
@@ -29,38 +40,36 @@ interface ProductDetailPanelProps {
     onAddToQuote: (product: Product) => void
 }
 
+function makeDefaultLine(product: Product): QuoteLine {
+    const variants = getProductVariants(product)
+    return {
+        id: `line-${Math.floor(Math.random() * 1e9).toString(36)}`,
+        qty: 1,
+        colorwayCode: product.colorways[0]?.code,
+        finishId: variants.finishes?.[0]?.id,
+        fabricId:
+            variants.fabricOptions?.find(f => f.type === 'standard')?.id ??
+            variants.fabricOptions?.[0]?.id,
+        materialTierId: variants.materialTiers?.[0]?.id,
+    }
+}
+
 export default function ProductDetailPanel({
     open, manufacturer, category, product, onClose, onAddToQuote,
 }: ProductDetailPanelProps) {
-    const [qty, setQty] = useState(1)
-    const [colorwayCode, setColorwayCode] = useState<string | undefined>()
-    const [finishId, setFinishId] = useState<string | undefined>()
-    const [fabricId, setFabricId] = useState<string | undefined>()
-    const [materialTierId, setMaterialTierId] = useState<string | undefined>()
+    const [lines, setLines] = useState<QuoteLine[]>([])
     const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
-    const [activeTab, setActiveTab] = useState<DetailTab>('overview')
+    const [activeTab, setActiveTab] = useState<DetailTab>('quote')
 
     useEffect(() => {
         if (product) {
-            setQty(1)
-            setColorwayCode(product.colorways[0]?.code)
-            const variants = getProductVariants(product)
-            setFinishId(variants.finishes?.[0]?.id)
-            setFabricId(
-                variants.fabricOptions?.find(f => f.type === 'standard')?.id ??
-                variants.fabricOptions?.[0]?.id
-            )
-            setMaterialTierId(variants.materialTiers?.[0]?.id)
-            setActiveTab('overview')
+            setLines([makeDefaultLine(product)])
+            setActiveTab('quote')
         }
     }, [product])
 
     const catalogs = useCatalogs()
     const variants = useMemo(() => product ? getProductVariants(product) : {}, [product])
-    const totals = useMemo(() => {
-        if (!product) return null
-        return computeLineItemTotals(product, { qty, colorwayCode, finishId, fabricId, materialTierId })
-    }, [product, qty, colorwayCode, finishId, fabricId, materialTierId])
 
     if (!product) return null
 
@@ -69,14 +78,44 @@ export default function ProductDetailPanel({
     const isDiscrepancy = itemStatus === 'discrepancy'
     const mfrSku = resolveManufacturerSku(product)
     const internalSku = resolveInternalSku(product)
+    const heroImage = product.images[0]
 
     const handleCopy = async (text: string, which: 'mfr' | 'internal') => {
         try {
             await navigator.clipboard.writeText(text)
             setSkuCopied(which)
             setTimeout(() => setSkuCopied(null), 1500)
-        } catch { /* clipboard may be blocked */ }
+        } catch { /* clipboard blocked */ }
     }
+
+    const addLine = () => {
+        if (!product) return
+        const last = lines[lines.length - 1]
+        // Nueva línea hereda el config de la última (UX faster · usually changing 1-2 fields)
+        setLines([...lines, { ...last, id: `line-${Math.floor(Math.random() * 1e9).toString(36)}`, qty: 1 }])
+    }
+    const removeLine = (id: string) => {
+        if (lines.length <= 1) return
+        setLines(lines.filter(l => l.id !== id))
+    }
+    const updateLine = (id: string, patch: Partial<QuoteLine>) => {
+        setLines(lines.map(l => l.id === id ? { ...l, ...patch } : l))
+    }
+
+    const lineTotals = useMemo(
+        () => lines.map(line => computeLineItemTotals(product, {
+            qty: line.qty,
+            colorwayCode: line.colorwayCode,
+            finishId: line.finishId,
+            fabricId: line.fabricId,
+            materialTierId: line.materialTierId,
+        })),
+        [product, lines]
+    )
+
+    const totalUnits = lines.reduce((s, l) => s + l.qty, 0)
+    const totalPrice = lineTotals.reduce((s, t) => s + t.totalPrice, 0)
+    const maxLeadDays = Math.max(0, ...lineTotals.map(t => t.leadTimeDays))
 
     return (
         <Transition show={open} as={Fragment}>
@@ -87,10 +126,11 @@ export default function ProductDetailPanel({
 
                 <div className="fixed inset-0 flex items-center justify-center p-4">
                     <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                        <Dialog.Panel className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-                            {/* ── Sticky breadcrumb row ────────────────────────────────── */}
-                            <div className="flex items-center justify-between border-b border-border bg-card px-6 py-3">
-                                <nav className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
+                        {/* Fixed size · h-[88vh] + max-w-6xl consistent entre productos */}
+                        <Dialog.Panel className="relative flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+                            {/* Breadcrumb row */}
+                            <div className="flex flex-shrink-0 items-center justify-between border-b border-border bg-card px-6 py-2.5">
+                                <nav className="flex items-center gap-1.5 truncate text-xs text-muted-foreground" aria-label="Breadcrumb">
                                     {manufacturer && (
                                         <>
                                             <span className="font-medium uppercase tracking-wide">{manufacturer.name}</span>
@@ -103,51 +143,59 @@ export default function ProductDetailPanel({
                                             <ChevronRight className="h-3 w-3" />
                                         </>
                                     )}
-                                    <span className="font-semibold text-foreground">{product.name}</span>
+                                    <span className="truncate font-semibold text-foreground">{product.name}</span>
                                 </nav>
-                                <button type="button" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close">
+                                <button type="button" onClick={onClose} className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close">
                                     <X className="h-5 w-5" />
                                 </button>
                             </div>
 
-                            {/* ── Sticky product identity · ALWAYS VISIBLE (Diego ask) ─── */}
-                            <div className="border-b border-border bg-card px-6 py-3">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <span className="font-medium uppercase tracking-wide text-muted-foreground">{product.brand}</span>
-                                            <ItemStatusInlinePill status={itemStatus} />
-                                        </div>
-                                        <h1 className="mt-0.5 text-xl font-bold leading-tight text-foreground">{product.name}</h1>
-                                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                                            <SkuChip label="MFR" value={mfrSku} copied={skuCopied === 'mfr'} onCopy={() => handleCopy(mfrSku, 'mfr')} />
-                                            <SkuChip label="Internal" value={internalSku} copied={skuCopied === 'internal'} onCopy={() => handleCopy(internalSku, 'internal')} />
-                                            <span className="text-[10px] font-mono text-muted-foreground/80" title="Product ID">
-                                                ID · {product.id}
-                                            </span>
-                                        </div>
+                            {/* Sticky identity · thumbnail + name + SKUs + status (Diego ask) */}
+                            <div className="flex flex-shrink-0 items-start gap-4 border-b border-border bg-card px-6 py-3">
+                                {/* Image thumbnail · siempre visible · click → tab Overview para ver galería completa */}
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('overview')}
+                                    className="group relative h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border transition-all hover:ring-foreground/30"
+                                    title="View full gallery"
+                                    aria-label="View full gallery"
+                                >
+                                    <img src={heroImage} alt={product.name} className="h-full w-full object-cover" />
+                                    <span className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
+                                        <span className="m-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Gallery</span>
+                                    </span>
+                                </button>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <span className="font-medium uppercase tracking-wide text-muted-foreground">{product.brand}</span>
+                                        <ItemStatusInlinePill status={itemStatus} />
                                     </div>
-                                    <div className="flex flex-col items-end gap-1 text-right">
-                                        {product.dealerRating && (
-                                            <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
-                                                <Star className="h-3.5 w-3.5 fill-foreground" />
-                                                {product.dealerRating.toFixed(1)}
-                                                <span className="text-xs text-muted-foreground">Dealer Rated</span>
-                                            </span>
-                                        )}
-                                        {product.popular && (
-                                            <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
-                                                <Sparkles className="h-3.5 w-3.5" />
-                                                Often selected
-                                            </span>
-                                        )}
+                                    <h1 className="mt-0.5 text-xl font-bold leading-tight text-foreground">{product.name}</h1>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                        <SkuChip label="MFR" value={mfrSku} copied={skuCopied === 'mfr'} onCopy={() => handleCopy(mfrSku, 'mfr')} />
+                                        <SkuChip label="Internal" value={internalSku} copied={skuCopied === 'internal'} onCopy={() => handleCopy(internalSku, 'internal')} />
+                                        <span className="text-[10px] font-mono text-muted-foreground/80" title="Product ID">ID · {product.id}</span>
                                     </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 text-right">
+                                    {product.dealerRating && (
+                                        <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
+                                            <Star className="h-3.5 w-3.5 fill-foreground" />
+                                            {product.dealerRating.toFixed(1)}
+                                            <span className="text-xs text-muted-foreground">Dealer Rated</span>
+                                        </span>
+                                    )}
+                                    {product.popular && (
+                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+                                            <Sparkles className="h-3.5 w-3.5" />
+                                            Often selected
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* ── Status banners (discontinued / discrepancy) ────────── */}
                             {isDiscontinued && (
-                                <div className="flex items-center gap-3 border-b border-border bg-muted/80 px-6 py-2 text-sm">
+                                <div className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-muted/80 px-6 py-2 text-sm">
                                     <Ban className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                                     <span className="flex-1">
                                         <span className="font-semibold text-foreground">Discontinued.</span>
@@ -156,65 +204,46 @@ export default function ProductDetailPanel({
                                 </div>
                             )}
                             {isDiscrepancy && (
-                                <div className="flex items-center gap-3 border-b border-border bg-amber-500/10 px-6 py-2 text-sm">
+                                <div className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-amber-500/10 px-6 py-2 text-sm">
                                     <Sparkles className="h-4 w-4 flex-shrink-0 text-amber-700 dark:text-amber-400" />
                                     <span className="flex-1 text-foreground">
                                         <span className="font-semibold">Catalog out of sync.</span>
-                                        <span className="ml-1 text-muted-foreground">Some attributes may be stale · sync {product.brand} from Manage Catalogs.</span>
+                                        <span className="ml-1 text-muted-foreground">Sync {product.brand} from Manage Catalogs for the latest data.</span>
                                     </span>
                                 </div>
                             )}
 
-                            {/* ── Tabs (visible at top · Diego ask) ──────────────────── */}
-                            <div className="border-b border-border bg-muted/20 px-6">
+                            {/* Tabs · Quote first (Diego ask) */}
+                            <div className="flex-shrink-0 border-b border-border bg-muted/20 px-6">
                                 <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Product details">
+                                    <TabButton label="Quote" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} primary />
                                     <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-                                    <TabButton label="Variants & Materials" active={activeTab === 'variants'} onClick={() => setActiveTab('variants')} disabled={!variants.fabricOptions && !variants.finishes && !product.material} />
-                                    <TabButton label="Quote" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} highlight />
+                                    <TabButton label="Variants & Materials" active={activeTab === 'variants'} onClick={() => setActiveTab('variants')} />
                                     <TabButton label="Specifications" active={activeTab === 'specs'} onClick={() => setActiveTab('specs')} />
                                     <TabButton label="Resources" active={activeTab === 'resources'} onClick={() => setActiveTab('resources')} />
                                 </div>
                             </div>
 
-                            {/* ── Active tab content ─────────────────────────────────── */}
-                            <div className="flex-1 overflow-y-auto px-6 py-6">
-                                {activeTab === 'overview' && (
-                                    <OverviewTab
-                                        product={product}
-                                        colorwayCode={colorwayCode}
-                                        setColorwayCode={setColorwayCode}
-                                    />
-                                )}
-                                {activeTab === 'variants' && (
-                                    <VariantsTab
-                                        product={product}
-                                        finishes={variants.finishes}
-                                        fabricOptions={variants.fabricOptions}
-                                        materialTiers={variants.materialTiers}
-                                        finishId={finishId}
-                                        setFinishId={setFinishId}
-                                        fabricId={fabricId}
-                                        setFabricId={setFabricId}
-                                        materialTierId={materialTierId}
-                                        setMaterialTierId={setMaterialTierId}
-                                    />
-                                )}
-                                {activeTab === 'quote' && totals && (
+                            {/* Tab content · scrolls in fixed-height container */}
+                            <div className="flex-1 overflow-y-auto px-6 py-5">
+                                {activeTab === 'quote' && (
                                     <QuoteTab
                                         product={product}
-                                        qty={qty}
-                                        setQty={setQty}
-                                        totals={totals}
-                                        colorwayCode={colorwayCode}
-                                        finishId={finishId}
-                                        fabricId={fabricId}
-                                        materialTierId={materialTierId}
+                                        lines={lines}
+                                        lineTotals={lineTotals}
+                                        totalUnits={totalUnits}
+                                        totalPrice={totalPrice}
+                                        maxLeadDays={maxLeadDays}
                                         variants={variants}
                                         disabled={isDiscontinued}
+                                        addLine={addLine}
+                                        removeLine={removeLine}
+                                        updateLine={updateLine}
                                         onAddToQuote={() => !isDiscontinued && onAddToQuote(product)}
-                                        onGoToVariants={() => setActiveTab('variants')}
                                     />
                                 )}
+                                {activeTab === 'overview' && <OverviewTab product={product} />}
+                                {activeTab === 'variants' && <VariantsTab product={product} variants={variants} />}
                                 {activeTab === 'specs' && <SpecsTab product={product} />}
                                 {activeTab === 'resources' && <ResourcesTab product={product} />}
                             </div>
@@ -226,7 +255,7 @@ export default function ProductDetailPanel({
     )
 }
 
-/* ─── Header pieces ──────────────────────────────────────────────── */
+/* ─── Pieces ──────────────────────────────────────────────────── */
 
 function ItemStatusInlinePill({ status }: { status: ReturnType<typeof resolveItemStatus> }) {
     if (status === 'active') return null
@@ -238,22 +267,15 @@ function ItemStatusInlinePill({ status }: { status: ReturnType<typeof resolveIte
 
 function SkuChip({ label, value, copied, onCopy }: { label: string; value: string; copied: boolean; onCopy: () => void }) {
     return (
-        <button
-            type="button"
-            onClick={onCopy}
-            className="group inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-mono text-foreground transition-colors hover:bg-muted"
-            title={`Copy ${label} SKU`}
-        >
+        <button type="button" onClick={onCopy} className="group inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-mono text-foreground transition-colors hover:bg-muted" title={`Copy ${label} SKU`}>
             <span className="text-[9px] font-sans font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
             {value}
-            {copied
-                ? <CheckCircle2 className="h-3 w-3 text-foreground" />
-                : <Copy className="h-3 w-3 text-muted-foreground group-hover:text-foreground" />}
+            {copied ? <CheckCircle2 className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3 text-muted-foreground group-hover:text-foreground" />}
         </button>
     )
 }
 
-function TabButton({ label, active, onClick, disabled, highlight }: { label: string; active: boolean; onClick: () => void; disabled?: boolean; highlight?: boolean }) {
+function TabButton({ label, active, onClick, disabled, primary }: { label: string; active: boolean; onClick: () => void; disabled?: boolean; primary?: boolean }) {
     return (
         <button
             type="button"
@@ -266,78 +288,303 @@ function TabButton({ label, active, onClick, disabled, highlight }: { label: str
                     ? 'cursor-not-allowed border-transparent text-muted-foreground/40'
                     : active
                         ? 'border-primary text-foreground'
-                        : `border-transparent ${highlight ? 'text-foreground' : 'text-muted-foreground'} hover:border-border hover:text-foreground`
+                        : `border-transparent ${primary ? 'font-semibold text-foreground' : 'text-muted-foreground'} hover:border-border hover:text-foreground`
             }`}
         >
             {label}
-            {highlight && !active && <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />}
         </button>
     )
 }
 
-/* ─── Tabs ─────────────────────────────────────────────────────── */
+/* ─── Quote tab · multi-line builder (Amazon Business Quick Order pattern) ─── */
 
-function OverviewTab({ product, colorwayCode, setColorwayCode }: {
+interface QuoteTabProps {
     product: Product
-    colorwayCode: string | undefined
-    setColorwayCode: (code: string) => void
-}) {
+    lines: QuoteLine[]
+    lineTotals: ReturnType<typeof computeLineItemTotals>[]
+    totalUnits: number
+    totalPrice: number
+    maxLeadDays: number
+    variants: ReturnType<typeof getProductVariants>
+    disabled: boolean
+    addLine: () => void
+    removeLine: (id: string) => void
+    updateLine: (id: string, patch: Partial<QuoteLine>) => void
+    onAddToQuote: () => void
+}
+
+function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote }: QuoteTabProps) {
     return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
-            {/* Gallery + colorways */}
-            <div>
-                <Gallery product={product} />
-                {product.colorways.length > 0 && (
-                    <ColorwayPicker
-                        colorways={product.colorways}
-                        selected={colorwayCode}
-                        onSelect={setColorwayCode}
-                    />
+        <div className="space-y-5">
+            {/* Intro · Amazon-style multi-line copy */}
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-lg font-bold text-foreground">Build your quote</h2>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                        Need different variants? Add multiple lines for different colors, finishes, or materials in the same quote.
+                    </p>
+                </div>
+                {product.listPrice && product.price && (
+                    <div className="text-right">
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">List price</div>
+                        <div className="text-sm font-medium text-muted-foreground line-through">${product.listPrice.toLocaleString()}</div>
+                        <div className="text-lg font-bold text-foreground">${product.price.toLocaleString()}<span className="ml-1 text-xs font-medium text-muted-foreground">/ unit (base)</span></div>
+                    </div>
                 )}
             </div>
 
-            {/* Description + features */}
+            {/* Line items */}
+            <ul className="space-y-3">
+                {lines.map((line, idx) => (
+                    <li key={line.id}>
+                        <QuoteLineEditor
+                            product={product}
+                            line={line}
+                            totals={lineTotals[idx]}
+                            variants={variants}
+                            disabled={disabled}
+                            canRemove={lines.length > 1}
+                            index={idx + 1}
+                            onChange={(patch) => updateLine(line.id, patch)}
+                            onRemove={() => removeLine(line.id)}
+                        />
+                    </li>
+                ))}
+            </ul>
+
+            {/* Add line · disabled si discontinued */}
+            <button
+                type="button"
+                onClick={addLine}
+                disabled={disabled}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                <Plus className="h-4 w-4" />
+                Add another line for different variants
+            </button>
+
+            {/* Totals + CTA */}
+            <div className="rounded-xl border border-border bg-background p-4">
+                <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
+                    <Stat label="Total units" value={`${totalUnits}`} />
+                    <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
+                    <Stat label="Quote total" value={`$${totalPrice.toLocaleString()}`} highlight />
+                </div>
+                <button
+                    type="button"
+                    onClick={onAddToQuote}
+                    disabled={disabled}
+                    title={disabled ? 'Discontinued · quoting disabled' : `Add ${lines.length} line${lines.length === 1 ? '' : 's'} to your quote`}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+                >
+                    {disabled
+                        ? <><Ban className="h-4 w-4" /> Discontinued</>
+                        : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
+                    }
+                </button>
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                    Sold by {product.brand} · Free returns within 30 days
+                </p>
+            </div>
+        </div>
+    )
+}
+
+function Stat({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+    return (
+        <div>
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className={`mt-0.5 text-lg font-bold ${highlight ? 'text-foreground' : 'text-foreground'}`}>{value}</div>
+            {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
+        </div>
+    )
+}
+
+interface QuoteLineEditorProps {
+    product: Product
+    line: QuoteLine
+    totals: ReturnType<typeof computeLineItemTotals>
+    variants: ReturnType<typeof getProductVariants>
+    disabled: boolean
+    canRemove: boolean
+    index: number
+    onChange: (patch: Partial<QuoteLine>) => void
+    onRemove: () => void
+}
+
+function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove, index, onChange, onRemove }: QuoteLineEditorProps) {
+    const selectedColorway = product.colorways.find(c => c.code === line.colorwayCode)
+    const selectedFabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
+    const isPremiumFabric = selectedFabric?.type === 'special'
+    return (
+        <div className="rounded-xl border border-border bg-background p-4">
+            <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">{index}</span>
+                    <span className="text-sm font-semibold text-foreground">Line {index}</span>
+                    {selectedColorway && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="h-3 w-3 rounded-sm border border-border" style={{ backgroundColor: selectedColorway.hex }} />
+                            {selectedColorway.name}
+                        </span>
+                    )}
+                    {isPremiumFabric && (
+                        <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">Premium fabric</span>
+                    )}
+                </div>
+                {canRemove && (
+                    <button type="button" onClick={onRemove} disabled={disabled} className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-30" title="Remove this line" aria-label="Remove line">
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Colorway selector */}
+                {product.colorways.length > 0 && (
+                    <LineField label="Colorway">
+                        <select disabled={disabled} value={line.colorwayCode ?? ''} onChange={(e) => onChange({ colorwayCode: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                            {product.colorways.map(c => (
+                                <option key={c.code} value={c.code}>{c.name} · {c.code}</option>
+                            ))}
+                        </select>
+                    </LineField>
+                )}
+
+                {/* Finish */}
+                {variants.finishes && variants.finishes.length > 0 && (
+                    <LineField label="Finish">
+                        <select disabled={disabled} value={line.finishId ?? ''} onChange={(e) => onChange({ finishId: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                            {variants.finishes.map(f => (
+                                <option key={f.id} value={f.id}>{f.name}{f.priceModifier > 0 ? ` · +$${f.priceModifier}` : ''}</option>
+                            ))}
+                        </select>
+                    </LineField>
+                )}
+
+                {/* Fabric */}
+                {variants.fabricOptions && variants.fabricOptions.length > 0 && (
+                    <LineField label="Fabric">
+                        <select disabled={disabled} value={line.fabricId ?? ''} onChange={(e) => onChange({ fabricId: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                            {variants.fabricOptions.map(f => (
+                                <option key={f.id} value={f.id}>
+                                    {f.name}{f.priceModifier > 0 ? ` · +$${f.priceModifier}` : ''}{f.type === 'special' ? ' (premium)' : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </LineField>
+                )}
+
+                {/* Material tier */}
+                {variants.materialTiers && variants.materialTiers.length > 1 && (
+                    <LineField label="Material tier">
+                        <select disabled={disabled} value={line.materialTierId ?? ''} onChange={(e) => onChange({ materialTierId: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                            {variants.materialTiers.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}{t.priceModifier > 0 ? ` · +$${t.priceModifier}` : ''}</option>
+                            ))}
+                        </select>
+                    </LineField>
+                )}
+            </div>
+
+            {/* Qty + line total + lead */}
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
+                <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Quantity</div>
+                    <div className="mt-1 flex items-center gap-2">
+                        <button type="button" disabled={disabled} onClick={() => onChange({ qty: Math.max(1, line.qty - 1) })} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-input text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50" aria-label="Decrease">−</button>
+                        <input
+                            type="number"
+                            value={line.qty}
+                            min={1}
+                            disabled={disabled}
+                            onChange={(e) => onChange({ qty: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                            className="h-9 w-16 rounded-lg border border-input bg-background text-center text-sm font-semibold text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                        <button type="button" disabled={disabled} onClick={() => onChange({ qty: line.qty + 1 })} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-input text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50" aria-label="Increase">+</button>
+                    </div>
+                </div>
+                <div className="flex flex-wrap items-baseline gap-4 text-right">
+                    <div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Unit</div>
+                        <div className="text-sm font-semibold text-foreground">${totals.unitPrice.toLocaleString()}</div>
+                    </div>
+                    <div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Line total</div>
+                        <div className="text-lg font-bold text-foreground">${totals.totalPrice.toLocaleString()}</div>
+                    </div>
+                    <div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Ships in</div>
+                        <div className="text-sm font-medium text-foreground">{formatLeadTime(totals.leadTimeDays)}</div>
+                    </div>
+                </div>
+            </div>
+            {totals.nextVolumeTier && (
+                <p className="mt-2 text-xs text-foreground">
+                    💡 Add <span className="font-bold">{totals.nextVolumeTier.qtyNeeded}</span> more to save{' '}
+                    <span className="font-bold">${totals.nextVolumeTier.savings.toLocaleString()}</span> on this line
+                </p>
+            )}
+        </div>
+    )
+}
+
+function LineField({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</label>
+            {children}
+        </div>
+    )
+}
+
+/* ─── Other tabs (Overview / Variants / Specs / Resources) ──── */
+
+function OverviewTab({ product }: { product: Product }) {
+    const allImages = [...product.images, ...(product.galleries ?? [])]
+    const [activeIdx, setActiveIdx] = useState(0)
+    return (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <div>
+                <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+                    <img src={allImages[activeIdx]} alt={`${product.name} ${activeIdx + 1}`} className="h-full w-full object-cover" />
+                </div>
+                {allImages.length > 1 && (
+                    <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                        {allImages.map((src, i) => (
+                            <button key={i} type="button" onClick={() => setActiveIdx(i)} aria-label={`View image ${i + 1}`} className={`flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${activeIdx === i ? 'border-primary' : 'border-transparent hover:border-border'}`}>
+                                <img src={src} alt="" className="h-16 w-20 object-cover" />
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
             <div className="space-y-5">
                 <div>
                     <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Description</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
                 </div>
-
                 {product.tags && product.tags.length > 0 && (
                     <div>
                         <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Tags</h4>
                         <div className="flex flex-wrap gap-1.5">
-                            {product.tags.map(t => (
-                                <span key={t} className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{t}</span>
-                            ))}
+                            {product.tags.map(t => <span key={t} className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{t}</span>)}
                         </div>
                     </div>
                 )}
-
                 {product.standardFeatures && product.standardFeatures.length > 0 && (
                     <div>
                         <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Standard features</h3>
                         <ul className="space-y-1 text-sm text-muted-foreground">
-                            {product.standardFeatures.map(f => (
-                                <li key={f} className="flex gap-2">
-                                    <span className="mt-1.5 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-foreground" />
-                                    {f}
-                                </li>
-                            ))}
+                            {product.standardFeatures.map(f => <li key={f} className="flex gap-2"><span className="mt-1.5 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-foreground" />{f}</li>)}
                         </ul>
                     </div>
                 )}
-
                 {product.optionalFeatures && product.optionalFeatures.length > 0 && (
                     <div>
                         <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Optional features</h3>
                         <ul className="space-y-1 text-sm text-muted-foreground">
-                            {product.optionalFeatures.map(f => (
-                                <li key={f} className="flex gap-2">
-                                    <span className="mt-1.5 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground" />
-                                    {f}
-                                </li>
-                            ))}
+                            {product.optionalFeatures.map(f => <li key={f} className="flex gap-2"><span className="mt-1.5 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground" />{f}</li>)}
                         </ul>
                     </div>
                 )}
@@ -346,339 +593,80 @@ function OverviewTab({ product, colorwayCode, setColorwayCode }: {
     )
 }
 
-function Gallery({ product }: { product: Product }) {
-    const [activeIdx, setActiveIdx] = useState(0)
-    const allImages = [...product.images, ...(product.galleries ?? [])]
-    return (
-        <div>
-            <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-                <img src={allImages[activeIdx]} alt={`${product.name} ${activeIdx + 1}`} className="h-full w-full object-cover" />
-            </div>
-            {allImages.length > 1 && (
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                    {allImages.map((src, i) => (
-                        <button
-                            key={i}
-                            type="button"
-                            onClick={() => setActiveIdx(i)}
-                            aria-label={`View image ${i + 1}`}
-                            className={`flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
-                                activeIdx === i ? 'border-primary' : 'border-transparent hover:border-border'
-                            }`}
-                        >
-                            <img src={src} alt="" className="h-16 w-20 object-cover" />
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    )
-}
-
-function ColorwayPicker({ colorways, selected, onSelect }: {
-    colorways: Product['colorways']
-    selected: string | undefined
-    onSelect: (code: string) => void
-}) {
-    const selectedCw = colorways.find(c => c.code === selected)
-    return (
-        <div className="mt-4">
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">
-                Colorways ({colorways.length})
-                {selectedCw && <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">· {selectedCw.name}</span>}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-                {colorways.map(c => (
-                    <button
-                        key={c.code}
-                        type="button"
-                        onClick={() => onSelect(c.code)}
-                        aria-pressed={selected === c.code}
-                        aria-label={`Select ${c.name}`}
-                        title={`${c.name} · ${c.code}`}
-                        className="group flex flex-col items-center gap-1"
-                    >
-                        <span
-                            className={`block h-10 w-10 rounded-md border-2 shadow-sm transition-transform ${
-                                selected === c.code
-                                    ? 'border-primary ring-2 ring-primary/30 scale-105'
-                                    : 'border-border/60 group-hover:border-foreground/30'
-                            }`}
-                            style={{ backgroundColor: c.hex }}
-                        />
-                        <span className="text-[10px] font-mono text-muted-foreground">{c.code}</span>
-                    </button>
-                ))}
-            </div>
-        </div>
-    )
-}
-
-interface VariantsTabProps {
-    product: Product
-    finishes: Finish[] | undefined
-    fabricOptions: FabricOption[] | undefined
-    materialTiers: MaterialTier[] | undefined
-    finishId: string | undefined
-    setFinishId: (id: string | undefined) => void
-    fabricId: string | undefined
-    setFabricId: (id: string | undefined) => void
-    materialTierId: string | undefined
-    setMaterialTierId: (id: string | undefined) => void
-}
-
-function VariantsTab({ product, finishes, fabricOptions, materialTiers, finishId, setFinishId, fabricId, setFabricId, materialTierId, setMaterialTierId }: VariantsTabProps) {
-    const hasContent = finishes || fabricOptions || materialTiers || product.material || product.upholstery
-    if (!hasContent) {
-        return <p className="text-sm text-muted-foreground">No variant options configured for this product.</p>
-    }
+function VariantsTab({ product, variants }: { product: Product; variants: ReturnType<typeof getProductVariants> }) {
+    const hasContent = variants.finishes || variants.fabricOptions || variants.materialTiers || product.material || product.upholstery
+    if (!hasContent) return <p className="text-sm text-muted-foreground">No variant options for this product.</p>
     return (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {finishes && finishes.length > 0 && (
+            <p className="lg:col-span-2 text-sm text-muted-foreground">
+                Browse all variant options available. To select specific variants per line, go to the <span className="font-semibold text-foreground">Quote</span> tab.
+            </p>
+            {variants.finishes && variants.finishes.length > 0 && (
                 <section>
-                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Finishes ({finishes.length})</h3>
+                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Finishes ({variants.finishes.length})</h3>
                     <div className="flex flex-wrap gap-3">
-                        {finishes.map(f => (
-                            <button
-                                key={f.id}
-                                type="button"
-                                onClick={() => setFinishId(f.id)}
-                                aria-pressed={finishId === f.id}
-                                title={f.name}
-                                className={`flex flex-col items-center gap-1 rounded-lg p-1.5 transition-all ${
-                                    finishId === f.id ? 'ring-2 ring-primary' : 'hover:bg-muted'
-                                }`}
-                            >
+                        {variants.finishes.map((f: Finish) => (
+                            <div key={f.id} className="flex flex-col items-center gap-1 rounded-lg p-1.5">
                                 <span className="h-12 w-12 rounded-md border border-border" style={{ backgroundColor: f.swatch }} />
                                 <span className="text-xs font-medium text-foreground">{f.name}</span>
-                                {f.priceModifier > 0 && (
-                                    <span className="text-[10px] font-semibold text-muted-foreground">+${f.priceModifier}</span>
-                                )}
-                            </button>
+                                {f.priceModifier > 0 && <span className="text-[10px] font-semibold text-muted-foreground">+${f.priceModifier}</span>}
+                            </div>
                         ))}
                     </div>
                 </section>
             )}
-
-            {fabricOptions && fabricOptions.length > 0 && (
+            {variants.fabricOptions && variants.fabricOptions.length > 0 && (
                 <section>
                     <div className="mb-3 flex items-center justify-between">
                         <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">Fabric options</h3>
                         <span className="text-[11px] text-muted-foreground">
-                            {fabricOptions.filter(f => f.type === 'standard').length} standard
-                            {fabricOptions.filter(f => f.type === 'special').length > 0 && (
-                                <>, <span className="font-semibold text-amber-700 dark:text-amber-400">{fabricOptions.filter(f => f.type === 'special').length} premium</span></>
+                            {variants.fabricOptions.filter((f: FabricOption) => f.type === 'standard').length} standard
+                            {variants.fabricOptions.filter((f: FabricOption) => f.type === 'special').length > 0 && (
+                                <>, <span className="font-semibold text-amber-700 dark:text-amber-400">{variants.fabricOptions.filter((f: FabricOption) => f.type === 'special').length} premium</span></>
                             )}
                         </span>
                     </div>
                     <ul className="space-y-1.5">
-                        {fabricOptions.map(f => (
-                            <li key={f.id}>
-                                <button
-                                    type="button"
-                                    onClick={() => setFabricId(f.id)}
-                                    aria-pressed={fabricId === f.id}
-                                    className={`flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm text-left transition-colors ${
-                                        fabricId === f.id ? 'border-primary bg-primary/10' : 'border-border bg-background hover:bg-muted/50'
-                                    }`}
-                                >
-                                    <span className="flex items-center gap-2 min-w-0">
-                                        <span className="font-medium text-foreground truncate">{f.name}</span>
-                                        {f.type === 'special' && (
-                                            <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">Premium</span>
-                                        )}
-                                    </span>
-                                    <span className="text-right text-xs text-muted-foreground flex-shrink-0">
-                                        {f.priceModifier > 0 ? <span className="font-semibold text-foreground">+${f.priceModifier}</span> : 'Included'}
-                                        {f.leadTimeAdjust > 0 && <span className="block">+{f.leadTimeAdjust} days</span>}
-                                    </span>
-                                </button>
+                        {variants.fabricOptions.map((f: FabricOption) => (
+                            <li key={f.id} className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                <span className="flex items-center gap-2">
+                                    <span className="font-medium text-foreground">{f.name}</span>
+                                    {f.type === 'special' && <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">Premium</span>}
+                                </span>
+                                <span className="text-right text-xs text-muted-foreground">
+                                    {f.priceModifier > 0 ? <span className="font-semibold text-foreground">+${f.priceModifier}</span> : 'Included'}
+                                    {f.leadTimeAdjust > 0 && <span className="block">+{f.leadTimeAdjust} days</span>}
+                                </span>
                             </li>
                         ))}
                     </ul>
                 </section>
             )}
-
-            {materialTiers && materialTiers.length > 1 && (
+            {variants.materialTiers && variants.materialTiers.length > 1 && (
                 <section>
                     <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Material tier</h3>
                     <div className="space-y-2">
-                        {materialTiers.map(t => (
-                            <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => setMaterialTierId(t.id)}
-                                aria-pressed={materialTierId === t.id}
-                                className={`flex w-full items-center justify-between rounded-lg border-2 px-4 py-3 text-left transition-colors ${
-                                    materialTierId === t.id ? 'border-primary bg-primary/5' : 'border-border bg-background hover:bg-muted/50'
-                                }`}
-                            >
+                        {variants.materialTiers.map((t: MaterialTier) => (
+                            <div key={t.id} className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
                                 <span className="font-medium text-foreground">{t.name}</span>
                                 <span className="text-xs text-muted-foreground">
                                     {t.priceModifier > 0 ? <span className="font-semibold text-foreground">+${t.priceModifier}</span> : 'Base'}
                                     {t.leadTimeAdjust > 0 && <span className="block">+{t.leadTimeAdjust} days lead</span>}
                                 </span>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 </section>
             )}
-
             {(product.material || product.upholstery) && (
                 <section>
                     <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Materials info</h3>
                     <dl className="space-y-1.5 text-sm">
-                        {product.material && (
-                            <div className="flex gap-2"><dt className="font-semibold text-foreground w-24">Material:</dt><dd className="text-muted-foreground">{product.material}</dd></div>
-                        )}
-                        {product.upholstery && (
-                            <div className="flex gap-2"><dt className="font-semibold text-foreground w-24">Upholstery:</dt><dd className="text-muted-foreground">{product.upholstery}</dd></div>
-                        )}
+                        {product.material && <div className="flex gap-2"><dt className="font-semibold text-foreground w-24">Material:</dt><dd className="text-muted-foreground">{product.material}</dd></div>}
+                        {product.upholstery && <div className="flex gap-2"><dt className="font-semibold text-foreground w-24">Upholstery:</dt><dd className="text-muted-foreground">{product.upholstery}</dd></div>}
                     </dl>
                 </section>
             )}
-        </div>
-    )
-}
-
-interface QuoteTabProps {
-    product: Product
-    qty: number
-    setQty: (q: number) => void
-    totals: NonNullable<ReturnType<typeof computeLineItemTotals>>
-    colorwayCode: string | undefined
-    finishId: string | undefined
-    fabricId: string | undefined
-    materialTierId: string | undefined
-    variants: ReturnType<typeof getProductVariants>
-    disabled: boolean
-    onAddToQuote: () => void
-    onGoToVariants: () => void
-}
-
-function QuoteTab({ product, qty, setQty, totals, colorwayCode, finishId, fabricId, materialTierId, variants, disabled, onAddToQuote, onGoToVariants }: QuoteTabProps) {
-    const selectedColorway = product.colorways.find(c => c.code === colorwayCode)
-    const selectedFinish = variants.finishes?.find(f => f.id === finishId)
-    const selectedFabric = variants.fabricOptions?.find(f => f.id === fabricId)
-    const selectedTier = variants.materialTiers?.find(t => t.id === materialTierId)
-    const savingsPct = product.listPrice && product.price && product.listPrice > product.price
-        ? Math.round(((product.listPrice - product.price) / product.listPrice) * 100)
-        : 0
-
-    return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
-            {/* Selection summary */}
-            <div className="space-y-4">
-                <div>
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Your selection</h3>
-                    <dl className="rounded-xl border border-border bg-background divide-y divide-border">
-                        <SelectionRow label="Quantity" value={`${qty} unit${qty === 1 ? '' : 's'}`} />
-                        {selectedColorway && <SelectionRow label="Colorway" value={`${selectedColorway.name} · ${selectedColorway.code}`} swatch={selectedColorway.hex} />}
-                        {selectedFinish && <SelectionRow label="Finish" value={selectedFinish.name} extra={selectedFinish.priceModifier > 0 ? `+$${selectedFinish.priceModifier}` : undefined} />}
-                        {selectedFabric && <SelectionRow label="Fabric" value={selectedFabric.name} extra={selectedFabric.priceModifier > 0 ? `+$${selectedFabric.priceModifier}` : undefined} highlight={selectedFabric.type === 'special'} />}
-                        {selectedTier && selectedTier.priceModifier > 0 && <SelectionRow label="Material tier" value={selectedTier.name} extra={`+$${selectedTier.priceModifier}`} />}
-                    </dl>
-                    <button
-                        type="button"
-                        onClick={onGoToVariants}
-                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        Change variants →
-                    </button>
-                </div>
-
-                <div>
-                    <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Quantity</h4>
-                    <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} disabled={disabled} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-input text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50" aria-label="Decrease quantity">−</button>
-                        <input
-                            type="number"
-                            value={qty}
-                            min={1}
-                            disabled={disabled}
-                            onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                            className="h-10 w-20 rounded-lg border border-input bg-background text-center text-base font-semibold text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                        <button type="button" onClick={() => setQty(qty + 1)} disabled={disabled} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-input text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50" aria-label="Increase quantity">+</button>
-                        {totals.nextVolumeTier && (
-                            <span className="ml-3 text-xs text-muted-foreground">
-                                💡 Add {totals.nextVolumeTier.qtyNeeded} more to save ${totals.nextVolumeTier.savings.toLocaleString()}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Pricing & CTA */}
-            <div className="rounded-xl border border-border bg-background p-5 shadow-sm">
-                <div className="mb-4">
-                    <div className="flex items-baseline gap-2">
-                        {product.listPrice && product.listPrice > totals.unitPrice && (
-                            <span className="text-sm text-muted-foreground line-through">${product.listPrice.toLocaleString()}</span>
-                        )}
-                        <span className="text-3xl font-bold text-foreground">${totals.unitPrice.toLocaleString()}</span>
-                        <span className="text-xs text-muted-foreground">/ unit</span>
-                    </div>
-                    {savingsPct > 0 && (
-                        <span className="mt-1 inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400" title={`Manufacturer list $${product.listPrice?.toLocaleString()} · dealer discount applied`}>
-                            Save {savingsPct}%
-                        </span>
-                    )}
-                </div>
-
-                <div className="my-4 space-y-1 border-y border-border py-3">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal ({qty})</span>
-                        <span className="font-semibold text-foreground">${totals.totalPrice.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Estimated lead time</span>
-                        <span className="font-medium text-foreground">{formatLeadTime(totals.leadTimeDays)}</span>
-                    </div>
-                    <div className="flex justify-between text-base font-bold pt-1">
-                        <span className="text-foreground">Total</span>
-                        <span className="text-foreground">${totals.totalPrice.toLocaleString()}</span>
-                    </div>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={onAddToQuote}
-                    disabled={disabled}
-                    title={disabled ? 'Discontinued · quoting disabled' : 'Add to your quote'}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
-                >
-                    {disabled ? <><Ban className="h-4 w-4" /> Discontinued</> : <>Add to Quote <ArrowUpRight className="h-4 w-4" /></>}
-                </button>
-                <button
-                    type="button"
-                    disabled={disabled}
-                    title="Will go to your Favorites · accessible from the showroom sidebar"
-                    className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-input px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <Heart className="h-4 w-4" />
-                    Save to favorites
-                </button>
-                <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                    Sold by {product.brand} · Free returns within 30 days
-                </p>
-                <p className="mt-1 text-center text-[10px] text-muted-foreground/70">
-                    Saved items appear in Favorites (showroom sidebar)
-                </p>
-            </div>
-        </div>
-    )
-}
-
-function SelectionRow({ label, value, swatch, extra, highlight }: { label: string; value: string; swatch?: string; extra?: string; highlight?: boolean }) {
-    return (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
-            <span className="flex items-center gap-2 text-right">
-                {swatch && <span className="h-4 w-4 rounded-sm border border-border" style={{ backgroundColor: swatch }} />}
-                <span className={`font-medium ${highlight ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'}`}>{value}</span>
-                {extra && <span className="text-xs font-semibold text-foreground">{extra}</span>}
-            </span>
         </div>
     )
 }
