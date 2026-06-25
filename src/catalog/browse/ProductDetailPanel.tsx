@@ -71,6 +71,27 @@ export default function ProductDetailPanel({
     const catalogs = useCatalogs()
     const variants = useMemo(() => product ? getProductVariants(product) : {}, [product])
 
+    // Bug fix · todos los hooks que dependen de `product` deben guardear que
+    // product existe · sino al renderizar el modal cerrado con product=undefined,
+    // computeLineItemTotals(undefined, ...) crashea y se pone toda la app en
+    // blanco. NO mover el `if (!product)` arriba de los hooks (rules of hooks).
+    const lineTotals = useMemo(
+        () => product
+            ? lines.map(line => computeLineItemTotals(product, {
+                qty: line.qty,
+                colorwayCode: line.colorwayCode,
+                finishId: line.finishId,
+                fabricId: line.fabricId,
+                materialTierId: line.materialTierId,
+            }))
+            : [],
+        [product, lines]
+    )
+
+    const totalUnits = lines.reduce((s, l) => s + l.qty, 0)
+    const totalPrice = lineTotals.reduce((s, t) => s + t.totalPrice, 0)
+    const maxLeadDays = lineTotals.length > 0 ? Math.max(0, ...lineTotals.map(t => t.leadTimeDays)) : 0
+
     if (!product) return null
 
     const itemStatus = resolveItemStatus(product, catalogs)
@@ -101,21 +122,6 @@ export default function ProductDetailPanel({
     const updateLine = (id: string, patch: Partial<QuoteLine>) => {
         setLines(lines.map(l => l.id === id ? { ...l, ...patch } : l))
     }
-
-    const lineTotals = useMemo(
-        () => lines.map(line => computeLineItemTotals(product, {
-            qty: line.qty,
-            colorwayCode: line.colorwayCode,
-            finishId: line.finishId,
-            fabricId: line.fabricId,
-            materialTierId: line.materialTierId,
-        })),
-        [product, lines]
-    )
-
-    const totalUnits = lines.reduce((s, l) => s + l.qty, 0)
-    const totalPrice = lineTotals.reduce((s, t) => s + t.totalPrice, 0)
-    const maxLeadDays = Math.max(0, ...lineTotals.map(t => t.leadTimeDays))
 
     return (
         <Transition show={open} as={Fragment}>
