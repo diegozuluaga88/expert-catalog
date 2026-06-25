@@ -306,54 +306,31 @@ export default function ShowroomPage() {
         </div>
       </div>
 
-      {/* Connected catalogs (import + sync) */}
-      <ShowroomCatalogsBar onImport={() => setShowImport(true)} />
+      {/* Phase 1 Fix #1 — Connected catalogs · dual-purpose chips (filter + sync).
+          Reemplaza el FILTER BY BRAND row independiente que existía aquí. Click en un
+          chip toggle el filter via setSelectedBrands · catalog name === brand 1:1
+          (data alineada en catalogs.ts). */}
+      <ShowroomCatalogsBar
+        onImport={() => setShowImport(true)}
+        selectedBrand={selectedBrands.size === 1 ? Array.from(selectedBrands)[0] : null}
+        onSelectBrand={(brand) => {
+          setSelectedBrands(brand ? new Set([brand]) : new Set())
+          setPage(1)
+        }}
+      />
 
-      {/* Brand pills */}
+      {/* Search + sort row (brand pills merged arriba en ShowroomCatalogsBar) */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Filter by brand
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedBrands(new Set())
-            setPage(1)
-          }}
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-            selectedBrands.size === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          All
-        </button>
-        {brands.map((b) => (
-          <button
-            key={b}
-            type="button"
-            onClick={() => {
-              setSelectedBrands(new Set([b]))
-              setPage(1)
-            }}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-              selectedBrands.size === 1 && selectedBrands.has(b)
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {b}
-          </button>
-        ))}
         {hasActiveFilters && (
           <button
             type="button"
             onClick={clearAll}
-            className="ml-1 text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
+            className="text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
           >
             Clear filters
           </button>
         )}
 
-        {/* search + sort (right) */}
         <div className="ml-auto flex items-center gap-2">
           <div className="relative w-44 sm:w-56">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

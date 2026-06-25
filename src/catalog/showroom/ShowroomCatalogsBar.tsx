@@ -13,6 +13,10 @@ import type { Catalog, CatalogStatus } from '../types'
 
 interface ShowroomCatalogsBarProps {
   onImport: () => void
+  // Phase 1 Fix #1 — Dual-purpose chips: filter + sync
+  // `null` = "All" (no filter active)
+  selectedBrand: string | null
+  onSelectBrand: (brand: string | null) => void
 }
 
 function StatusDot({ status }: { status: CatalogStatus }) {
@@ -45,7 +49,11 @@ function statusLabel(status: CatalogStatus): string {
   }
 }
 
-export default function ShowroomCatalogsBar({ onImport }: ShowroomCatalogsBarProps) {
+export default function ShowroomCatalogsBar({
+  onImport,
+  selectedBrand,
+  onSelectBrand,
+}: ShowroomCatalogsBarProps) {
   const [catalogs, setCatalogs] = useState<Catalog[]>(CATALOGS)
   const [syncingId, setSyncingId] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -70,26 +78,62 @@ export default function ShowroomCatalogsBar({ onImport }: ShowroomCatalogsBarPro
       </span>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        {catalogs.map((c) => (
-          <span
-            key={c.id}
-            title={`${c.name} · ${c.items} items · ${statusLabel(c.status)} · synced ${c.lastSync}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background py-1 pl-3 pr-1 text-xs"
-          >
-            <StatusDot status={c.status} />
-            <span className="font-medium text-foreground">{c.name}</span>
-            <button
-              type="button"
-              disabled={syncingId === c.id}
-              onClick={() => sync(c)}
-              aria-label={`Sync ${c.name}`}
-              title={`Sync ${c.name}`}
-              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+        {/* "All" chip · clears filter */}
+        <button
+          type="button"
+          onClick={() => onSelectBrand(null)}
+          aria-pressed={selectedBrand === null}
+          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+            selectedBrand === null
+              ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+              : 'border-border bg-background text-foreground hover:bg-muted'
+          }`}
+        >
+          All
+        </button>
+
+        {catalogs.map((c) => {
+          const isSelected = selectedBrand === c.name
+          return (
+            <span
+              key={c.id}
+              title={`${c.name} · ${c.items} items · ${statusLabel(c.status)} · synced ${c.lastSync}`}
+              className={`inline-flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-xs transition-colors ${
+                isSelected
+                  ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                  : 'border-border bg-background text-foreground hover:bg-muted'
+              }`}
             >
-              <RefreshCw className={`h-3 w-3 ${syncingId === c.id ? 'animate-spin' : ''}`} />
-            </button>
-          </span>
-        ))}
+              <StatusDot status={c.status} />
+              <button
+                type="button"
+                onClick={() => onSelectBrand(isSelected ? null : c.name)}
+                aria-pressed={isSelected}
+                aria-label={`Filter by ${c.name}`}
+                className="font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card rounded"
+              >
+                {c.name}
+              </button>
+              <button
+                type="button"
+                disabled={syncingId === c.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  sync(c)
+                }}
+                aria-label={`Sync ${c.name}`}
+                title={`Sync ${c.name}`}
+                className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                  isSelected
+                    ? 'text-primary-foreground/80 hover:bg-primary-foreground/15 hover:text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <RefreshCw className={`h-3 w-3 ${syncingId === c.id ? 'animate-spin' : ''}`} />
+              </button>
+            </span>
+          )
+        })}
       </div>
 
       <button
