@@ -1,4 +1,4 @@
-import { FileText, AlertCircle, CheckCircle2, CheckSquare, Send, Trash2, GitCompare } from 'lucide-react'
+import { FileText, AlertCircle, CheckCircle2, CheckSquare, Send, Trash2 } from 'lucide-react'
 import { getTeamMember, avatarGradient } from '../team/teamMembers'
 import DocTypeChip from './DocTypeChip'
 
@@ -24,8 +24,6 @@ interface OcrDocCardProps {
     onMarkCompleted: () => void
     onPreflightSync: () => void
     onDeprecate: () => void
-    /** Opens the PO vs ACK comparison flow. Only shown when defined. */
-    onCompare?: () => void
 }
 
 // Best-effort relative time. Accepts seed strings ("Today, 2:30 PM",
@@ -47,7 +45,7 @@ function formatRelativeTime(input: string): string {
     return input
 }
 
-export default function OcrDocCard({ doc, onPreview, onMarkCompleted, onPreflightSync, onDeprecate, onCompare }: OcrDocCardProps) {
+export default function OcrDocCard({ doc, onPreview, onMarkCompleted, onPreflightSync, onDeprecate }: OcrDocCardProps) {
     const assignee = getTeamMember(doc.assigneeId)
     // For non-Reconciled/Completed states the 4 icons default to In-Progress mapping
     // (per Diego decision 2026-06-09 — confirm with prod for other states later).
@@ -89,18 +87,6 @@ export default function OcrDocCard({ doc, onPreview, onMarkCompleted, onPrefligh
                         <span className="font-semibold text-foreground">{doc.lineItems} line items</span>
                     </div>
                 </div>
-
-                {onCompare && (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onCompare() }}
-                        title="Compare linked documents"
-                        aria-label="Compare linked documents"
-                        className="mb-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md bg-brand-300/30 text-foreground border border-brand-300/50 hover:bg-brand-300/50 dark:bg-brand-500/15 dark:border-brand-500/40 dark:hover:bg-brand-500/25 transition-colors"
-                    >
-                        <GitCompare className="h-3.5 w-3.5" />
-                        Compare linked documents
-                    </button>
-                )}
 
                 <div className="border-t border-border pt-3 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">{formatRelativeTime(doc.date)}</span>

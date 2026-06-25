@@ -479,6 +479,12 @@ export const MOCK_COMPARISON_REPORTS: Record<string, ComparisonReport> = {
     'PO-1027::ACK-7839': STEELCASE_CRITICAL,
     'PO-330357::ACK-330357': ERGOTRON_EXACT,
     'PO-4501::ACK-7855': KNOLL_DATE_SHIFT,
+    // Transactions ACK cards (Compare with PO) — reuse the scenarios above with
+    // identifiers/vendor matching each card so the modal stays coherent.
+    'PO-2026-004::ACK-8842': { ...AIS_REQUIRES_REVIEW, po_number: 'PO-2026-004', ack_id: 'ACK-8842', vendor: 'AIS Furniture' },
+    'PO-2026-001::ACK-8839': { ...ERGOTRON_EXACT, po_number: 'PO-2026-001', ack_id: 'ACK-8839', vendor: 'Herman Miller' },
+    'PO-2026-002::ACK-8840': { ...STEELCASE_CRITICAL, po_number: 'PO-2026-002', ack_id: 'ACK-8840', vendor: 'Steelcase' },
+    'PO-2026-003::ACK-8841': { ...KNOLL_DATE_SHIFT, po_number: 'PO-2026-003', ack_id: 'ACK-8841', vendor: 'Knoll' },
 }
 
 /** Lookup a mock report by PO+ACK pair. Falls back to AIS for unknown pairs. */

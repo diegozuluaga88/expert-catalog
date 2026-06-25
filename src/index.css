@@ -70,6 +70,28 @@
     .scrollbar-micro::-webkit-scrollbar-thumb:hover {
         @apply bg-zinc-400 dark:bg-zinc-600;
     }
+
+    /* Kanban horizontal scroll — keeps a slim look but exposes a larger (10px)
+       grab area so the mouse can detect and drag the bar easily. */
+    .scrollbar-kanban {
+        scrollbar-width: thin;
+    }
+    .scrollbar-kanban::-webkit-scrollbar {
+        height: 10px;
+        width: 10px;
+    }
+    .scrollbar-kanban::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-kanban::-webkit-scrollbar-thumb {
+        @apply bg-zinc-300 dark:bg-zinc-600 rounded-full;
+        border: 3px solid transparent;
+        background-clip: padding-box;
+    }
+    .scrollbar-kanban::-webkit-scrollbar-thumb:hover {
+        @apply bg-zinc-400 dark:bg-zinc-500;
+        border-width: 2px;
+    }
 }
 
 /* AI Agent Avatar Glow Animation */

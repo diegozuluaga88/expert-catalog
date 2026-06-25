@@ -26,6 +26,7 @@ import DocTypeChip from './components/ocr/DocTypeChip'
 import { avatarGradient } from './components/team/teamMembers'
 import DocumentConversionModal from './components/DocumentConversionModal'
 import AckReconciliationModal from './components/AckReconciliationModal'
+import ComparisonLauncher from './components/comparison/ComparisonLauncher'
 import DocumentPreviewModal from './components/DocumentPreviewModal'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -230,6 +231,7 @@ const recentQuotes = [
 ]
 
 const recentAcknowledgments = [
+    { id: "Acknowledgement-8842", relatedPo: "PO-2026-004", vendor: "AIS Furniture", status: "Received", date: "Jan 15, 2026", expShipDate: "Feb 28, 2026", inconsistency: "None", tag: null, initials: "AI", statusColor: "bg-blue-50 text-blue-700", location: "Tupelo, MS" },
     { id: "Acknowledgement-8839", relatedPo: "PO-2026-001", vendor: "Herman Miller", status: "Reconciled", date: "Jan 14, 2026", expShipDate: "Feb 20, 2026", inconsistency: "None", tag: null, initials: "HM", statusColor: "bg-green-50 text-green-700", location: "Zeeland" },
     { id: "Acknowledgement-8840", relatedPo: "PO-2026-002", vendor: "Steelcase", status: "Under Review", date: "Jan 13, 2026", expShipDate: "Pending", inconsistency: "Price Mismatch ($500)", tag: "Inconsistency" as const, initials: "SC", statusColor: "bg-red-50 text-red-700", location: "Grand Rapids" },
     { id: "Acknowledgement-8841", relatedPo: "PO-2026-003", vendor: "Knoll", status: "Validated", date: "Jan 12, 2026", expShipDate: "Mar 01, 2026", inconsistency: "Backordered Items", tag: "Partial" as const, initials: "KN", statusColor: "bg-amber-50 text-amber-700", location: "East Greenville" },
@@ -658,6 +660,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
     const [isConversionOpen, setIsConversionOpen] = useState(false);
     const [conversionMode, setConversionMode] = useState<'quote-to-order' | 'order-to-ack'>('quote-to-order');
     const [isReconciliationOpen, setIsReconciliationOpen] = useState(false);
+    const [compareAckDoc, setCompareAckDoc] = useState<any>(null);
     const [previewDoc, setPreviewDoc] = useState<any>(null);
 
     // Multi-select export state
@@ -929,33 +932,6 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                     />
                 </div>
 
-                {/* Lifecycle Tabs Navigation */}
-                <div className="flex items-center gap-2 mb-6">
-                    <button
-                        onClick={() => setLifecycleTab('orders')}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all",
-                            lifecycleTab === 'orders'
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:bg-muted"
-                        )}
-                    >
-                        <ShoppingCartIcon className="w-4 h-4" />
-                        Purchase Orders
-                    </button>
-                    <button
-                        onClick={() => setLifecycleTab('acknowledgments')}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all",
-                            lifecycleTab === 'acknowledgments'
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:bg-muted"
-                        )}
-                    >
-                        <ClipboardDocumentCheckIcon className="w-4 h-4" />
-                        Acknowledgements
-                    </button>
-                </div>
 
                 {/* Quotes Tab Content */}
                 {false && (
@@ -1313,22 +1289,142 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                             "bg-card rounded-2xl border border-border shadow-sm overflow-hidden transition-all duration-700",
                             highlightedSection === 'orders' && "ring-4 ring-brand-500 shadow-[0_0_30px_rgba(var(--brand-500),0.6)] animate-pulse"
                         )}>
-                            {/* Header for Orders */}
-                            <div className="p-6 border-b border-border">
-                                <div className="flex flex-col gap-6">
-                                    {/* Top Row: Title + Tabs */}
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                                        <h3 className="text-lg font-brand font-semibold text-foreground flex items-center gap-2 whitespace-nowrap">
-                                            {lifecycleTab === 'acknowledgments' ? 'Recent Acknowledgements' : 'Recent Purchase Orders'}
-                                        </h3>
-                                        <div className="hidden sm:block w-px h-6 bg-border mx-2"></div>
-                                        {/* Tabs */}
+                            {/* Consolidated header — 2 integrated rows */}
+                            <div className="px-6 py-5 border-b border-border">
+                                <div className="flex flex-col gap-3">
+                                    {/* Row 1: lifecycle (replaces redundant title) + view toggle + Export menu */}
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                        {/* Lifecycle segmented control */}
+                                        <div className="inline-flex items-center p-1 rounded-lg bg-muted">
+                                            <button
+                                                onClick={() => setLifecycleTab('orders')}
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-md transition-all whitespace-nowrap",
+                                                    lifecycleTab === 'orders' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                <ShoppingCartIcon className="w-4 h-4" />
+                                                Purchase Orders
+                                            </button>
+                                            <button
+                                                onClick={() => setLifecycleTab('acknowledgments')}
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-md transition-all whitespace-nowrap",
+                                                    lifecycleTab === 'acknowledgments' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                <ClipboardDocumentCheckIcon className="w-4 h-4" />
+                                                Acknowledgements
+                                            </button>
+                                        </div>
+
+                                        {/* Right: view toggle + Export/actions menu */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                                                <button
+                                                    onClick={() => setViewMode('list')}
+                                                    className={cn("p-2 transition-all", viewMode === 'list' ? "bg-zinc-100 dark:bg-zinc-800 text-foreground" : "text-muted-foreground hover:bg-muted")}
+                                                    title="List View"
+                                                >
+                                                    <ListBulletIcon className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setViewMode('pipeline')}
+                                                    className={cn("p-2 transition-all", viewMode === 'pipeline' ? "bg-zinc-100 dark:bg-zinc-800 text-foreground" : "text-muted-foreground hover:bg-muted")}
+                                                    title="Pipeline View"
+                                                >
+                                                    <FunnelIcon className="w-5 h-5" />
+                                                </button>
+                                            </div>
+
+                                            {/* Demo-only: Upload Vendor Data (Dupler d1.1) */}
+                                            {lifecycleTab === 'orders' && currentStep?.id === 'd1.1' && (
+                                                <div className="relative">
+                                                    <button
+                                                        ref={sifBtnRef}
+                                                        onClick={() => { setSifClicked(true); window.dispatchEvent(new CustomEvent('dupler-vendor-upload')); }}
+                                                        className={cn(
+                                                            "p-2 rounded-lg transition-all relative",
+                                                            sifHoverSim && !sifClicked
+                                                                ? "bg-brand-300 text-zinc-900 scale-110 shadow-lg shadow-brand-400/30"
+                                                                : sifClicked
+                                                                    ? "bg-brand-400 text-zinc-900 scale-95"
+                                                                    : "text-muted-foreground hover:bg-brand-300 dark:hover:bg-brand-600/50 hover:text-zinc-900 dark:hover:text-white"
+                                                        )}
+                                                        title="Upload Vendor Data"
+                                                    >
+                                                        <DocumentPlusIcon className="w-5 h-5" />
+                                                    </button>
+                                                    {sifHoverSim && !sifClicked && (
+                                                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-900 text-white text-[10px] font-medium rounded whitespace-nowrap animate-in fade-in duration-200 z-50">
+                                                            Upload Vendor Data
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Export / Actions menu — groups the former bare icons */}
+                                            {activeTab !== 'metrics' && (
+                                                <Menu as="div" className="relative">
+                                                    <MenuButton className="inline-flex items-center gap-1.5 px-3 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                                                        <ArrowDownTrayIcon className="w-4 h-4" />
+                                                        Export
+                                                        <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                                                    </MenuButton>
+                                                    <MenuItems className="absolute right-0 mt-1 w-60 origin-top-right rounded-xl border border-border bg-card shadow-lg p-1 z-20 focus:outline-none">
+                                                        <MenuItem>
+                                                            {({ active }) => (
+                                                                <button onClick={() => setIsMultiSelectMode(true)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-foreground", active && "bg-muted")}>
+                                                                    <DocumentTextIcon className="w-4 h-4 text-muted-foreground" />
+                                                                    Select &amp; Export PDF
+                                                                </button>
+                                                            )}
+                                                        </MenuItem>
+                                                        {lifecycleTab === 'orders' && (
+                                                            <MenuItem>
+                                                                {({ active }) => (
+                                                                    <button onClick={() => handleExportSIF('PO')} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-foreground", active && "bg-muted")}>
+                                                                        <ArrowDownTrayIcon className="w-4 h-4 text-muted-foreground" />
+                                                                        Export SIF
+                                                                    </button>
+                                                                )}
+                                                            </MenuItem>
+                                                        )}
+                                                        {lifecycleTab === 'acknowledgments' && (
+                                                            <MenuItem>
+                                                                {({ active }) => (
+                                                                    <button onClick={() => setIsReconciliationOpen(true)} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-foreground", active && "bg-muted")}>
+                                                                        <DocumentMagnifyingGlassIcon className="w-4 h-4 text-muted-foreground" />
+                                                                        Reconcile PO vs ACK
+                                                                    </button>
+                                                                )}
+                                                            </MenuItem>
+                                                        )}
+                                                    </MenuItems>
+                                                </Menu>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Row 2: search + status tabs + status filter */}
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <div className="relative group w-full sm:w-auto">
+                                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <input
+                                                type="text"
+                                                placeholder={lifecycleTab === 'acknowledgments' ? "Search acknowledgements..." : "Search orders..."}
+                                                className="pl-9 pr-4 py-2 bg-background border border-input rounded-lg text-sm text-foreground w-full sm:w-48 lg:w-64 focus:ring-2 focus:ring-primary outline-none placeholder:text-muted-foreground transition-all"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                            />
+                                        </div>
+
+                                        {/* Active / Completed / All */}
                                         <div className="flex gap-1 w-fit overflow-x-auto max-w-full">
                                             {[
                                                 { id: 'active', label: 'Active', count: counts.active },
                                                 { id: 'completed', label: 'Completed', count: counts.completed },
                                                 { id: 'all', label: 'All', count: counts.all },
-                                                // metrics removed
                                             ].map((tab) => (
                                                 <button
                                                     key={tab.id}
@@ -1340,14 +1436,11 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                             : "text-muted-foreground hover:bg-brand-300 dark:hover:bg-brand-600/50 hover:text-zinc-900 dark:hover:text-white font-medium"
                                                     )}
                                                 >
-                                                    {tab.id === 'metrics' && <ChartBarIcon className="w-4 h-4" />}
                                                     {tab.label}
                                                     {tab.count !== null && (
                                                         <span className={cn(
                                                             "text-xs px-1.5 py-0.5 rounded-full transition-colors",
-                                                            activeTab === tab.id
-                                                                ? "bg-primary-foreground/10 text-primary-foreground"
-                                                                : "text-muted-foreground"
+                                                            activeTab === tab.id ? "bg-primary-foreground/10 text-primary-foreground" : "text-muted-foreground"
                                                         )}>
                                                             {tab.count}
                                                         </span>
@@ -1355,129 +1448,10 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                 </button>
                                             ))}
                                         </div>
-                                    </div>
 
-                                    {/* Bottom Row: Filters + Actions */}
-                                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
-                                        {/* Filters Container */}
-                                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
-                                            <div className="relative group w-full sm:w-auto">
-                                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                                <input
-                                                    type="text"
-                                                    placeholder={lifecycleTab === 'acknowledgments' ? "Search acknowledgements..." : "Search orders..."}
-                                                    className="pl-9 pr-4 py-2 bg-background border border-input rounded-lg text-sm text-foreground w-full sm:w-48 lg:w-64 focus:ring-2 focus:ring-primary outline-none placeholder:text-muted-foreground transition-all"
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                />
-                                            </div>
-
-                                            {/* Status Filter */}
-                                            <div className="w-full sm:w-40">
-                                                <Select
-                                                    value={selectedStatus}
-                                                    onChange={setSelectedStatus}
-                                                    options={statuses}
-                                                />
-                                            </div>
-
-                                        </div>
-
-                                        {/* Actions Group: View Mode + Create Button */}
-                                        <div className="flex items-center gap-4 self-start xl:self-auto">
-                                            {/* View Mode Toggle */}
-                                            <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                                                <button
-                                                    onClick={() => setViewMode('list')}
-                                                    className={cn(
-                                                        "p-2 transition-all",
-                                                        viewMode === 'list' ? "bg-zinc-100 dark:bg-zinc-800 text-foreground" : "text-muted-foreground hover:bg-muted"
-                                                    )}
-                                                    title="List View"
-                                                >
-                                                    <ListBulletIcon className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => setViewMode('pipeline')}
-                                                    className={cn(
-                                                        "p-2 transition-all",
-                                                        viewMode === 'pipeline' ? "bg-zinc-100 dark:bg-zinc-800 text-foreground" : "text-muted-foreground hover:bg-muted"
-                                                    )}
-                                                    title="Pipeline View"
-                                                >
-                                                    <FunnelIcon className="w-5 h-5" />
-                                                </button>
-                                            </div>
-
-                                            <div className="w-px h-8 bg-border hidden xl:block mx-1"></div>
-
-                                            {/* Quick Actions — icon-only with hover tooltip */}
-                                            {activeTab !== 'metrics' && (
-                                                <div className="flex items-center gap-1">
-                                                    {false && (<>
-                                                        <button onClick={() => triggerToast('Duplicate Quote', 'Select a quote to duplicate from the list.', 'info')} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Duplicate" style={{display:"none"}}>
-                                                            <DocumentDuplicateIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => openPEDPreview('quote')} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Export PDF" style={{display:"none"}}>
-                                                            <DocumentTextIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => triggerToast('Send to Client', 'Email prepared with quote summary. Ready to review and send.', 'info')} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Send to Client" style={{display:"none"}}>
-                                                            <EnvelopeIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => { setConversionMode('quote-to-order'); setIsConversionOpen(true); }} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Convert to Order">
-                                                            <ArrowsRightLeftIcon className="w-5 h-5" />
-                                                        </button>
-                                                    </>)}
-                                                    {lifecycleTab === 'acknowledgments' && (<>
-                                                        <button onClick={() => setIsMultiSelectMode(!isMultiSelectMode)} className={cn("p-2 rounded-lg transition-colors", isMultiSelectMode ? "bg-brand-300 dark:bg-brand-500 text-zinc-900" : "hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white")} title="Export PDF">
-                                                            <DocumentTextIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => setIsReconciliationOpen(true)} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Reconcile PO vs ACK">
-                                                            <DocumentMagnifyingGlassIcon className="w-5 h-5" />
-                                                        </button>
-                                                    </>)}
-                                                    {lifecycleTab === 'orders' && (<>
-                                                        {/* Upload Vendor Data — Dupler d1.1: simulated hover + auto-click */}
-                                                        {currentStep?.id === 'd1.1' && (
-                                                            <div className="relative">
-                                                                <button
-                                                                    ref={sifBtnRef}
-                                                                    onClick={() => { setSifClicked(true); window.dispatchEvent(new CustomEvent('dupler-vendor-upload')); }}
-                                                                    className={cn(
-                                                                        "p-2 rounded-lg transition-all relative",
-                                                                        sifHoverSim && !sifClicked
-                                                                            ? "bg-brand-300 text-zinc-900 scale-110 shadow-lg shadow-brand-400/30"
-                                                                            : sifClicked
-                                                                                ? "bg-brand-400 text-zinc-900 scale-95"
-                                                                                : "text-muted-foreground hover:bg-brand-300 dark:hover:bg-brand-600/50 hover:text-zinc-900 dark:hover:text-white"
-                                                                    )}
-                                                                    title="Upload Vendor Data"
-                                                                >
-                                                                    <DocumentPlusIcon className="w-5 h-5" />
-                                                                </button>
-                                                                {/* Simulated tooltip on hover */}
-                                                                {sifHoverSim && !sifClicked && (
-                                                                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-900 text-white text-[10px] font-medium rounded whitespace-nowrap animate-in fade-in duration-200 z-50">
-                                                                        Upload Vendor Data
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                        <button onClick={() => triggerToast('Duplicate Order', 'Select an order to duplicate from the list.', 'info')} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Duplicate" style={{display:"none"}}>
-                                                            <DocumentDuplicateIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => setIsMultiSelectMode(!isMultiSelectMode)} className={cn("p-2 rounded-lg transition-colors", isMultiSelectMode ? "bg-brand-300 dark:bg-brand-500 text-zinc-900" : "hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white")} title="Export PDF">
-                                                            <DocumentTextIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button onClick={() => handleExportSIF('PO')} className="p-2 rounded-lg hover:bg-brand-300 dark:hover:bg-brand-600/50 text-muted-foreground hover:text-zinc-900 dark:hover:text-white transition-colors" title="Export SIF">
-                                                            <ArrowDownTrayIcon className="w-5 h-5" />
-                                                        </button>
-                                                    </>)}
-                                                </div>
-                                            )}
-
-                                            <div className="w-px h-8 bg-border hidden xl:block mx-1"></div>
-
+                                        {/* Status filter — pushed right */}
+                                        <div className="w-full sm:w-44 sm:ml-auto">
+                                            <Select value={selectedStatus} onChange={setSelectedStatus} options={statuses} />
                                         </div>
                                     </div>
                                 </div>
@@ -2452,7 +2426,7 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                     </div>
                                 ) : (
                                     /* Pipeline View */
-                                    <div className="flex gap-6 overflow-x-auto pb-2 scale-y-[-1] scrollbar-micro">
+                                    <div className="flex gap-6 overflow-x-auto pb-2 scale-y-[-1] scrollbar-kanban">
                                         {(lifecycleTab === 'quotes' ? quoteStages : lifecycleTab === 'acknowledgments' ? ackStages : pipelineStages).map((stage) => {
                                             const stageOrders = filteredData.filter((o: any) => o.status === stage);
                                             return (
@@ -2635,6 +2609,18 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                             >
                                                                                 <ExclamationTriangleIcon className="h-3.5 w-3.5" />
                                                                                 Resolve
+                                                                            </button>
+                                                                        )}
+
+                                                                        {/* Compare ACK vs its PO — moved here from OCR (reconciliation belongs to the transaction stage) */}
+                                                                        {lifecycleTab === 'acknowledgments' && (order as any).relatedPo && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); setCompareAckDoc(order); }}
+                                                                                title="Compare this acknowledgment against its purchase order"
+                                                                                className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg bg-brand-300/30 text-foreground border border-brand-300/50 hover:bg-brand-300/50 dark:bg-brand-500/15 dark:border-brand-500/40 dark:hover:bg-brand-500/25 transition-colors"
+                                                                            >
+                                                                                <ArrowsRightLeftIcon className="h-3.5 w-3.5" />
+                                                                                Compare with PO
                                                                             </button>
                                                                         )}
 
@@ -3100,6 +3086,19 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
             <CreateOrderModal isOpen={isCreateOrderOpen} onClose={() => setIsCreateOrderOpen(false)} />
             <AcknowledgementUploadModal isOpen={isAckModalOpen} onClose={() => setIsAckModalOpen(false)} />
             <ResolveInconsistencyModal isOpen={!!resolveAckDoc} onClose={() => setResolveAckDoc(null)} document={resolveAckDoc} />
+
+            {/* PO↔ACK comparison launcher — relocated from OCR; compares an ACK against its PO */}
+            <ComparisonLauncher
+                isOpen={!!compareAckDoc}
+                onClose={() => setCompareAckDoc(null)}
+                poNumber={compareAckDoc?.relatedPo ?? ''}
+                ackId={compareAckDoc ? String(compareAckDoc.id).replace('Acknowledgement-', 'ACK-') : ''}
+                onDecision={(report, action) => {
+                    const t = action === 'REJECT' ? 'error' : action === 'REQUEST_REVIEW' ? 'info' : 'success'
+                    const verb = action === 'ACCEPT' ? 'accepted' : action === 'REJECT' ? 'rejected' : 'flagged for review'
+                    triggerToast('Comparison', `${report.po_number} vs ${report.ack_id} ${verb} (simulated)`, t)
+                }}
+            />
             <div />
             <div />
             

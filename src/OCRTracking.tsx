@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ScanEye, FileText, CheckCircle2, AlertTriangle, Upload, Search, LayoutGrid, List, X, Archive, Sparkles, Loader2, MoreHorizontal, ChevronDown, Send, Trash2, CheckSquare, GitCompare } from 'lucide-react'
+import { ScanEye, FileText, CheckCircle2, AlertTriangle, Upload, Search, LayoutGrid, List, X, Archive, Sparkles, Loader2, MoreHorizontal, ChevronDown, Send, Trash2, CheckSquare } from 'lucide-react'
 import Navbar from './components/Navbar'
 import Breadcrumbs from './components/Breadcrumbs'
 import DocumentReviewModal from './components/ocr/DocumentReviewModal'
@@ -17,7 +17,6 @@ import UploadDocumentModal from './components/ocr/UploadDocumentModal'
 import PreflightSyncModal from './components/ocr/PreflightSyncModal'
 import { TEAM_MEMBERS, avatarGradient } from './components/team/teamMembers'
 import { openOriginalMockPdf } from './utils/viewOriginalMockPdf'
-import ComparisonLauncher from './components/comparison/ComparisonLauncher'
 
 interface OcrDoc {
     id: string
@@ -89,7 +88,6 @@ interface OCRTrackingProps {
 export default function OCRTracking({ onLogout, onNavigate, onConvertDocument }: OCRTrackingProps) {
     const [showUpload, setShowUpload] = useState(false)
     const [preflightDoc, setPreflightDoc] = useState<OcrDoc | null>(null)
-    const [compareDoc, setCompareDoc] = useState<OcrDoc | null>(null)
     const [processingDoc, setProcessingDoc] = useState<string | null>(null)
     const [createRecordDoc, setCreateRecordDoc] = useState<typeof OCR_DOCUMENTS[0] | null>(null)
     const [previewDoc, setPreviewDoc] = useState<typeof OCR_DOCUMENTS[0] | null>(null)
@@ -405,14 +403,6 @@ export default function OCRTracking({ onLogout, onNavigate, onConvertDocument }:
                                                         onMarkCompleted={() => handleMarkCompleted(doc.id)}
                                                         onPreflightSync={() => handlePreflightSync(doc)}
                                                         onDeprecate={() => openDeprecation(doc)}
-                                                        onCompare={
-                                                            // PO vs ACK comparison only applies to Purchase Orders.
-                                                            // Per the Python service contract (ai-python-strata-ack-comparison),
-                                                            // compare endpoints take po_json + ack_json — Quotes are not in scope.
-                                                            doc.type === 'Purchase Order' && doc.relatedDocId
-                                                                ? () => setCompareDoc(doc)
-                                                                : undefined
-                                                        }
                                                     />
                                                 ))}
                                                 {docs.length === 0 && (
@@ -495,19 +485,6 @@ export default function OCRTracking({ onLogout, onNavigate, onConvertDocument }:
                                                     <td className="px-4 py-3 text-xs text-muted-foreground">{doc.date}</td>
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center justify-end gap-1.5">
-                                                            {/* Compare PO vs ACK — only on Purchase Orders that have a linked ACK.
-                                                                Per ai-python-strata-ack-comparison contract: compare endpoints take
-                                                                po_json + ack_json — Quotes / Invoices / ACKs are not in scope. */}
-                                                            {doc.type === 'Purchase Order' && doc.relatedDocId && (
-                                                                <button
-                                                                    onClick={() => setCompareDoc(doc)}
-                                                                    className="p-1.5 rounded-md text-foreground bg-brand-300/30 hover:bg-brand-300/50 dark:bg-brand-500/15 dark:hover:bg-brand-500/25 ring-1 ring-brand-300/50 dark:ring-brand-500/30 transition-colors"
-                                                                    title="Compare linked documents"
-                                                                    aria-label="Compare linked documents"
-                                                                >
-                                                                    <GitCompare className="h-4 w-4" />
-                                                                </button>
-                                                            )}
                                                             <button
                                                                 onClick={() => setPreviewDoc(doc)}
                                                                 className="p-1.5 rounded-md text-foreground hover:bg-muted transition-colors"
@@ -620,23 +597,6 @@ export default function OCRTracking({ onLogout, onNavigate, onConvertDocument }:
                     const doc = createRecordDoc
                     setCreateRecordDoc(null)
                     if (doc) addToast('success', `Record ${recordId} created · ${doc.vendor}`)
-                }}
-            />
-
-            {/* PO vs ACK Comparison launcher — simulates async compare (2.5s) → review modal */}
-            <ComparisonLauncher
-                isOpen={!!compareDoc}
-                onClose={() => setCompareDoc(null)}
-                poNumber={compareDoc?.poNumber ?? compareDoc?.id ?? ''}
-                ackId={compareDoc?.ackId ?? compareDoc?.relatedDocId ?? ''}
-                onDecision={(report, action, reviewer) => {
-                    const toastType = action === 'REJECT' ? 'error' : action === 'REQUEST_REVIEW' ? 'info' : 'success'
-                    if (action === 'REQUEST_REVIEW' && reviewer) {
-                        addToast(toastType, `${report.po_number} vs ${report.ack_id} assigned to ${reviewer.name} for review`)
-                    } else {
-                        const verb = action === 'ACCEPT' ? 'accepted' : action === 'REJECT' ? 'rejected' : 'flagged for review'
-                        addToast(toastType, `${report.po_number} vs ${report.ack_id} ${verb} (simulated)`)
-                    }
                 }}
             />
 
