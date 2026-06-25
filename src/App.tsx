@@ -118,16 +118,21 @@ function App() {
       />
       {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Quote.
           onViewQuote · navega a Catalog y dispara evento para abrir el tab
-          "My Quotes" dentro (Diego: no salir de la sección). */}
-      <MiniCartDrawer
-        onViewQuote={() => {
-          setCurrentPage('catalog')
-          window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
-        }}
-      />
+          "My Quotes" dentro (Diego: no salir de la sección).
+          Diego polish · FAB + drawer SOLO visible en sección Catalog (no en
+          Feedback/Transactions/OCR · drawer es contextual al catalog). */}
+      {currentPage === 'catalog' && (
+        <MiniCartDrawer
+          onViewQuote={() => {
+            setCurrentPage('catalog')
+            window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
+          }}
+        />
+      )}
       {/* Phase 3 polish · panel global para editar variants de un item del cart.
-          Aparece cuando user click "Edit" en el drawer · pre-fillado + Update CTA. */}
-      <EditQuoteItemPanel />
+          Aparece cuando user click "Edit" en el drawer o en My Quotes detail.
+          También scoped al catalog ya que es relevante solo en ese contexto. */}
+      {currentPage === 'catalog' && <EditQuoteItemPanel />}
     </div>
   )
 }

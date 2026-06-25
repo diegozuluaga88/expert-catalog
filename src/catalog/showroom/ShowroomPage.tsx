@@ -16,6 +16,7 @@ import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs, resetCatalogs } from '../data/catalogs'
+import { useQuote } from '../../quote/QuoteContext'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ShowroomCatalogsBar from './ShowroomCatalogsBar'
@@ -28,6 +29,7 @@ type Taxonomy = 'products' | 'materials'
 
 const SORT_OPTIONS: { key: ProductSortKey; label: string }[] = [
   { key: 'relevant', label: 'Most Relevant' },
+  { key: 'history-first', label: 'Previously Quoted First' },
   { key: 'top-rated', label: 'Top Rated' },
   { key: 'price-asc', label: 'Price ↑' },
   { key: 'price-desc', label: 'Price ↓' },
@@ -93,6 +95,8 @@ export default function ShowroomPage() {
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set())
   // Phase 1 polish · catalogs reactivos · filter por status responde a sync mutations
   const catalogs = useCatalogs()
+  // Phase 4 Fix #13b · quoted history para el sort "Previously Quoted First"
+  const { quotedHistory } = useQuote()
   // Diego ask · sync simulations son ephemeral · reset al montar la page (refleja
   // que esto es una demo · no hay backend que persista los cambios cross-navegación)
   useEffect(() => {
@@ -245,11 +249,24 @@ export default function ShowroomPage() {
           (a, b) => Number(b.tags?.includes('New') ?? false) - Number(a.tags?.includes('New') ?? false)
         )
         break
+      case 'history-first':
+        // Phase 4 Fix #13b · ranking · 1) tiene history; 2) más occurrences; 3) más recent
+        sorted.sort((a, b) => {
+          const ha = quotedHistory.get(a.id)
+          const hb = quotedHistory.get(b.id)
+          if (!!hb !== !!ha) return ha ? -1 : 1
+          if (ha && hb) {
+            if (hb.occurrences !== ha.occurrences) return hb.occurrences - ha.occurrences
+            return hb.lastQuotedAt.localeCompare(ha.lastQuotedAt)
+          }
+          return Number(b.popular ?? false) - Number(a.popular ?? false)
+        })
+        break
       default:
         sorted.sort((a, b) => Number(b.popular ?? false) - Number(a.popular ?? false))
     }
     return sorted
-  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedItemStatuses, selectedCollections, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort, catalogs])
+  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedItemStatuses, selectedCollections, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort, catalogs, quotedHistory])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)

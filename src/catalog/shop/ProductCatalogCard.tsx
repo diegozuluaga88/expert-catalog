@@ -1,7 +1,8 @@
-import { Star, Heart, Sparkles, ArrowUpRight, Ban } from 'lucide-react'
+import { Star, Heart, Sparkles, ArrowUpRight, Ban, History } from 'lucide-react'
 import type { ItemStatus, Product } from '../types'
 import { resolveInternalSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs } from '../data/catalogs'
+import { useQuote } from '../../quote/QuoteContext'
 
 // Etapa 8.2 — Card de producto del "Product Catalog" (Figma Dashboard 1285:10432).
 // DS-compliant: tokens semánticos; lima solo en el CTA. Swatches usan el hex del dato.
@@ -50,6 +51,9 @@ export default function ProductCatalogCard({
   const catalogs = useCatalogs()
   const itemStatus = resolveItemStatus(product, catalogs)
   const isDiscontinued = itemStatus === 'discontinued'
+  // Phase 4 Fix #13b · Previously quoted history info (per tenant)
+  const { quotedHistory } = useQuote()
+  const historyEntry = quotedHistory.get(product.id)
   return (
     <article
       className={`group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 ${
@@ -66,6 +70,16 @@ export default function ProductCatalogCard({
             Discontinued
           </div>
         </div>
+      )}
+      {/* Phase 4 Fix #13b · Previously quoted floating badge top-right (cuando no discontinued) */}
+      {!isDiscontinued && historyEntry && (
+        <span
+          className="pointer-events-none absolute right-12 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground shadow-sm backdrop-blur"
+          title={`Previously quoted ${historyEntry.occurrences} ${historyEntry.occurrences === 1 ? 'time' : 'times'} · ${historyEntry.totalUnits} total units`}
+        >
+          <History className="h-2.5 w-2.5" />
+          Previously quoted
+        </span>
       )}
       {/* Image + select + favorite */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">

@@ -146,6 +146,7 @@ export interface Product {
 
 export type ProductSortKey =
   | 'relevant'
+  | 'history-first'
   | 'top-rated'
   | 'price-asc'
   | 'price-desc'

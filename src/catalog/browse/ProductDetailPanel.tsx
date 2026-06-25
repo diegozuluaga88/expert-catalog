@@ -59,7 +59,7 @@ function makeDefaultLine(product: Product): QuoteLine {
 export default function ProductDetailPanel({
     open, manufacturer, category, product, onClose, editingItem,
 }: ProductDetailPanelProps) {
-    const { addItems, updateItem } = useQuote()
+    const { addItems, updateItem, quotedHistory, buyerInfo } = useQuote()
     const isEditMode = !!editingItem
     const [lines, setLines] = useState<QuoteLine[]>([])
     const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
@@ -282,6 +282,22 @@ export default function ProductDetailPanel({
                                     </span>
                                 </div>
                             )}
+                            {/* Phase 4 Fix #13b · Previously quoted banner para este tenant */}
+                            {(() => {
+                                const entry = quotedHistory.get(product.id)
+                                if (!entry) return null
+                                return (
+                                    <div className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-primary/5 px-6 py-2 text-sm">
+                                        <Star className="h-4 w-4 flex-shrink-0 fill-foreground text-foreground" />
+                                        <span className="flex-1 text-foreground">
+                                            <span className="font-semibold">Previously quoted for {buyerInfo.tenant.name}.</span>
+                                            <span className="ml-1 text-muted-foreground">
+                                                {entry.occurrences} {entry.occurrences === 1 ? 'line' : 'lines'} · {entry.totalUnits} units across history
+                                            </span>
+                                        </span>
+                                    </div>
+                                )
+                            })()}
 
                             {/* Tabs · Quote first (Diego ask) */}
                             <div className="flex-shrink-0 border-b border-border bg-muted/20 px-6">

@@ -82,6 +82,18 @@ export interface EditingItemState {
     item: QuoteLineItem
 }
 
+/** Phase 4 Fix #13b · Info de history quoted por tenant · usado para
+ * badge "Previously quoted" en cards + sort "History first" + banner en detail. */
+export interface QuotedHistoryEntry {
+    productId: string
+    /** Total de líneas (NO suma de qty) en drafts + submitted que contienen este product */
+    occurrences: number
+    /** Total de unidades sumadas */
+    totalUnits: number
+    /** Última fecha que se quoteó (ISO) · max updatedAt de drafts containing this product */
+    lastQuotedAt: string
+}
+
 interface QuoteContextValue {
     /** Drafts del tenant activo */
     drafts: QuoteDraft[]
@@ -95,6 +107,8 @@ interface QuoteContextValue {
     lastAdded: LastAddedSummary | null
     /** Item siendo editado (desde drawer) · null = no editando */
     editingItem: EditingItemState | null
+    /** Map productId → history info · derived de drafts (active + submitted) del tenant */
+    quotedHistory: Map<string, QuotedHistoryEntry>
     setActiveDraft: (draftId: string) => void
     createDraft: (opts?: { source?: 'manual' | 'ingest'; sourceDocRef?: string; name?: string }) => QuoteDraft
     deleteDraft: (draftId: string) => void
@@ -194,6 +208,30 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     const sortByUpdatedDesc = (a: QuoteDraft, b: QuoteDraft) => b.updatedAt.localeCompare(a.updatedAt)
     const activeDrafts = drafts.filter(d => d.status !== 'submitted').sort(sortByUpdatedDesc)
     const submittedDrafts = drafts.filter(d => d.status === 'submitted').sort(sortByUpdatedDesc)
+
+    // Phase 4 Fix #13b · derived quoted history del tenant activo · usado por cards
+    // (badge), showroom (sort), detail panel (banner).
+    const quotedHistory = useMemo(() => {
+        const map = new Map<string, QuotedHistoryEntry>()
+        for (const d of drafts) {
+            for (const item of d.items) {
+                const existing = map.get(item.productId)
+                if (existing) {
+                    existing.occurrences += 1
+                    existing.totalUnits += item.qty
+                    if (d.updatedAt > existing.lastQuotedAt) existing.lastQuotedAt = d.updatedAt
+                } else {
+                    map.set(item.productId, {
+                        productId: item.productId,
+                        occurrences: 1,
+                        totalUnits: item.qty,
+                        lastQuotedAt: d.updatedAt,
+                    })
+                }
+            }
+        }
+        return map
+    }, [drafts])
 
     const setActiveDraft = useCallback((draftId: string) => {
         setActiveDraftIds(prev => ({ ...prev, [tenant.id]: draftId }))
@@ -384,6 +422,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             buyerInfo,
             lastAdded,
             editingItem,
+            quotedHistory,
             setActiveDraft,
             createDraft,
             deleteDraft,
