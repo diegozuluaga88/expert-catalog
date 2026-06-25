@@ -33,6 +33,15 @@ export interface SymbolFolder {
   files?: number
 }
 
+/**
+ * Phase 2 Fix #6b — estado del item consistente cross-módulo
+ * Stakeholder de producto pidió que el estado sea SIEMPRE visible en card + detail panel.
+ *  - 'active' · default · sin badge (no clutter)
+ *  - 'discontinued' · gris muted · ya no se vende
+ *  - 'discrepancy' · amber · catálogo desincronizado · cuando catalog status === 'Update Avail.'
+ */
+export type ItemStatus = 'active' | 'discontinued' | 'discrepancy'
+
 export interface Product {
   id: string
   name: string
@@ -68,6 +77,22 @@ export interface Product {
   dimensions?: { width: string; depth: string; height: string; weight: string }
   /** Showroom (Etapa 9): true si viene de un fabricante de materiales (textiles/acoustics). */
   isMaterial?: boolean
+
+  /* ── Phase 2 Fix #6 — SKU identifiers (Stakeholder consistency) ─────────
+     Stakeholder pidió 2 SKUs distintos · MFR es el del fabricante (Allsteel,
+     AIS), Internal es el del tenant/Strata. Ambos searchable (Fix #7).
+     Opcionales · si no están, se genera vía skuForProduct() helper. */
+  manufacturerSku?: string
+  internalSku?: string
+
+  /* ── Phase 2 Fix #6b — Item status (siempre visible cross-módulo) ──────
+     Default 'active' si no está set. Productos con itemStatus
+     'discontinued' o 'discrepancy' deben mostrar badge visible. */
+  itemStatus?: ItemStatus
+
+  /* ── Phase 4 — Collection field para el filter sidebar (Fix #7) ────────
+     Mock collections per brand · usado por el Collection filter. */
+  collection?: string
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */

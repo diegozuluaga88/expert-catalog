@@ -1,8 +1,29 @@
 import { Star, Heart, Sparkles, ArrowUpRight } from 'lucide-react'
-import type { Product } from '../types'
+import type { ItemStatus, Product } from '../types'
+import { resolveInternalSku, resolveItemStatus } from '../browse/catalogSku'
 
 // Etapa 8.2 — Card de producto del "Product Catalog" (Figma Dashboard 1285:10432).
 // DS-compliant: tokens semánticos; lima solo en el CTA. Swatches usan el hex del dato.
+//
+// Phase 2 Fix #6 — SKU interno visible debajo del brand (monospace, muted).
+// Phase 2 Fix #6b — itemStatus badge visible siempre cuando NO sea 'active'.
+
+function ItemStatusBadge({ status }: { status: ItemStatus }) {
+  if (status === 'active') return null
+  if (status === 'discontinued') {
+    return (
+      <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Discontinued
+      </span>
+    )
+  }
+  // 'discrepancy' · catalog out of sync
+  return (
+    <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+      Out of sync
+    </span>
+  )
+}
 
 interface ProductCatalogCardProps {
   product: Product
@@ -68,21 +89,29 @@ export default function ProductCatalogCard({
         )}
 
         <div className="flex items-start justify-between gap-2">
-          <span className="text-xs text-muted-foreground">{product.brand}</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground">{product.brand}</span>
+            <span className="font-mono text-[10px] text-muted-foreground/80" title={`Internal SKU: ${resolveInternalSku(product)}`}>
+              SKU {resolveInternalSku(product)}
+            </span>
+          </div>
           <span className="flex items-center gap-1 text-xs font-medium text-foreground">
             <Star className="h-3 w-3 fill-foreground" />
             {product.dealerRating?.toFixed(1)} <span className="text-muted-foreground">Dealer Rated</span>
           </span>
         </div>
 
-        <h3
-          onClick={() => onOpen?.(product)}
-          className={`text-sm font-bold leading-tight text-foreground ${
-            onOpen ? 'cursor-pointer hover:text-foreground/80' : ''
-          }`}
-        >
-          {product.name}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3
+            onClick={() => onOpen?.(product)}
+            className={`text-sm font-bold leading-tight text-foreground ${
+              onOpen ? 'cursor-pointer hover:text-foreground/80' : ''
+            }`}
+          >
+            {product.name}
+          </h3>
+          <ItemStatusBadge status={resolveItemStatus(product)} />
+        </div>
         {product.leadTime && <p className="text-xs text-muted-foreground">{product.leadTime}</p>}
 
         {/* Colorways */}
