@@ -446,14 +446,32 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Colorway selector */}
+                {/* Colorway selector · swatch picker visual (Diego ask · ver color en la lista) */}
                 {product.colorways.length > 0 && (
-                    <LineField label="Colorway">
-                        <select disabled={disabled} value={line.colorwayCode ?? ''} onChange={(e) => onChange({ colorwayCode: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
-                            {product.colorways.map(c => (
-                                <option key={c.code} value={c.code}>{c.name} · {c.code}</option>
-                            ))}
-                        </select>
+                    <LineField label={`Colorway · ${selectedColorway?.name ?? '—'}`}>
+                        <div className="flex flex-wrap gap-1.5 rounded-lg border border-input bg-background p-2">
+                            {product.colorways.map(c => {
+                                const isSel = line.colorwayCode === c.code
+                                return (
+                                    <button
+                                        key={c.code}
+                                        type="button"
+                                        disabled={disabled}
+                                        onClick={() => onChange({ colorwayCode: c.code })}
+                                        aria-pressed={isSel}
+                                        title={`${c.name} · ${c.code}`}
+                                        className={`group relative h-7 w-7 flex-shrink-0 rounded border-2 shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                                            isSel
+                                                ? 'border-primary ring-2 ring-primary/30 scale-105'
+                                                : 'border-border/60 hover:border-foreground/40'
+                                        }`}
+                                        style={{ backgroundColor: c.hex }}
+                                    >
+                                        <span className="sr-only">{c.name}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </LineField>
                 )}
 
