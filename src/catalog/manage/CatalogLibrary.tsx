@@ -1,6 +1,6 @@
 import React, { useState, Fragment } from 'react';
 import { Dialog, Transition, Listbox } from '@headlessui/react';
-import { AlertCircle, AlertTriangle, Calendar, CheckCircle2, ChevronDown, ChevronUp, CircleUser, Clock, CloudUpload, Filter, RefreshCw, Search, Sparkles, Store, Tag, Trash2, TrendingDown, TrendingUp, Wrench, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar, CheckCircle2, ChevronDown, ChevronUp, CircleUser, Clock, Filter, RefreshCw, Search, Settings2, Sparkles, Store, Tag, Trash2, TrendingDown, TrendingUp, Wrench, X } from 'lucide-react';
 import CatalogImportModal from './CatalogImportModal';
 import QuoteSetupModal from './QuoteSetupModal';
 
@@ -248,8 +248,8 @@ export default function CatalogLibrary() {
                             onClick={() => setIsImportModalOpen(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-sm shadow-primary/20"
                         >
-                            <CloudUpload className="w-5 h-5" />
-                            Import Catalog
+                            <Settings2 className="w-5 h-5" />
+                            Manage Catalogs
                         </button>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, Upload, CheckCircle2 } from 'lucide-react'
+import { RefreshCw, Settings2, CheckCircle2 } from 'lucide-react'
 import { CATALOGS } from '../data/catalogs'
 import type { Catalog, CatalogStatus } from '../types'
 
@@ -141,8 +141,8 @@ export default function ShowroomCatalogsBar({
         onClick={onImport}
         className="ml-auto inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
       >
-        <Upload className="h-4 w-4" />
-        Import Catalog
+        <Settings2 className="h-4 w-4" />
+        Manage Catalogs
       </button>
 
       {toast && (

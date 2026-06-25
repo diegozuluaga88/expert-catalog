@@ -1,24 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, ImageIcon, RefreshCw, Server, Users, X } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, ImageIcon, Plus, RefreshCw, Server, Settings2, Trash2, Users, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { CATALOGS } from '../data/catalogs';
+import type { Catalog, CatalogStatus } from '../types';
 
 // Helper for classes
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
 
+// Phase 1 Fix #4 — CatalogImportModal expandido a ManageCatalogsModal con 3 tabs:
+// Add (importar nuevo · flujo existente) / Edit & Sync (lista con sync per row) / Delete
+// (lista con disconnect per row + confirm). File name preservado para no romper imports
+// existentes (ShowroomPage, ProductCatalogPage, CatalogLibrary).
+
+export type ManageTab = 'add' | 'sync' | 'delete';
+
 interface CatalogImportModalProps {
     isOpen: boolean;
     onClose: () => void;
     onImportComplete: (data: unknown) => void;
+    /** Default tab al abrir el modal. 'add' default · 'sync' cuando trigger viene de un sync icon. */
+    initialTab?: ManageTab;
 }
 
 type ImportStep = 'select' | 'configure' | 'processing' | 'complete';
 type ProcessStage = 'scanning' | 'extracting' | 'homologating' | 'assets' | 'finalizing';
 type SourceType = 'url' | 'file' | 'erp';
 type TenantScope = 'current' | 'all' | 'select';
+
+// Status label helper · reused entre Sync y Delete tabs
+function statusLabel(status: CatalogStatus): string {
+    switch (status) {
+        case 'Active': return 'Up to date';
+        case 'Update Avail.': return 'Update available';
+        case 'Archived': return 'Archived';
+    }
+}
+
+function StatusBadge({ status }: { status: CatalogStatus }) {
+    const styles: Record<CatalogStatus, string> = {
+        'Active': 'bg-muted text-muted-foreground',
+        'Update Avail.': 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+        'Archived': 'bg-muted text-muted-foreground/60',
+    };
+    return (
+        <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', styles[status])}>
+            {statusLabel(status)}
+        </span>
+    );
+}
 
 // Mock Data
 const MOCK_ERP_CATALOGS = [
@@ -35,7 +68,10 @@ const MOCK_TENANTS = [
     { id: 't-4', name: 'Retail Showrooms' },
 ];
 
-export default function CatalogImportModal({ isOpen, onClose, onImportComplete }: CatalogImportModalProps) {
+export default function CatalogImportModal({ isOpen, onClose, onImportComplete, initialTab = 'add' }: CatalogImportModalProps) {
+    // Tab state · Fix #4
+    const [activeTab, setActiveTab] = useState<ManageTab>(initialTab);
+
     const [step, setStep] = useState<ImportStep>('select');
     const [sourceType, setSourceType] = useState<SourceType>('url');
     const [url, setUrl] = useState('');
@@ -52,9 +88,17 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
     const [progress, setProgress] = useState(0);
     const [suggestedName, setSuggestedName] = useState('');
 
+    // Sync/Delete tabs state · mutable local copy de CATALOGS para simular sync/disconnect.
+    // Inicial = snapshot del array global; reset al abrir el modal.
+    const [manageCatalogs, setManageCatalogs] = useState<Catalog[]>(CATALOGS);
+    const [syncingId, setSyncingId] = useState<number | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+    const [tabToast, setTabToast] = useState<string | null>(null);
+
     // Reset state on open
     useEffect(() => {
         if (isOpen) {
+            setActiveTab(initialTab);
             setStep('select');
             setSourceType('url');
             setProcessStage('scanning');
@@ -64,8 +108,33 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
             setTenantScope('current');
             setSelectedTenants([]);
             setSuggestedName('');
+            setManageCatalogs(CATALOGS);
+            setSyncingId(null);
+            setConfirmDeleteId(null);
+            setTabToast(null);
         }
-    }, [isOpen]);
+    }, [isOpen, initialTab]);
+
+    // Sync handler para la tab "Edit & Sync"
+    const handleSyncCatalog = (c: Catalog) => {
+        setSyncingId(c.id);
+        setTimeout(() => {
+            setManageCatalogs(prev =>
+                prev.map(x => x.id === c.id ? { ...x, lastSync: 'Just now', status: 'Active' as CatalogStatus } : x)
+            );
+            setSyncingId(null);
+            setTabToast(`${c.name} synced`);
+            setTimeout(() => setTabToast(null), 2500);
+        }, 1400);
+    };
+
+    // Delete handler · inline confirm + remove de la lista mutable
+    const handleConfirmDelete = (c: Catalog) => {
+        setManageCatalogs(prev => prev.filter(x => x.id !== c.id));
+        setConfirmDeleteId(null);
+        setTabToast(`${c.name} disconnected`);
+        setTimeout(() => setTabToast(null), 2500);
+    };
 
     const handleNext = () => {
         if (step === 'select') {
@@ -218,25 +287,155 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
                         leaveFrom="opacity-100 scale-100"
                         leaveTo="opacity-0 scale-95"
                     >
-                        <Dialog.Panel className="w-full max-w-2xl bg-card rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]">
+                        <Dialog.Panel className="relative w-full max-w-2xl bg-card rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]">
 
                             {/* Header */}
-                            <div className="flex items-center justify-between p-4 border-b border-border">
-                                <Dialog.Title className="text-lg font-semibold text-foreground flex items-center gap-2">
-                                    <CloudUpload className="w-5 h-5 text-zinc-500" />
-                                    Import Catalog
-                                </Dialog.Title>
-                                {step !== 'processing' && (
-                                    <button onClick={onClose} className="p-1 rounded-full hover:bg-muted text-zinc-500 transition-colors">
-                                        <X className="w-5 h-5" />
-                                    </button>
+                            <div className="border-b border-border">
+                                <div className="flex items-center justify-between p-4">
+                                    <Dialog.Title className="text-lg font-semibold text-foreground flex items-center gap-2">
+                                        <Settings2 className="w-5 h-5 text-zinc-500" />
+                                        Manage Catalogs
+                                    </Dialog.Title>
+                                    {!(activeTab === 'add' && step === 'processing') && (
+                                        <button onClick={onClose} className="p-1 rounded-full hover:bg-muted text-zinc-500 transition-colors" aria-label="Close">
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Tab nav · hidden during processing/complete steps del Add flow para no distraer */}
+                                {!(activeTab === 'add' && (step === 'processing' || step === 'complete')) && (
+                                    <div className="flex gap-1 px-2" role="tablist" aria-label="Manage catalogs sections">
+                                        <TabButton
+                                            label="Add"
+                                            icon={Plus}
+                                            active={activeTab === 'add'}
+                                            onClick={() => setActiveTab('add')}
+                                        />
+                                        <TabButton
+                                            label="Edit & Sync"
+                                            icon={RefreshCw}
+                                            active={activeTab === 'sync'}
+                                            onClick={() => setActiveTab('sync')}
+                                            badgeCount={manageCatalogs.filter(c => c.status === 'Update Avail.').length}
+                                        />
+                                        <TabButton
+                                            label="Delete"
+                                            icon={Trash2}
+                                            active={activeTab === 'delete'}
+                                            onClick={() => setActiveTab('delete')}
+                                        />
+                                    </div>
                                 )}
                             </div>
 
                             {/* Content */}
                             <div className="flex-1 overflow-y-auto">
-                                {/* STEP 1: SELECT SOURCE */}
-                                {step === 'select' && (
+                                {/* ─── EDIT & SYNC TAB ──────────────────────────────── */}
+                                {activeTab === 'sync' && (
+                                    <div className="p-6">
+                                        <div className="mb-4 flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-foreground">Connected catalogs</h3>
+                                                <p className="text-xs text-muted-foreground mt-0.5">Sync to pull the latest items from each manufacturer.</p>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">{manageCatalogs.length} connected</span>
+                                        </div>
+                                        {manageCatalogs.length === 0 ? (
+                                            <div className="text-center py-12 text-sm text-muted-foreground">
+                                                No catalogs connected yet. <button onClick={() => setActiveTab('add')} className="text-primary font-semibold hover:underline">Add one →</button>
+                                            </div>
+                                        ) : (
+                                            <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+                                                {manageCatalogs.map(c => (
+                                                    <li key={c.id} className="flex items-center gap-4 p-4 bg-card hover:bg-muted/30 transition-colors">
+                                                        <div className={cn('w-10 h-10 rounded-lg flex-shrink-0', c.cover)} aria-hidden="true" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-semibold text-foreground truncate">{c.name}</span>
+                                                                <StatusBadge status={c.status} />
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                                {c.items} items · {c.version} · synced {c.lastSync}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSyncCatalog(c)}
+                                                            disabled={syncingId === c.id}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                                                        >
+                                                            <RefreshCw className={cn('w-3.5 h-3.5', syncingId === c.id && 'animate-spin')} />
+                                                            {syncingId === c.id ? 'Syncing…' : 'Sync'}
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ─── DELETE TAB ────────────────────────────────────── */}
+                                {activeTab === 'delete' && (
+                                    <div className="p-6">
+                                        <div className="mb-4">
+                                            <h3 className="text-sm font-semibold text-foreground">Disconnect catalogs</h3>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                Removing a catalog hides its products from the showroom. Quote history is preserved.
+                                            </p>
+                                        </div>
+                                        {manageCatalogs.length === 0 ? (
+                                            <div className="text-center py-12 text-sm text-muted-foreground">No catalogs to disconnect.</div>
+                                        ) : (
+                                            <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+                                                {manageCatalogs.map(c => (
+                                                    <li key={c.id} className="flex items-center gap-4 p-4 bg-card">
+                                                        <div className={cn('w-10 h-10 rounded-lg flex-shrink-0', c.cover)} aria-hidden="true" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-semibold text-foreground truncate">{c.name}</span>
+                                                                <StatusBadge status={c.status} />
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground mt-0.5">{c.items} items</p>
+                                                        </div>
+                                                        {confirmDeleteId === c.id ? (
+                                                            <div className="flex items-center gap-2 bg-destructive/10 px-3 py-1.5 rounded-lg">
+                                                                <AlertTriangle className="w-4 h-4 text-destructive" />
+                                                                <span className="text-xs font-medium text-destructive">Disconnect?</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleConfirmDelete(c)}
+                                                                    className="px-2.5 py-1 text-xs font-semibold text-destructive-foreground bg-destructive rounded hover:bg-destructive/90 transition-colors"
+                                                                >
+                                                                    Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setConfirmDeleteId(null)}
+                                                                    className="px-2.5 py-1 text-xs font-semibold text-foreground border border-border rounded hover:bg-muted transition-colors"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setConfirmDeleteId(c.id)}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-destructive border border-destructive/30 rounded-lg hover:bg-destructive/10 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                Disconnect
+                                                            </button>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ─── ADD TAB (current flow preserved) ──────────────── */}
+                                {activeTab === 'add' && step === 'select' && (
                                     <div className="p-6">
                                         {/* Visible label · clarifies what the group is for · ID
                                             referenced by aria-labelledby on the radiogroup */}
@@ -347,7 +546,7 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
                                 )}
 
                                 {/* STEP 2: CONFIGURE TENANTS */}
-                                {step === 'configure' && (
+                                {activeTab === 'add' && step === 'configure' && (
                                     <div className="p-6 space-y-6 animate-in slide-in-from-right-4 duration-300">
                                         <div>
                                             <h3 className="text-lg font-medium text-foreground mb-1">Catalog Availability</h3>
@@ -451,9 +650,9 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
                                 )}
 
 
-                                {step === 'processing' && renderProcessingState()}
+                                {activeTab === 'add' && step === 'processing' && renderProcessingState()}
 
-                                {step === 'complete' && (
+                                {activeTab === 'add' && step === 'complete' && (
                                     <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-300">
                                         <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mb-6">
                                             <CheckCircle2 className="w-8 h-8" />
@@ -499,8 +698,8 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
                                 )}
                             </div>
 
-                            {/* Footer */}
-                            {(step === 'select' || step === 'configure') && (
+                            {/* Footer · Add tab solo (Sync/Delete usan inline actions per row) */}
+                            {activeTab === 'add' && (step === 'select' || step === 'configure') && (
                                 <div className="p-4 border-t border-border flex justify-end gap-3 bg-muted/50">
                                     <button
                                         onClick={step === 'configure' ? () => setStep('select') : onClose}
@@ -530,7 +729,7 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
                                 </div>
                             )}
 
-                            {step === 'complete' && (
+                            {activeTab === 'add' && step === 'complete' && (
                                 <div className="p-4 border-t border-border flex justify-center w-full">
                                     <button
                                         onClick={handleComplete}
@@ -540,11 +739,59 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete }
                                     </button>
                                 </div>
                             )}
+
+                            {/* Toast in-modal · acción de sync/delete per row */}
+                            {tabToast && (
+                                <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                    <CheckCircle2 className="h-4 w-4 text-foreground" />
+                                    {tabToast}
+                                </div>
+                            )}
                         </Dialog.Panel>
                     </Transition.Child>
                 </div>
             </Dialog>
         </Transition>
+    );
+}
+
+/**
+ * Tab navigation button for the 3-tab Manage Catalogs modal (Phase 1 Fix #4).
+ * Pattern · text-foreground when active con lime border-bottom indicator · muted when inactive ·
+ * focus-visible ring. Optional badgeCount renderea un pill amber cuando hay catálogos con
+ * 'Update Avail.' status (señal cuando vale la pena entrar al tab Sync).
+ */
+interface TabButtonProps {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    active: boolean;
+    onClick: () => void;
+    badgeCount?: number;
+}
+
+function TabButton({ label, icon: Icon, active, onClick, badgeCount }: TabButtonProps) {
+    return (
+        <button
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={onClick}
+            className={cn(
+                'inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card rounded-t',
+                active
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+            )}
+        >
+            <Icon className="w-4 h-4" aria-hidden="true" />
+            {label}
+            {badgeCount !== undefined && badgeCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                    {badgeCount}
+                </span>
+            )}
+        </button>
     );
 }
 
