@@ -443,14 +443,13 @@ export default function ProductCatalogPage() {
       {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
       {showReport && <GenerateReportModal onClose={() => setShowReport(false)} onExport={() => setShowReport(false)} />}
 
-      {/* Phase 2 Fix #5 polish · side panel también desde Product Catalog tab */}
+      {/* Phase 2 Fix #5 · panel también desde Product Catalog tab */}
       <ProductDetailPanel
         open={!!detailProduct}
         product={detailProduct ?? undefined}
         manufacturer={undefined}
         category={undefined}
         onClose={() => setDetailProduct(null)}
-        onAddToQuote={(p) => setQuoteProducts([p])}
       />
     </div>
   )

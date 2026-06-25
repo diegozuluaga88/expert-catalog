@@ -599,14 +599,13 @@ export default function ShowroomPage() {
         onImportComplete={() => setShowImport(false)}
       />
 
-      {/* Phase 2 Fix #5 · Product detail como side panel overlay (no full-page nav) */}
+      {/* Phase 2 Fix #5 · Product detail · centered modal (no full-page nav) */}
       <ProductDetailPanel
         open={!!ctx}
         product={ctx?.product}
         manufacturer={ctx?.manufacturer}
         category={ctx?.category}
         onClose={() => setDetailId(null)}
-        onAddToQuote={(p) => setQuoteProducts([p])}
       />
     </div>
   )

@@ -65,6 +65,16 @@ export interface QuoteDraft {
     referenceNumber?: string
 }
 
+/** Resumen del último add · consumido por MiniCartDrawer para slide-in feedback. */
+export interface LastAddedSummary {
+    draftId: string
+    draftName: string
+    tenantName: string
+    itemCount: number
+    addedItems: QuoteLineItem[]
+    addedAt: string
+}
+
 interface QuoteContextValue {
     /** Drafts del tenant activo */
     drafts: QuoteDraft[]
@@ -74,6 +84,8 @@ interface QuoteContextValue {
     activeDraftId: string | null
     activeDraft: QuoteDraft | null
     buyerInfo: BuyerInfo
+    /** Última operación de add · null si nunca se agregó o se cerró el feedback */
+    lastAdded: LastAddedSummary | null
     setActiveDraft: (draftId: string) => void
     createDraft: (opts?: { source?: 'manual' | 'ingest'; sourceDocRef?: string; name?: string }) => QuoteDraft
     deleteDraft: (draftId: string) => void
@@ -84,6 +96,7 @@ interface QuoteContextValue {
     submitDraft: (draftId: string) => string
     markInProgressIngest: (draftId: string) => void
     renameDraft: (draftId: string, name: string) => void
+    clearLastAdded: () => void
 }
 
 const QuoteContext = createContext<QuoteContextValue | undefined>(undefined)
@@ -131,6 +144,8 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     // Drafts per tenant · key del Record es tenant.id
     const [draftsByTenant, setDraftsByTenant] = useState<Record<string, QuoteDraft[]>>({})
     const [activeDraftIds, setActiveDraftIds] = useState<Record<string, string | null>>({})
+    // Last added summary · activa el MiniCartDrawer slide-in
+    const [lastAdded, setLastAdded] = useState<LastAddedSummary | null>(null)
 
     // Load drafts del tenant activo cuando cambia
     useEffect(() => {
@@ -212,6 +227,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             addedAt: now,
         }))
 
+        let resultDraftName = ''
         setDraftsByTenant(prev => {
             const list = prev[slug] ?? []
             let target = targetId ? list.find(d => d.id === targetId && d.status !== 'submitted') : undefined
@@ -232,9 +248,11 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
                     referenceNumber: refNum,
                 }
                 targetId = id
+                resultDraftName = target.name
                 return { ...prev, [slug]: [...list, target] }
             }
 
+            resultDraftName = target.name
             return {
                 ...prev,
                 [slug]: list.map(d => d.id === target!.id
@@ -245,8 +263,18 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         })
 
         if (targetId) setActiveDraftIds(prev => ({ ...prev, [slug]: targetId! }))
+        setLastAdded({
+            draftId: targetId ?? '',
+            draftName: resultDraftName,
+            tenantName: tenant.name,
+            itemCount: lineItems.length,
+            addedItems: lineItems,
+            addedAt: now,
+        })
         return targetId ?? ''
-    }, [activeDraftIds, buyerInfo, tenant.id])
+    }, [activeDraftIds, buyerInfo, tenant.id, tenant.name])
+
+    const clearLastAdded = useCallback(() => setLastAdded(null), [])
 
     const updateItem = useCallback((draftId: string, itemId: string, patch: Partial<QuoteLineItem>) => {
         const slug = tenant.id
@@ -326,6 +354,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             activeDraftId,
             activeDraft,
             buyerInfo,
+            lastAdded,
             setActiveDraft,
             createDraft,
             deleteDraft,
@@ -335,6 +364,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             submitDraft,
             markInProgressIngest,
             renameDraft,
+            clearLastAdded,
         }}>
             {children}
         </QuoteContext.Provider>

@@ -9,6 +9,7 @@ import OrderDetail from "./OrderDetail"
 import AckDetail from "./AckDetail"
 import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
+import MiniCartDrawer from "./quote/MiniCartDrawer"
 
 type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
 
@@ -114,6 +115,8 @@ function App() {
         onExtend={refreshSession}
         onLogout={handleLogout}
       />
+      {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Quote */}
+      <MiniCartDrawer onViewQuote={() => setCurrentPage('catalog')} />
     </div>
   )
 }

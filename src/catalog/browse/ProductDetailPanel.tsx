@@ -19,6 +19,7 @@ import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '.
 import { getProductVariants } from '../data/productVariants'
 import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
+import { useQuote, type QuoteLineItem } from '../../quote/QuoteContext'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -37,7 +38,6 @@ interface ProductDetailPanelProps {
     category: Category | undefined
     product: Product | undefined
     onClose: () => void
-    onAddToQuote: (product: Product) => void
 }
 
 function makeDefaultLine(product: Product): QuoteLine {
@@ -55,8 +55,9 @@ function makeDefaultLine(product: Product): QuoteLine {
 }
 
 export default function ProductDetailPanel({
-    open, manufacturer, category, product, onClose, onAddToQuote,
+    open, manufacturer, category, product, onClose,
 }: ProductDetailPanelProps) {
+    const { addItems } = useQuote()
     const [lines, setLines] = useState<QuoteLine[]>([])
     const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
     const [activeTab, setActiveTab] = useState<DetailTab>('quote')
@@ -121,6 +122,40 @@ export default function ProductDetailPanel({
     }
     const updateLine = (id: string, patch: Partial<QuoteLine>) => {
         setLines(lines.map(l => l.id === id ? { ...l, ...patch } : l))
+    }
+
+    /** Transforma cada line + sus totals en un QuoteLineItem listo para QuoteContext */
+    const handleAddToQuote = () => {
+        if (!product || isDiscontinued) return
+        const items: Omit<QuoteLineItem, 'id' | 'addedAt'>[] = lines.map((line, idx) => {
+            const totals = lineTotals[idx]
+            const colorway = product.colorways.find(c => c.code === line.colorwayCode)
+            const finish = variants.finishes?.find(f => f.id === line.finishId)
+            const fabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
+            const tier = variants.materialTiers?.find(t => t.id === line.materialTierId)
+            return {
+                productId: product.id,
+                productName: product.name,
+                productBrand: product.brand,
+                productImage: product.images[0],
+                qty: line.qty,
+                colorwayCode: colorway?.code,
+                colorwayName: colorway?.name,
+                colorwayHex: colorway?.hex,
+                finishId: finish?.id,
+                finishName: finish?.name,
+                fabricId: fabric?.id,
+                fabricName: fabric?.name,
+                fabricIsPremium: fabric?.type === 'special',
+                materialTierId: tier?.id,
+                materialTierName: tier?.name,
+                unitPrice: totals.unitPrice,
+                totalPrice: totals.totalPrice,
+                leadTimeDays: totals.leadTimeDays,
+            }
+        })
+        addItems(items)
+        onClose()
     }
 
     return (
@@ -245,7 +280,7 @@ export default function ProductDetailPanel({
                                         addLine={addLine}
                                         removeLine={removeLine}
                                         updateLine={updateLine}
-                                        onAddToQuote={() => !isDiscontinued && onAddToQuote(product)}
+                                        onAddToQuote={handleAddToQuote}
                                     />
                                 )}
                                 {activeTab === 'overview' && <OverviewTab product={product} />}
