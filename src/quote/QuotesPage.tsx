@@ -7,10 +7,10 @@
 
 import { useState } from 'react'
 import {
-    ArrowLeft, CheckCircle2, FileText, Pencil, Plus, Sparkles, Trash2, X,
+    ArrowLeft, CheckCircle2, FileText, History, Pencil, Plus, Sparkles, Trash2, X,
     ChevronRight,
 } from 'lucide-react'
-import { useQuote, type QuoteDraft, type QuoteLineItem } from './QuoteContext'
+import { useQuote, type QuoteDraft, type QuoteLineItem, type QuotedHistoryEntry } from './QuoteContext'
 import { formatLeadTime } from './helpers'
 
 type QuoteSection = 'drafts' | 'submitted'
@@ -24,7 +24,7 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
     const {
         drafts, activeDrafts, submittedDrafts, activeDraftId, activeDraft,
         buyerInfo, setActiveDraft, createDraft, deleteDraft, removeItem,
-        updateItem, submitDraft, startEditingItem,
+        updateItem, submitDraft, startEditingItem, quotedHistory,
     } = useQuote()
 
     const [section, setSection] = useState<QuoteSection>('drafts')
@@ -123,6 +123,7 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
                         <DraftDetail
                             draft={selectedDraft}
                             isSubmitted={section === 'submitted'}
+                            quotedHistory={quotedHistory}
                             onSubmit={handleSubmit}
                             onUpdateItem={(itemId, patch) => updateItem(selectedDraft.id, itemId, patch)}
                             onRemoveItem={(itemId) => removeItem(selectedDraft.id, itemId)}
@@ -223,13 +224,14 @@ function DraftListItem({ draft, selected, onClick, onDelete, confirmDelete, onCa
 interface DraftDetailProps {
     draft: QuoteDraft
     isSubmitted: boolean
+    quotedHistory: Map<string, QuotedHistoryEntry>
     onSubmit: () => void
     onUpdateItem: (itemId: string, patch: Partial<QuoteLineItem>) => void
     onRemoveItem: (itemId: string) => void
     onEditItem: (item: QuoteLineItem) => void
 }
 
-function DraftDetail({ draft, isSubmitted, onSubmit, onUpdateItem, onRemoveItem, onEditItem }: DraftDetailProps) {
+function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem, onRemoveItem, onEditItem }: DraftDetailProps) {
     const total = draft.items.reduce((s, it) => s + it.totalPrice, 0)
     const totalUnits = draft.items.reduce((s, it) => s + it.qty, 0)
     const maxLead = Math.max(0, ...draft.items.map(it => it.leadTimeDays))
@@ -279,6 +281,26 @@ function DraftDetail({ draft, isSubmitted, onSubmit, onUpdateItem, onRemoveItem,
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground">{item.productBrand}</span>
+                                        {/* Phase 4 Fix #13b · "Previously quoted" badge si el producto aparece en OTROS drafts.
+                                            occurrences = total lines del product cross-drafts;
+                                            linesInThisDraft = lines del mismo product en este draft.
+                                            Mostramos badge cuando hay otras lines en otros drafts. */}
+                                        {(() => {
+                                            const entry = quotedHistory.get(item.productId)
+                                            if (!entry) return null
+                                            const linesInThisDraft = draft.items.filter(it => it.productId === item.productId).length
+                                            const otherDraftLines = entry.occurrences - linesInThisDraft
+                                            if (otherDraftLines <= 0) return null
+                                            return (
+                                                <span
+                                                    className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-foreground"
+                                                    title={`Quoted ${otherDraftLines} ${otherDraftLines === 1 ? 'time' : 'times'} in other drafts · ${entry.totalUnits} total units across history`}
+                                                >
+                                                    <History className="h-2.5 w-2.5" />
+                                                    Previously quoted
+                                                </span>
+                                            )
+                                        })()}
                                     </div>
                                     <div className="truncate text-sm font-bold text-foreground">{item.productName}</div>
                                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
