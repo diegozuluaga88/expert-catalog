@@ -42,6 +42,44 @@ export interface SymbolFolder {
  */
 export type ItemStatus = 'active' | 'discontinued' | 'discrepancy'
 
+/* ── Phase 2 Fix #9 — Product variants para B2B (finishes, fabric, volume, material tiers) ── */
+
+export interface Finish {
+  id: string
+  name: string
+  /** hex color para el swatch */
+  swatch: string
+  /** Cargo adicional sobre el precio base (USD · puede ser 0) */
+  priceModifier: number
+  /** Días extra de lead time (puede ser 0) */
+  leadTimeAdjust: number
+}
+
+export interface FabricOption {
+  id: string
+  name: string
+  /** 'standard' = incluido sin cargo · 'special' = COM/COL · cargo + lead extra */
+  type: 'standard' | 'special'
+  priceModifier: number
+  leadTimeAdjust: number
+}
+
+export interface VolumeTier {
+  /** Cantidad mínima para entrar a este tier · ordenados ascending */
+  minQty: number
+  /** Cantidad máxima inclusive (undefined = sin tope superior) */
+  maxQty?: number
+  /** Precio por unidad ABSOLUTO en este tier (no modifier) */
+  pricePerUnit: number
+}
+
+export interface MaterialTier {
+  id: string
+  name: 'Standard' | 'Premium' | 'Special-order'
+  priceModifier: number
+  leadTimeAdjust: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -93,6 +131,15 @@ export interface Product {
   /* ── Phase 4 — Collection field para el filter sidebar (Fix #7) ────────
      Mock collections per brand · usado por el Collection filter. */
   collection?: string
+
+  /* ── Phase 2 Fix #9 — B2B variants (opcionales) ────────────────────────
+     Todos opcionales · si no están, el AddToQuoteModal solo muestra qty +
+     colorway. Si están, agregan selectors al modal + impactan price + lead
+     time vía computeLineItemTotals. */
+  finishes?: Finish[]
+  fabricOptions?: FabricOption[]
+  volumePricing?: VolumeTier[]
+  materialTiers?: MaterialTier[]
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
