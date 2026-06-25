@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { CATALOGS } from '../data/catalogs';
 import type { Catalog, CatalogStatus } from '../types';
+import { simulateSyncDelta, type SyncDelta } from '../showroom/ShowroomCatalogsBar';
 
 // Helper for classes
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -93,7 +94,10 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
     const [manageCatalogs, setManageCatalogs] = useState<Catalog[]>(CATALOGS);
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-    const [tabToast, setTabToast] = useState<string | null>(null);
+    // Phase 1 polish · toast con delta de items para sync · plain string para delete
+    const [tabToast, setTabToast] = useState<
+        { kind: 'sync'; name: string; delta: SyncDelta } | { kind: 'info'; message: string } | null
+    >(null);
 
     // Reset state on open
     useEffect(() => {
@@ -115,16 +119,26 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
         }
     }, [isOpen, initialTab]);
 
-    // Sync handler para la tab "Edit & Sync"
+    // Sync handler para la tab "Edit & Sync" · usa simulateSyncDelta para mostrar
+    // un chip post-sync con N items updated + opcionalmente +M new (drift narrative)
     const handleSyncCatalog = (c: Catalog) => {
         setSyncingId(c.id);
         setTimeout(() => {
+            const delta = simulateSyncDelta(c);
             setManageCatalogs(prev =>
-                prev.map(x => x.id === c.id ? { ...x, lastSync: 'Just now', status: 'Active' as CatalogStatus } : x)
+                prev.map(x => x.id === c.id
+                    ? {
+                        ...x,
+                        lastSync: 'Just now',
+                        status: 'Active' as CatalogStatus,
+                        items: x.items + delta.added,
+                    }
+                    : x
+                )
             );
             setSyncingId(null);
-            setTabToast(`${c.name} synced`);
-            setTimeout(() => setTabToast(null), 2500);
+            setTabToast({ kind: 'sync', name: c.name, delta });
+            setTimeout(() => setTabToast(null), 3500);
         }, 1400);
     };
 
@@ -132,7 +146,7 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
     const handleConfirmDelete = (c: Catalog) => {
         setManageCatalogs(prev => prev.filter(x => x.id !== c.id));
         setConfirmDeleteId(null);
-        setTabToast(`${c.name} disconnected`);
+        setTabToast({ kind: 'info', message: `${c.name} disconnected` });
         setTimeout(() => setTabToast(null), 2500);
     };
 
@@ -740,11 +754,35 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                 </div>
                             )}
 
-                            {/* Toast in-modal · acción de sync/delete per row */}
+                            {/* Toast in-modal · sync con delta chips · delete con plain text */}
                             {tabToast && (
-                                <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                                    <CheckCircle2 className="h-4 w-4 text-foreground" />
-                                    {tabToast}
+                                <div className="absolute bottom-4 right-4 flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-lg z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-foreground" />
+                                    {tabToast.kind === 'info' ? (
+                                        <span className="font-medium text-foreground">{tabToast.message}</span>
+                                    ) : (
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="font-semibold text-foreground">{tabToast.name} synced</span>
+                                            {tabToast.delta.updated === 0 && tabToast.delta.added === 0 ? (
+                                                <span className="text-xs text-muted-foreground">Already up to date</span>
+                                            ) : (
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    {tabToast.delta.updated > 0 && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                                                            <span className="font-bold">{tabToast.delta.updated}</span>
+                                                            {tabToast.delta.updated === 1 ? 'item updated' : 'items updated'}
+                                                        </span>
+                                                    )}
+                                                    {tabToast.delta.added > 0 && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                                                            <span className="font-bold">+{tabToast.delta.added}</span>
+                                                            new
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </Dialog.Panel>

@@ -49,6 +49,29 @@ function statusLabel(status: CatalogStatus): string {
   }
 }
 
+// Phase 1 polish · simula delta del sync (items updated/added) para dar feedback
+// específico de lo que cambió · 0 indica que era ya up-to-date. Determinístico por
+// id del catálogo + status para que la misma tabla refresque consistente.
+interface SyncDelta {
+  updated: number
+  added: number
+}
+
+function simulateSyncDelta(c: Catalog): SyncDelta {
+  // Si el catalog estaba 'Update Avail.', simulamos un delta mayor (más drift)
+  // sino delta pequeño (era casi up-to-date)
+  const seed = c.id * 7
+  if (c.status === 'Update Avail.') {
+    return { updated: (seed % 12) + 8, added: (seed % 5) + 1 }
+  }
+  return { updated: (seed % 4) + 1, added: 0 }
+}
+
+interface SyncToast {
+  name: string
+  delta: SyncDelta
+}
+
 export default function ShowroomCatalogsBar({
   onImport,
   selectedBrand,
@@ -56,17 +79,27 @@ export default function ShowroomCatalogsBar({
 }: ShowroomCatalogsBarProps) {
   const [catalogs, setCatalogs] = useState<Catalog[]>(CATALOGS)
   const [syncingId, setSyncingId] = useState<number | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<SyncToast | null>(null)
 
   const sync = (c: Catalog) => {
     setSyncingId(c.id)
     setTimeout(() => {
+      const delta = simulateSyncDelta(c)
       setCatalogs((prev) =>
-        prev.map((x) => (x.id === c.id ? { ...x, lastSync: 'Just now', status: 'Active' } : x))
+        prev.map((x) =>
+          x.id === c.id
+            ? {
+                ...x,
+                lastSync: 'Just now',
+                status: 'Active',
+                items: x.items + delta.added,
+              }
+            : x
+        )
       )
       setSyncingId(null)
-      setToast(`${c.name} synced`)
-      setTimeout(() => setToast(null), 2500)
+      setToast({ name: c.name, delta })
+      setTimeout(() => setToast(null), 3500)
     }, 1400)
   }
 
@@ -145,12 +178,44 @@ export default function ShowroomCatalogsBar({
         Manage Catalogs
       </button>
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg">
-          <CheckCircle2 className="h-4 w-4 text-foreground" />
-          {toast}
-        </div>
-      )}
+      {toast && <SyncResultToast toast={toast} />}
     </div>
   )
 }
+
+// Reusable toast con chips de delta · usado en este surface y en el Manage Catalogs modal
+// (Phase 1 Fix #4 Edit & Sync tab). Export para poder consumir desde el modal.
+export function SyncResultToast({ toast }: { toast: SyncToast }) {
+  const { name, delta } = toast
+  const isUpToDate = delta.updated === 0 && delta.added === 0
+  return (
+    <div className="fixed bottom-6 right-6 z-[60] flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-foreground" />
+      <div className="flex flex-col gap-1.5">
+        <span className="font-semibold text-foreground">{name} synced</span>
+        {isUpToDate ? (
+          <span className="text-xs text-muted-foreground">Already up to date</span>
+        ) : (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {delta.updated > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <span className="font-bold">{delta.updated}</span>
+                {delta.updated === 1 ? 'item updated' : 'items updated'}
+              </span>
+            )}
+            {delta.added > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="font-bold">+{delta.added}</span>
+                new
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Helper export para el modal Edit & Sync (reusa la misma simulación)
+export { simulateSyncDelta }
+export type { SyncDelta, SyncToast }
