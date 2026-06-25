@@ -16,7 +16,6 @@ import {
     Heart, Sparkles, Star, X, Copy, CheckCircle2,
 } from 'lucide-react'
 import type { Category, Manufacturer, Product } from '../types'
-import ColorwaySwatch from '../components/ColorwaySwatch'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
 import { getProductVariants } from '../data/productVariants'
 import { useCatalogs } from '../data/catalogs'
@@ -224,28 +223,42 @@ export default function ProductDetailPanel({
                         <div className="grid grid-cols-1 gap-6 px-6 pb-6 lg:grid-cols-[3fr_2fr]">
                             <div>
                                 <Gallery product={product} />
-                                {/* Colorways debajo de la galería */}
+                                {/* Colorways debajo de la galería · inline swatches */}
                                 {product.colorways.length > 0 && (
                                     <div className="mt-4">
                                         <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">
                                             Colorways ({product.colorways.length})
+                                            {colorwayCode && (
+                                                <span className="ml-2 font-normal text-muted-foreground normal-case tracking-normal">
+                                                    · {product.colorways.find(c => c.code === colorwayCode)?.name}
+                                                </span>
+                                            )}
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {product.colorways.map(c => (
-                                                <button
-                                                    key={c.code}
-                                                    type="button"
-                                                    onClick={() => setColorwayCode(c.code)}
-                                                    aria-pressed={colorwayCode === c.code}
-                                                    title={`${c.name} · ${c.code}`}
-                                                    className={`group flex flex-col items-center gap-1 rounded-lg p-1 transition-all ${
-                                                        colorwayCode === c.code ? 'ring-2 ring-primary' : 'hover:bg-muted'
-                                                    }`}
-                                                >
-                                                    <ColorwaySwatch hex={c.hex} size="md" />
-                                                    <span className="text-[10px] font-mono text-muted-foreground">{c.code}</span>
-                                                </button>
-                                            ))}
+                                            {product.colorways.map(c => {
+                                                const isSelected = colorwayCode === c.code
+                                                return (
+                                                    <button
+                                                        key={c.code}
+                                                        type="button"
+                                                        onClick={() => setColorwayCode(c.code)}
+                                                        aria-pressed={isSelected}
+                                                        aria-label={`Select ${c.name}`}
+                                                        title={`${c.name} · ${c.code}`}
+                                                        className="group flex flex-col items-center gap-1"
+                                                    >
+                                                        <span
+                                                            className={`block h-10 w-10 rounded-md border-2 shadow-sm transition-transform ${
+                                                                isSelected
+                                                                    ? 'border-primary ring-2 ring-primary/30 scale-105'
+                                                                    : 'border-border/60 group-hover:border-foreground/30'
+                                                            }`}
+                                                            style={{ backgroundColor: c.hex }}
+                                                        />
+                                                        <span className="text-[10px] font-mono text-muted-foreground">{c.code}</span>
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     </div>
                                 )}
