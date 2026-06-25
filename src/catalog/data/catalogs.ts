@@ -1,14 +1,21 @@
 // Etapa 3 — Mock admin de catálogos.
 // Portado verbatim de `INITIAL_CATALOGS` en el CatalogLibrary removido de expert-hub
 // (`_catalog_ref/expert-hub-removed/components/catalogs/CatalogLibrary.tsx`), ahora tipado.
+//
+// Phase 1 polish · Reactive store con useSyncExternalStore para que mutaciones desde
+// el ShowroomCatalogsBar o el CatalogImportModal Edit & Sync tab se reflejen en TODOS
+// los surfaces que dependen del catalog state (product cards con itemStatus 'Out of
+// sync' tienen que dejar de mostrarse cuando se sincroniza el catalog asociado).
+// Pattern · sin Context provider · módulo-level singleton + subscribe API.
 
+import { useSyncExternalStore } from 'react'
 import type { Catalog } from '../types'
 
 // Phase 1 Fix #1 — Catalogs alineados a los brands reales de manufacturers.ts
 // (Allermuir / Allsteel / AIS) · esto permite que la chips merge funcione como filter.
 // Allermuir mantiene el narrative de needs-sync (Phase 1 Fix #2/#3) · 14 days + Update Avail.
 
-export const CATALOGS: Catalog[] = [
+const INITIAL_CATALOGS: Catalog[] = [
   {
     id: 1,
     name: 'Allermuir',
@@ -43,3 +50,46 @@ export const CATALOGS: Catalog[] = [
     image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800',
   },
 ]
+
+let catalogsState: Catalog[] = INITIAL_CATALOGS
+const listeners = new Set<() => void>()
+
+function subscribe(cb: () => void) {
+  listeners.add(cb)
+  return () => {
+    listeners.delete(cb)
+  }
+}
+
+function getSnapshot(): Catalog[] {
+  return catalogsState
+}
+
+/**
+ * Mutar el store · requiere new array reference (immutable update) para que
+ * useSyncExternalStore detecte el cambio en consumidores.
+ */
+export function setCatalogs(updater: (prev: Catalog[]) => Catalog[]) {
+  catalogsState = updater(catalogsState)
+  listeners.forEach((cb) => cb())
+}
+
+/**
+ * Hook reactivo · cualquier componente que lo use re-rendea cuando el store cambia.
+ */
+export function useCatalogs(): Catalog[] {
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+/**
+ * Snapshot non-reactive · para callers que NO son componentes React (funciones puras
+ * como resolveItemStatus fallback). Lee el último estado del store.
+ */
+export function getCatalogsSnapshot(): Catalog[] {
+  return catalogsState
+}
+
+/** Backward compat · re-export del array bajo el nombre original.
+ * Apunta al INITIAL state · NO se actualiza after-mutation. Nuevos callers
+ * deben usar `useCatalogs()` (reactivo) o `getCatalogsSnapshot()` (puro). */
+export const CATALOGS = INITIAL_CATALOGS

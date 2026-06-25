@@ -15,6 +15,7 @@ import GenerateReportModal from '../shop/GenerateReportModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
+import { useCatalogs } from '../data/catalogs'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ShowroomCatalogsBar from './ShowroomCatalogsBar'
@@ -90,6 +91,8 @@ export default function ShowroomPage() {
   // Phase 2 Fix #7 — nuevos filtros
   const [selectedItemStatuses, setSelectedItemStatuses] = useState<Set<ItemStatus>>(new Set())
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set())
+  // Phase 1 polish · catalogs reactivos · filter por status responde a sync mutations
+  const catalogs = useCatalogs()
   const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set())
   const [selectedPrices, setSelectedPrices] = useState<Set<string>>(new Set())
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())
@@ -197,7 +200,7 @@ export default function ShowroomPage() {
       const matchesCategory =
         selectedCategories.size === 0 || (p.category ? selectedCategories.has(p.category) : false)
       const matchesItemStatus =
-        selectedItemStatuses.size === 0 || selectedItemStatuses.has(resolveItemStatus(p))
+        selectedItemStatuses.size === 0 || selectedItemStatuses.has(resolveItemStatus(p, catalogs))
       // Collection · si product.collection no está, derivamos del brand+id para que el filter funcione
       const productCollection = p.collection ?? deriveCollection(p)
       const matchesCollection =
@@ -241,7 +244,7 @@ export default function ShowroomPage() {
         sorted.sort((a, b) => Number(b.popular ?? false) - Number(a.popular ?? false))
     }
     return sorted
-  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedItemStatuses, selectedCollections, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort])
+  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedItemStatuses, selectedCollections, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort, catalogs])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)

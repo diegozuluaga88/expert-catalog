@@ -62,24 +62,33 @@ export function resolveInternalSku(p: { id: string; internalSku?: string }): str
 }
 
 /**
- * Phase 2 Fix #6b — itemStatus consistency.
+ * Phase 2 Fix #6b — itemStatus consistency · USA SNAPSHOT REACTIVO del catalogs store.
  * Si el product NO tiene itemStatus, derivamos:
  *  - 'discrepancy' si su catalog asociado (por brand match) está 'Update Avail.'
  *  - hardcoded 'discontinued' para un par de IDs específicos para variety en la demo
  *  - 'active' default
  *
- * Pasamos solo el id+brand+itemStatus para evitar dependencias circulares con types.
+ * Acepta `catalogs` opcional · si lo pasas (desde un componente con useCatalogs()),
+ * la derivación es reactiva. Sino, fallback al snapshot del store.
+ *
+ * Phase 1 polish fix · antes leía del array `CATALOGS` estático · cuando el usuario
+ * sincronizaba un catalog, los product cards seguían marcados 'Out of sync'. Ahora
+ * el snapshot refleja las mutaciones del store.
  */
-import type { ItemStatus } from '../types'
-import { CATALOGS } from '../data/catalogs'
+import type { Catalog, ItemStatus } from '../types'
+import { getCatalogsSnapshot } from '../data/catalogs'
 
 const DISCONTINUED_IDS = new Set(['bastille', 'hive-ottoman'])
 
-export function resolveItemStatus(p: { id: string; brand?: string; itemStatus?: ItemStatus }): ItemStatus {
+export function resolveItemStatus(
+  p: { id: string; brand?: string; itemStatus?: ItemStatus },
+  catalogs?: Catalog[],
+): ItemStatus {
   if (p.itemStatus) return p.itemStatus
   if (DISCONTINUED_IDS.has(p.id)) return 'discontinued'
   if (p.brand) {
-    const cat = CATALOGS.find((c) => c.name === p.brand)
+    const list = catalogs ?? getCatalogsSnapshot()
+    const cat = list.find((c) => c.name === p.brand)
     if (cat && cat.status === 'Update Avail.') return 'discrepancy'
   }
   return 'active'

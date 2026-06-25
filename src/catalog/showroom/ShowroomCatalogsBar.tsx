@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { RefreshCw, Settings2, CheckCircle2 } from 'lucide-react'
-import { CATALOGS } from '../data/catalogs'
+import { useCatalogs, setCatalogs } from '../data/catalogs'
 import type { Catalog, CatalogStatus } from '../types'
 
 // Etapa 9.8 — Showroom: barra compacta de catálogos en UNA línea (detalles en hover) + Import + Sync.
@@ -77,7 +77,10 @@ export default function ShowroomCatalogsBar({
   selectedBrand,
   onSelectBrand,
 }: ShowroomCatalogsBarProps) {
-  const [catalogs, setCatalogs] = useState<Catalog[]>(CATALOGS)
+  // Phase 1 polish · catalogs ahora vienen del store reactivo (useCatalogs) ·
+  // mutaciones se propagan a TODOS los surfaces (Product cards itemStatus, modal
+  // Edit & Sync tab, etc.) sin necesidad de Context provider.
+  const catalogs = useCatalogs()
   const [syncingId, setSyncingId] = useState<number | null>(null)
   const [toast, setToast] = useState<SyncToast | null>(null)
 
@@ -91,7 +94,7 @@ export default function ShowroomCatalogsBar({
             ? {
                 ...x,
                 lastSync: 'Just now',
-                status: 'Active',
+                status: 'Active' as CatalogStatus,
                 items: x.items + delta.added,
               }
             : x

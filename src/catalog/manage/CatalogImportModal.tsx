@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { AlertTriangle, Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, ImageIcon, Plus, RefreshCw, Server, Settings2, Trash2, Users, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { CATALOGS } from '../data/catalogs';
+import { useCatalogs, setCatalogs } from '../data/catalogs';
 import type { Catalog, CatalogStatus } from '../types';
 import { simulateSyncDelta, type SyncDelta } from '../showroom/ShowroomCatalogsBar';
 
@@ -89,9 +89,9 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
     const [progress, setProgress] = useState(0);
     const [suggestedName, setSuggestedName] = useState('');
 
-    // Sync/Delete tabs state · mutable local copy de CATALOGS para simular sync/disconnect.
-    // Inicial = snapshot del array global; reset al abrir el modal.
-    const [manageCatalogs, setManageCatalogs] = useState<Catalog[]>(CATALOGS);
+    // Sync/Delete tabs state · ahora leemos del reactive store (Phase 1 polish fix) ·
+    // las mutaciones se propagan al ShowroomCatalogsBar Y al itemStatus de product cards.
+    const manageCatalogs = useCatalogs();
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     // Phase 1 polish · toast con delta de items para sync · plain string para delete
@@ -99,7 +99,9 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
         { kind: 'sync'; name: string; delta: SyncDelta } | { kind: 'info'; message: string } | null
     >(null);
 
-    // Reset state on open
+    // Reset state on open · NO reseteamos manageCatalogs porque ahora vive en el store
+    // reactivo (mutaciones previas se preservan deliberadamente · el operator quiere
+    // ver los catalogs en su estado actual al reabrir).
     useEffect(() => {
         if (isOpen) {
             setActiveTab(initialTab);
@@ -112,20 +114,20 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
             setTenantScope('current');
             setSelectedTenants([]);
             setSuggestedName('');
-            setManageCatalogs(CATALOGS);
             setSyncingId(null);
             setConfirmDeleteId(null);
             setTabToast(null);
         }
     }, [isOpen, initialTab]);
 
-    // Sync handler para la tab "Edit & Sync" · usa simulateSyncDelta para mostrar
-    // un chip post-sync con N items updated + opcionalmente +M new (drift narrative)
+    // Sync handler para la tab "Edit & Sync" · ahora usa setCatalogs() del store
+    // reactivo · cambio se refleja en TODOS los surfaces (chips del bar, badges
+    // 'Out of sync' de los product cards).
     const handleSyncCatalog = (c: Catalog) => {
         setSyncingId(c.id);
         setTimeout(() => {
             const delta = simulateSyncDelta(c);
-            setManageCatalogs(prev =>
+            setCatalogs(prev =>
                 prev.map(x => x.id === c.id
                     ? {
                         ...x,
@@ -142,9 +144,9 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
         }, 1400);
     };
 
-    // Delete handler · inline confirm + remove de la lista mutable
+    // Delete handler · inline confirm + remove via store reactivo
     const handleConfirmDelete = (c: Catalog) => {
-        setManageCatalogs(prev => prev.filter(x => x.id !== c.id));
+        setCatalogs(prev => prev.filter(x => x.id !== c.id));
         setConfirmDeleteId(null);
         setTabToast({ kind: 'info', message: `${c.name} disconnected` });
         setTimeout(() => setTabToast(null), 2500);

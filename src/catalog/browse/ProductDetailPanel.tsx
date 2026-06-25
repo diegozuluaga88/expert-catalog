@@ -19,6 +19,7 @@ import type { Category, Manufacturer, Product } from '../types'
 import ColorwaySwatch from '../components/ColorwaySwatch'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
 import { getProductVariants } from '../data/productVariants'
+import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
 
 interface ProductDetailPanelProps {
@@ -70,9 +71,12 @@ export default function ProductDetailPanel({
         return computeLineItemTotals(product, { qty, colorwayCode, finishId, fabricId, materialTierId })
     }, [product, qty, colorwayCode, finishId, fabricId, materialTierId])
 
+    // Reactive catalogs · itemStatus se actualiza si el catalog asociado sincroniza
+    const catalogs = useCatalogs()
+
     if (!product) return null
 
-    const itemStatus = resolveItemStatus(product)
+    const itemStatus = resolveItemStatus(product, catalogs)
     const mfrSku = resolveManufacturerSku(product)
     const internalSku = resolveInternalSku(product)
     const savingsPct = product.listPrice && product.price

@@ -1,6 +1,7 @@
 import { Star, Heart, Sparkles, ArrowUpRight } from 'lucide-react'
 import type { ItemStatus, Product } from '../types'
 import { resolveInternalSku, resolveItemStatus } from '../browse/catalogSku'
+import { useCatalogs } from '../data/catalogs'
 
 // Etapa 8.2 — Card de producto del "Product Catalog" (Figma Dashboard 1285:10432).
 // DS-compliant: tokens semánticos; lima solo en el CTA. Swatches usan el hex del dato.
@@ -45,6 +46,9 @@ export default function ProductCatalogCard({
   onRequestQuote,
   onOpen,
 }: ProductCatalogCardProps) {
+  // Reactive itemStatus · re-rendea cuando se sincroniza el catalog asociado
+  const catalogs = useCatalogs()
+  const itemStatus = resolveItemStatus(product, catalogs)
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 hover:border-foreground/20 hover:shadow-sm">
       {/* Image + select + favorite */}
@@ -114,7 +118,7 @@ export default function ProductCatalogCard({
           >
             {product.name}
           </h3>
-          <ItemStatusBadge status={resolveItemStatus(product)} />
+          <ItemStatusBadge status={itemStatus} />
         </div>
         {product.leadTime && <p className="text-xs text-muted-foreground">{product.leadTime}</p>}
 
