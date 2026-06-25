@@ -14,6 +14,8 @@ import CompareModal from '../shop/CompareModal'
 import GenerateReportModal from '../shop/GenerateReportModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
+import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
+import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ShowroomCatalogsBar from './ShowroomCatalogsBar'
 
@@ -32,6 +34,21 @@ const SORT_OPTIONS: { key: ProductSortKey; label: string }[] = [
   { key: 'in-stock', label: 'In Stock First' },
   { key: 'newest', label: 'Newest' },
 ]
+
+// Phase 2 Fix #7 — fallback collection derivation cuando product.collection no está
+// (mock data antigua sin el campo). Determinístico por brand + product id.
+function deriveCollection(p: Product): string | undefined {
+  const map: Record<string, string[]> = {
+    Allermuir: ['Q2 2026', 'Heritage Series', 'Stacking Pro'],
+    Allsteel: ['Reframe 2026', 'Acuity Pro Series', 'Task Excellence'],
+    AIS: ['Calibrate Studio', 'Workspace 2026', 'Lounge Collection'],
+  }
+  const list = p.brand ? map[p.brand] : undefined
+  if (!list || list.length === 0) return undefined
+  let h = 0
+  for (let i = 0; i < p.id.length; i++) h = (h * 31 + p.id.charCodeAt(i)) >>> 0
+  return list[h % list.length]
+}
 
 function leadRank(p: Product): number {
   const lt = (p.leadTime ?? '').toLowerCase()
@@ -70,6 +87,9 @@ export default function ShowroomPage() {
   const [search, setSearch] = useState('')
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set())
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  // Phase 2 Fix #7 — nuevos filtros
+  const [selectedItemStatuses, setSelectedItemStatuses] = useState<Set<ItemStatus>>(new Set())
+  const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set())
   const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set())
   const [selectedPrices, setSelectedPrices] = useState<Set<string>>(new Set())
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())
@@ -99,6 +119,8 @@ export default function ShowroomPage() {
   const resetFacets = () => {
     setSelectedBrands(new Set())
     setSelectedCategories(new Set())
+    setSelectedItemStatuses(new Set())
+    setSelectedCollections(new Set())
     setSelectedFeatures(new Set())
     setSelectedPrices(new Set())
     setSelectedColors(new Set())
@@ -112,6 +134,8 @@ export default function ShowroomPage() {
   const hasActiveFilters =
     selectedBrands.size > 0 ||
     selectedCategories.size > 0 ||
+    selectedItemStatuses.size > 0 ||
+    selectedCollections.size > 0 ||
     selectedFeatures.size > 0 ||
     selectedPrices.size > 0 ||
     selectedColors.size > 0 ||
@@ -129,6 +153,26 @@ export default function ShowroomPage() {
     [taxoProducts]
   )
   const features = useMemo(() => Array.from(new Set(taxoProducts.flatMap((p) => p.tags ?? []))), [taxoProducts])
+  // Phase 2 Fix #7 — mock collections per brand · usado por el Collection filter
+  const collectionsMock = useMemo(() => {
+    const map: Record<string, string[]> = {
+      Allermuir: ['Q2 2026', 'Heritage Series', 'Stacking Pro'],
+      Allsteel: ['Reframe 2026', 'Acuity Pro Series', 'Task Excellence'],
+      AIS: ['Calibrate Studio', 'Workspace 2026', 'Lounge Collection'],
+    }
+    const out = new Set<string>()
+    for (const p of taxoProducts) {
+      const list = (p.brand && map[p.brand]) ?? []
+      for (const c of list) out.add(c)
+    }
+    return Array.from(out)
+  }, [taxoProducts])
+  // Item status options · siempre los 3 (no se derivan)
+  const itemStatusOptions: { label: string; value: ItemStatus }[] = [
+    { label: 'Active', value: 'active' },
+    { label: 'Discontinued', value: 'discontinued' },
+    { label: 'Out of sync', value: 'discrepancy' },
+  ]
   const colors = useMemo(() => {
     const map = new Map<string, string>()
     for (const p of taxoProducts) for (const c of p.colorways ?? []) if (!map.has(c.name)) map.set(c.name, c.hex)
@@ -138,11 +182,26 @@ export default function ShowroomPage() {
   const filtered = useMemo(() => {
     const list = taxoProducts.filter((p) => {
       const q = search.trim().toLowerCase()
-      const matchesSearch =
-        !q || p.name.toLowerCase().includes(q) || (p.brand ?? '').toLowerCase().includes(q)
+      // Phase 2 Fix #7 — search por 4 campos: name, brand, MFR SKU, Internal SKU
+      // + bonus: description, category, material si el query es lo bastante específico
+      const matchesSearch = !q || (
+        p.name.toLowerCase().includes(q) ||
+        (p.brand ?? '').toLowerCase().includes(q) ||
+        resolveManufacturerSku(p).toLowerCase().includes(q) ||
+        resolveInternalSku(p).toLowerCase().includes(q) ||
+        (p.description ?? '').toLowerCase().includes(q) ||
+        (p.category ?? '').toLowerCase().includes(q) ||
+        (p.material ?? '').toLowerCase().includes(q)
+      )
       const matchesBrand = selectedBrands.size === 0 || (p.brand ? selectedBrands.has(p.brand) : false)
       const matchesCategory =
         selectedCategories.size === 0 || (p.category ? selectedCategories.has(p.category) : false)
+      const matchesItemStatus =
+        selectedItemStatuses.size === 0 || selectedItemStatuses.has(resolveItemStatus(p))
+      // Collection · si product.collection no está, derivamos del brand+id para que el filter funcione
+      const productCollection = p.collection ?? deriveCollection(p)
+      const matchesCollection =
+        selectedCollections.size === 0 || (productCollection ? selectedCollections.has(productCollection) : false)
       const matchesFeatures =
         selectedFeatures.size === 0 || (p.tags ?? []).some((t) => selectedFeatures.has(t))
       const matchesPrice =
@@ -154,7 +213,8 @@ export default function ShowroomPage() {
         selectedColors.size === 0 || (p.colorways ?? []).some((c) => selectedColors.has(c.name))
       const matchesFav = !showFavoritesOnly || favorites.has(p.id)
       return (
-        matchesSearch && matchesBrand && matchesCategory && matchesFeatures && matchesPrice && matchesColor && matchesFav
+        matchesSearch && matchesBrand && matchesCategory && matchesItemStatus &&
+        matchesCollection && matchesFeatures && matchesPrice && matchesColor && matchesFav
       )
     })
     const sorted = [...list]
@@ -181,7 +241,7 @@ export default function ShowroomPage() {
         sorted.sort((a, b) => Number(b.popular ?? false) - Number(a.popular ?? false))
     }
     return sorted
-  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort])
+  }, [taxoProducts, search, selectedBrands, selectedCategories, selectedItemStatuses, selectedCollections, selectedFeatures, selectedPrices, selectedColors, showFavoritesOnly, favorites, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
@@ -313,7 +373,8 @@ export default function ShowroomPage() {
                 setSearch(e.target.value)
                 setPage(1)
               }}
-              placeholder="Search showroom..."
+              placeholder="Search by SKU, name, brand…"
+              title="Try a manufacturer SKU (e.g. ALL-1234A), internal SKU (IN-87423), name, or category"
               className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
             />
           </div>
@@ -393,6 +454,37 @@ export default function ShowroomPage() {
           <FilterSection title="Brand" defaultOpen>
             {brands.map((b) => checkRow(b, selectedBrands, setSelectedBrands))}
           </FilterSection>
+          {/* Phase 2 Fix #7 — Status filter (active / discontinued / discrepancy) */}
+          <FilterSection title="Status">
+            {itemStatusOptions.map((opt) => {
+              const checked = selectedItemStatuses.has(opt.value)
+              return (
+                <label key={opt.value} className="mb-1.5 flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      setSelectedItemStatuses((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(opt.value)) next.delete(opt.value)
+                        else next.add(opt.value)
+                        return next
+                      })
+                      setPage(1)
+                    }}
+                    className="h-4 w-4 cursor-pointer rounded border-input accent-primary"
+                  />
+                  <span className="text-sm text-foreground">{opt.label}</span>
+                </label>
+              )
+            })}
+          </FilterSection>
+          {/* Phase 2 Fix #7 — Collection filter (mock collections per brand) */}
+          {collectionsMock.length > 0 && (
+            <FilterSection title="Collection">
+              {collectionsMock.map((c) => checkRow(c, selectedCollections, setSelectedCollections))}
+            </FilterSection>
+          )}
           <FilterSection title="Features">
             {features.map((f) => checkRow(f, selectedFeatures, setSelectedFeatures))}
           </FilterSection>
