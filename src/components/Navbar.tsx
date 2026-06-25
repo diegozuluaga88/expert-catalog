@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, FileText } from 'lucide-react'
-import { useQuote } from '../quote/QuoteContext'
+import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt } from 'lucide-react'
 import logoLightBrand from '../assets/logo-light-brand.png'
 import logoDarkBrand from '../assets/logo-dark-brand.png'
 import ChangePasswordModal from './auth/ChangePasswordModal'
@@ -21,8 +20,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
     const { theme, toggleTheme } = useTheme()
     const { user } = useAuth()
     const { selectedTenants, tenants, toggleTenant, selectAll } = useTenant()
-    const { activeDrafts } = useQuote()
-    const totalCartUnits = activeDrafts.reduce((s, d) => s + d.items.reduce((s2, it) => s2 + it.qty, 0), 0)
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
     const [showChangePassword, setShowChangePassword] = useState(false)
     const [isTenantOpen, setIsTenantOpen] = useState(false)
@@ -43,7 +40,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
         { name: 'Transactions', label: 'Transactions', page: 'transactions', icon: Receipt },
         { name: 'Feedback', label: 'Feedback', page: 'feedback', icon: MessageSquare },
         { name: 'Catalog', label: 'Catalog', page: 'catalog', icon: Boxes },
-        { name: 'Quotes', label: 'Quotes', page: 'quotes', icon: FileText },
     ]
     const visibleTabs = tabs.filter(t => !t.hidden)
 
@@ -119,8 +115,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                         {visibleTabs.map(tab => {
                             const isActive = activeTab === tab.name
                             const Icon = tab.icon
-                            // Phase 3 Fix #13 · badge count en el tab Quotes
-                            const showCount = tab.name === 'Quotes' && totalCartUnits > 0
                             return (
                                 <button
                                     key={tab.name}
@@ -137,16 +131,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                                     }`}>
                                         {tab.label}
                                     </span>
-                                    {showCount && (
-                                        <span
-                                            className={`ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0 text-[10px] font-bold ${
-                                                isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
-                                            }`}
-                                            title={`${totalCartUnits} units in cart`}
-                                        >
-                                            {totalCartUnits}
-                                        </span>
-                                    )}
                                 </button>
                             )
                         })}

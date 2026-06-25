@@ -7,7 +7,7 @@
 //  - Footer · "X new items · Y total in cart · $Z" claro · accumulación visible
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, X } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, Minus, Plus, Trash2, X } from 'lucide-react'
 import { useQuote } from './QuoteContext'
 
 interface MiniCartDrawerProps {
@@ -15,7 +15,7 @@ interface MiniCartDrawerProps {
 }
 
 export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
-    const { lastAdded, clearLastAdded, activeDraft } = useQuote()
+    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem } = useQuote()
     const [hovering, setHovering] = useState(false)
 
     // Auto-dismiss 8s · pausa con hover, restart cuando sale el mouse.
@@ -72,6 +72,13 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 <ul className="divide-y divide-border">
                     {allItems.slice(0, 4).map(item => {
                         const isJustAdded = justAddedIds.has(item.id)
+                        const handleQtyChange = (delta: number) => {
+                            const newQty = Math.max(1, item.qty + delta)
+                            updateItem(activeDraft.id, item.id, {
+                                qty: newQty,
+                                totalPrice: item.unitPrice * newQty,
+                            })
+                        }
                         return (
                             <li key={item.id} className={`flex items-center gap-3 px-4 py-2.5 ${
                                 isJustAdded ? 'bg-primary/5' : ''
@@ -93,10 +100,37 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                                         <span>{item.colorwayName ?? '—'}</span>
                                         {item.fabricIsPremium && <span className="rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
                                     </div>
+                                    <div className="text-[10px] font-semibold text-foreground">${item.totalPrice.toLocaleString()}</div>
                                 </div>
-                                <div className="text-right text-xs">
-                                    <div className="font-semibold text-foreground">×{item.qty}</div>
-                                    <div className="text-muted-foreground">${item.totalPrice.toLocaleString()}</div>
+                                {/* Qty stepper + delete · inline edit */}
+                                <div className="flex items-center gap-0.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleQtyChange(-1)}
+                                        disabled={item.qty <= 1}
+                                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                                        aria-label="Decrease quantity"
+                                    >
+                                        <Minus className="h-3 w-3" />
+                                    </button>
+                                    <span className="min-w-[28px] text-center text-xs font-bold text-foreground">{item.qty}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleQtyChange(1)}
+                                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                        aria-label="Increase quantity"
+                                    >
+                                        <Plus className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeItem(activeDraft.id, item.id)}
+                                        className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                        aria-label="Remove from quote"
+                                        title="Remove from quote"
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                    </button>
                                 </div>
                             </li>
                         )
