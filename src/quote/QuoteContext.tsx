@@ -167,6 +167,13 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         if (list) saveDrafts(slug, list)
     }, [draftsByTenant, tenant.id])
 
+    // Limpiar lastAdded feedback cuando cambia el tenant · evita mostrar
+    // "X added to SPECIAL T" mientras el user ya está en otro tenant.
+    useEffect(() => {
+        setLastAdded(null)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tenant.id])
+
     const drafts = draftsByTenant[tenant.id] ?? []
     const activeDraftId = activeDraftIds[tenant.id] ?? null
     const activeDraft = drafts.find(d => d.id === activeDraftId) ?? null

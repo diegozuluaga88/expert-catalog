@@ -10,8 +10,9 @@ import AckDetail from "./AckDetail"
 import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 import MiniCartDrawer from "./quote/MiniCartDrawer"
+import QuotesPage from "./quote/QuotesPage"
 
-type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
+type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'quotes' | 'transactions' | 'order-detail' | 'ack-detail'
 
 export interface ConvertedDocument {
   id: string
@@ -57,6 +58,18 @@ function App() {
         return <FeedbackBoard onLogout={handleLogout} onNavigate={handleNavigate} />
       case 'catalog':
         return <CatalogPage onLogout={handleLogout} onNavigate={handleNavigate} />
+      case 'quotes':
+        return (
+          <>
+            <Navbar
+              onLogout={handleLogout}
+              activeTab="Quotes"
+              onNavigateToWorkspace={() => setCurrentPage('quotes')}
+              onNavigate={handleNavigate}
+            />
+            <QuotesPage onBack={() => setCurrentPage('catalog')} />
+          </>
+        )
       case 'transactions':
         return (
           <>
@@ -115,8 +128,9 @@ function App() {
         onExtend={refreshSession}
         onLogout={handleLogout}
       />
-      {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Quote */}
-      <MiniCartDrawer onViewQuote={() => setCurrentPage('catalog')} />
+      {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Quote.
+          onViewQuote navega a la nueva section /quotes (Fix #12). */}
+      <MiniCartDrawer onViewQuote={() => setCurrentPage('quotes')} />
     </div>
   )
 }
