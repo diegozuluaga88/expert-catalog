@@ -19,7 +19,7 @@ import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '.
 import { getProductVariants } from '../data/productVariants'
 import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
-import { useQuote, type QuoteLineItem } from '../../quote/QuoteContext'
+import { useQuote, type EditingItemState, type QuoteLineItem } from '../../quote/QuoteContext'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -38,6 +38,8 @@ interface ProductDetailPanelProps {
     category: Category | undefined
     product: Product | undefined
     onClose: () => void
+    /** Cuando set, panel arranca en modo Update con la config del item prellenada */
+    editingItem?: EditingItemState
 }
 
 function makeDefaultLine(product: Product): QuoteLine {
@@ -55,19 +57,32 @@ function makeDefaultLine(product: Product): QuoteLine {
 }
 
 export default function ProductDetailPanel({
-    open, manufacturer, category, product, onClose,
+    open, manufacturer, category, product, onClose, editingItem,
 }: ProductDetailPanelProps) {
-    const { addItems } = useQuote()
+    const { addItems, updateItem } = useQuote()
+    const isEditMode = !!editingItem
     const [lines, setLines] = useState<QuoteLine[]>([])
     const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
     const [activeTab, setActiveTab] = useState<DetailTab>('quote')
 
     useEffect(() => {
         if (product) {
-            setLines([makeDefaultLine(product)])
+            if (editingItem) {
+                // Edit mode · pre-fill 1 line with the existing item's variants
+                setLines([{
+                    id: `edit-${editingItem.item.id}`,
+                    qty: editingItem.item.qty,
+                    colorwayCode: editingItem.item.colorwayCode,
+                    finishId: editingItem.item.finishId,
+                    fabricId: editingItem.item.fabricId,
+                    materialTierId: editingItem.item.materialTierId,
+                }])
+            } else {
+                setLines([makeDefaultLine(product)])
+            }
             setActiveTab('quote')
         }
-    }, [product])
+    }, [product, editingItem])
 
     const catalogs = useCatalogs()
     const variants = useMemo(() => product ? getProductVariants(product) : {}, [product])
@@ -124,37 +139,51 @@ export default function ProductDetailPanel({
         setLines(lines.map(l => l.id === id ? { ...l, ...patch } : l))
     }
 
-    /** Transforma cada line + sus totals en un QuoteLineItem listo para QuoteContext */
+    /** Construye QuoteLineItem patch desde una line del builder */
+    const buildItemPatch = (line: QuoteLine, idx: number): Omit<QuoteLineItem, 'id' | 'addedAt'> | null => {
+        if (!product) return null
+        const totals = lineTotals[idx]
+        if (!totals) return null
+        const colorway = product.colorways.find(c => c.code === line.colorwayCode)
+        const finish = variants.finishes?.find(f => f.id === line.finishId)
+        const fabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
+        const tier = variants.materialTiers?.find(t => t.id === line.materialTierId)
+        return {
+            productId: product.id,
+            productName: product.name,
+            productBrand: product.brand,
+            productImage: product.images[0],
+            qty: line.qty,
+            colorwayCode: colorway?.code,
+            colorwayName: colorway?.name,
+            colorwayHex: colorway?.hex,
+            finishId: finish?.id,
+            finishName: finish?.name,
+            fabricId: fabric?.id,
+            fabricName: fabric?.name,
+            fabricIsPremium: fabric?.type === 'special',
+            materialTierId: tier?.id,
+            materialTierName: tier?.name,
+            unitPrice: totals.unitPrice,
+            totalPrice: totals.totalPrice,
+            leadTimeDays: totals.leadTimeDays,
+        }
+    }
+
+    /** Transforma cada line en QuoteLineItem · llama addItems o updateItem según modo */
     const handleAddToQuote = () => {
         if (!product || isDiscontinued) return
-        const items: Omit<QuoteLineItem, 'id' | 'addedAt'>[] = lines.map((line, idx) => {
-            const totals = lineTotals[idx]
-            const colorway = product.colorways.find(c => c.code === line.colorwayCode)
-            const finish = variants.finishes?.find(f => f.id === line.finishId)
-            const fabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
-            const tier = variants.materialTiers?.find(t => t.id === line.materialTierId)
-            return {
-                productId: product.id,
-                productName: product.name,
-                productBrand: product.brand,
-                productImage: product.images[0],
-                qty: line.qty,
-                colorwayCode: colorway?.code,
-                colorwayName: colorway?.name,
-                colorwayHex: colorway?.hex,
-                finishId: finish?.id,
-                finishName: finish?.name,
-                fabricId: fabric?.id,
-                fabricName: fabric?.name,
-                fabricIsPremium: fabric?.type === 'special',
-                materialTierId: tier?.id,
-                materialTierName: tier?.name,
-                unitPrice: totals.unitPrice,
-                totalPrice: totals.totalPrice,
-                leadTimeDays: totals.leadTimeDays,
-            }
-        })
-        addItems(items)
+        if (isEditMode && editingItem) {
+            // Edit mode · solo 1 line · update del existing item (replace en su lugar)
+            const patch = buildItemPatch(lines[0], 0)
+            if (patch) updateItem(editingItem.draftId, editingItem.item.id, patch)
+        } else {
+            // Normal mode · append new lines
+            const items = lines
+                .map((line, idx) => buildItemPatch(line, idx))
+                .filter((it): it is Omit<QuoteLineItem, 'id' | 'addedAt'> => it !== null)
+            addItems(items)
+        }
         onClose()
     }
 
@@ -281,6 +310,7 @@ export default function ProductDetailPanel({
                                         removeLine={removeLine}
                                         updateLine={updateLine}
                                         onAddToQuote={handleAddToQuote}
+                                        isEditMode={isEditMode}
                                     />
                                 )}
                                 {activeTab === 'overview' && <OverviewTab product={product} />}
@@ -352,17 +382,21 @@ interface QuoteTabProps {
     removeLine: (id: string) => void
     updateLine: (id: string, patch: Partial<QuoteLine>) => void
     onAddToQuote: () => void
+    /** Edit mode · single line · CTA cambia a Update */
+    isEditMode?: boolean
 }
 
-function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote }: QuoteTabProps) {
+function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote, isEditMode }: QuoteTabProps) {
     return (
         <div className="space-y-5">
-            {/* Intro · Amazon-style multi-line copy */}
+            {/* Intro · adapta a edit mode */}
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h2 className="text-lg font-bold text-foreground">Build your quote</h2>
+                    <h2 className="text-lg font-bold text-foreground">{isEditMode ? 'Edit item variants' : 'Build your quote'}</h2>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                        Need different variants? Add multiple lines for different colors, finishes, or materials in the same quote.
+                        {isEditMode
+                            ? 'Change color, finish, fabric or material tier · qty edit. Updates the existing line item in your quote.'
+                            : 'Need different variants? Add multiple lines for different colors, finishes, or materials in the same quote.'}
                     </p>
                 </div>
                 {product.listPrice && product.price && (
@@ -393,34 +427,38 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                 ))}
             </ul>
 
-            {/* Add line · disabled si discontinued */}
-            <button
-                type="button"
-                onClick={addLine}
-                disabled={disabled}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            >
-                <Plus className="h-4 w-4" />
-                Add another line for different variants
-            </button>
+            {/* Add line · hidden en edit mode (1 single line) */}
+            {!isEditMode && (
+                <button
+                    type="button"
+                    onClick={addLine}
+                    disabled={disabled}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <Plus className="h-4 w-4" />
+                    Add another line for different variants
+                </button>
+            )}
 
             {/* Totals + CTA */}
             <div className="rounded-xl border border-border bg-background p-4">
                 <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
                     <Stat label="Total units" value={`${totalUnits}`} />
                     <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
-                    <Stat label="Quote total" value={`$${totalPrice.toLocaleString()}`} highlight />
+                    <Stat label={isEditMode ? 'New line total' : 'Quote total'} value={`$${totalPrice.toLocaleString()}`} highlight />
                 </div>
                 <button
                     type="button"
                     onClick={onAddToQuote}
                     disabled={disabled}
-                    title={disabled ? 'Discontinued · quoting disabled' : `Add ${lines.length} line${lines.length === 1 ? '' : 's'} to your quote`}
+                    title={disabled ? 'Discontinued · quoting disabled' : (isEditMode ? 'Update the existing item with new variants' : `Add ${lines.length} line${lines.length === 1 ? '' : 's'} to your quote`)}
                     className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
                 >
                     {disabled
                         ? <><Ban className="h-4 w-4" /> Discontinued</>
-                        : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
+                        : isEditMode
+                            ? <>Update item <ArrowUpRight className="h-4 w-4" /></>
+                            : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
                     }
                 </button>
                 <p className="mt-2 text-center text-[11px] text-muted-foreground">

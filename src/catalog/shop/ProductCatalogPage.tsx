@@ -372,7 +372,7 @@ export default function ProductCatalogPage() {
                 favorite={favorites.has(p.id)}
                 onToggleSelect={(id) => toggleFromSet(setSelected, id)}
                 onToggleFavorite={(id) => toggleFromSet(setFavorites, id)}
-                onRequestQuote={(prod) => setQuoteProducts([prod])}
+                onRequestQuote={(prod) => setDetailProduct(prod)}
                 onOpen={(prod) => setDetailProduct(prod)}
               />
             ))}

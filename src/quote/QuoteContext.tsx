@@ -75,6 +75,13 @@ export interface LastAddedSummary {
     addedAt: string
 }
 
+/** Estado de edición de un item · cuando set, App.tsx renderea el ProductDetailPanel
+ * en modo "Update item" con la config prellenada. */
+export interface EditingItemState {
+    draftId: string
+    item: QuoteLineItem
+}
+
 interface QuoteContextValue {
     /** Drafts del tenant activo */
     drafts: QuoteDraft[]
@@ -86,6 +93,8 @@ interface QuoteContextValue {
     buyerInfo: BuyerInfo
     /** Última operación de add · null si nunca se agregó o se cerró el feedback */
     lastAdded: LastAddedSummary | null
+    /** Item siendo editado (desde drawer) · null = no editando */
+    editingItem: EditingItemState | null
     setActiveDraft: (draftId: string) => void
     createDraft: (opts?: { source?: 'manual' | 'ingest'; sourceDocRef?: string; name?: string }) => QuoteDraft
     deleteDraft: (draftId: string) => void
@@ -97,6 +106,8 @@ interface QuoteContextValue {
     markInProgressIngest: (draftId: string) => void
     renameDraft: (draftId: string, name: string) => void
     clearLastAdded: () => void
+    startEditingItem: (draftId: string, item: QuoteLineItem) => void
+    stopEditingItem: () => void
 }
 
 const QuoteContext = createContext<QuoteContextValue | undefined>(undefined)
@@ -146,6 +157,8 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     const [activeDraftIds, setActiveDraftIds] = useState<Record<string, string | null>>({})
     // Last added summary · activa el MiniCartDrawer slide-in
     const [lastAdded, setLastAdded] = useState<LastAddedSummary | null>(null)
+    // Editing item · activa el panel en modo Update
+    const [editingItem, setEditingItem] = useState<EditingItemState | null>(null)
 
     // Load drafts del tenant activo cuando cambia
     useEffect(() => {
@@ -283,6 +296,12 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
 
     const clearLastAdded = useCallback(() => setLastAdded(null), [])
 
+    const startEditingItem = useCallback((draftId: string, item: QuoteLineItem) => {
+        setEditingItem({ draftId, item })
+    }, [])
+
+    const stopEditingItem = useCallback(() => setEditingItem(null), [])
+
     const updateItem = useCallback((draftId: string, itemId: string, patch: Partial<QuoteLineItem>) => {
         const slug = tenant.id
         const now = new Date(0).toISOString().replace('1970', '2026')
@@ -362,6 +381,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             activeDraft,
             buyerInfo,
             lastAdded,
+            editingItem,
             setActiveDraft,
             createDraft,
             deleteDraft,
@@ -372,6 +392,8 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             markInProgressIngest,
             renameDraft,
             clearLastAdded,
+            startEditingItem,
+            stopEditingItem,
         }}>
             {children}
         </QuoteContext.Provider>

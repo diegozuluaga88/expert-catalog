@@ -10,6 +10,7 @@ import AckDetail from "./AckDetail"
 import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 import MiniCartDrawer from "./quote/MiniCartDrawer"
+import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
 
 type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
 
@@ -117,13 +118,16 @@ function App() {
       />
       {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Quote.
           onViewQuote · navega a Catalog y dispara evento para abrir el tab
-          "Mis Cotizaciones" dentro (Diego: no salir de la sección). */}
+          "My Quotes" dentro (Diego: no salir de la sección). */}
       <MiniCartDrawer
         onViewQuote={() => {
           setCurrentPage('catalog')
           window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
         }}
       />
+      {/* Phase 3 polish · panel global para editar variants de un item del cart.
+          Aparece cuando user click "Edit" en el drawer · pre-fillado + Update CTA. */}
+      <EditQuoteItemPanel />
     </div>
   )
 }

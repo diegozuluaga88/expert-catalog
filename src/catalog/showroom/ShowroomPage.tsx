@@ -530,7 +530,7 @@ export default function ShowroomPage() {
                 favorite={favorites.has(p.id)}
                 onToggleSelect={(id) => toggleFromSet(setSelected, id)}
                 onToggleFavorite={(id) => toggleFromSet(setFavorites, id)}
-                onRequestQuote={(prod) => setQuoteProducts([prod])}
+                onRequestQuote={(prod) => setDetailId(prod.id)}
                 onOpen={(prod) => setDetailId(prod.id)}
               />
             ))}

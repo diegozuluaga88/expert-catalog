@@ -7,7 +7,7 @@
 //  - Footer · "X new items · Y total in cart · $Z" claro · accumulación visible
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, Minus, Pencil, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
 import { useQuote } from './QuoteContext'
 
 interface MiniCartDrawerProps {
@@ -15,7 +15,7 @@ interface MiniCartDrawerProps {
 }
 
 export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
-    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem } = useQuote()
+    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem, startEditingItem } = useQuote()
     const [hovering, setHovering] = useState(false)
     // Diego ask · drawer puede reabrirse via FAB cuando ya no hay lastAdded
     const [manuallyOpened, setManuallyOpened] = useState(false)
@@ -134,7 +134,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                                     </div>
                                     <div className="text-[10px] font-semibold text-foreground">${item.totalPrice.toLocaleString()}</div>
                                 </div>
-                                {/* Qty stepper + delete · inline edit */}
+                                {/* Qty stepper + edit + delete · inline */}
                                 <div className="flex items-center gap-0.5">
                                     <button
                                         type="button"
@@ -156,8 +156,17 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                                     </button>
                                     <button
                                         type="button"
+                                        onClick={() => startEditingItem(activeDraft.id, item)}
+                                        className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+                                        aria-label="Edit variants"
+                                        title="Edit variants (color, finish, fabric…)"
+                                    >
+                                        <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                        type="button"
                                         onClick={() => removeItem(activeDraft.id, item.id)}
-                                        className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                                         aria-label="Remove from quote"
                                         title="Remove from quote"
                                     >
