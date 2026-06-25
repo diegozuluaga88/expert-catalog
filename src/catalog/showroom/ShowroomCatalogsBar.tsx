@@ -1,13 +1,48 @@
 import { useState } from 'react'
 import { RefreshCw, Upload, CheckCircle2 } from 'lucide-react'
 import { CATALOGS } from '../data/catalogs'
-import type { Catalog } from '../types'
+import type { Catalog, CatalogStatus } from '../types'
 
 // Etapa 9.8 — Showroom: barra compacta de catálogos en UNA línea (detalles en hover) + Import + Sync.
-// Reusa CATALOGS y el patrón de sync de CatalogLibrary. Optimizado en espacio (DS).
+// Phase 1 Fix #2 — Sync state dot per chip · refleja CatalogStatus visualmente:
+//   Active → sin dot (default discreto)
+//   Update Avail. → amber dot animate-pulse · llama la atención al outlier
+//   Archived → gris muted dot
+// Aprovecha el data ya existente (Herman Miller con 'Update Avail.' + lastSync 14d post Fix #3)
+// para hacer evidente cuál catálogo necesita sync.
 
 interface ShowroomCatalogsBarProps {
   onImport: () => void
+}
+
+function StatusDot({ status }: { status: CatalogStatus }) {
+  if (status === 'Active') return null
+  if (status === 'Archived') {
+    return (
+      <span
+        aria-hidden="true"
+        className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60"
+      />
+    )
+  }
+  // 'Update Avail.'
+  return (
+    <span aria-hidden="true" className="relative inline-flex h-1.5 w-1.5">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
+    </span>
+  )
+}
+
+function statusLabel(status: CatalogStatus): string {
+  switch (status) {
+    case 'Active':
+      return 'Up to date'
+    case 'Update Avail.':
+      return 'Update available · sync recommended'
+    case 'Archived':
+      return 'Archived'
+  }
 }
 
 export default function ShowroomCatalogsBar({ onImport }: ShowroomCatalogsBarProps) {
@@ -38,9 +73,10 @@ export default function ShowroomCatalogsBar({ onImport }: ShowroomCatalogsBarPro
         {catalogs.map((c) => (
           <span
             key={c.id}
-            title={`${c.items} items · ${c.status} · synced ${c.lastSync}`}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-background py-1 pl-3 pr-1 text-xs"
+            title={`${c.name} · ${c.items} items · ${statusLabel(c.status)} · synced ${c.lastSync}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background py-1 pl-3 pr-1 text-xs"
           >
+            <StatusDot status={c.status} />
             <span className="font-medium text-foreground">{c.name}</span>
             <button
               type="button"
