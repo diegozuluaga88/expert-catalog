@@ -7,7 +7,7 @@
 //  - Footer · "X new items · Y total in cart · $Z" claro · accumulación visible
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, Minus, Plus, Trash2, X } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
 import { useQuote } from './QuoteContext'
 
 interface MiniCartDrawerProps {
@@ -17,21 +17,51 @@ interface MiniCartDrawerProps {
 export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
     const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem } = useQuote()
     const [hovering, setHovering] = useState(false)
+    // Diego ask · drawer puede reabrirse via FAB cuando ya no hay lastAdded
+    const [manuallyOpened, setManuallyOpened] = useState(false)
+    const showDrawer = !!lastAdded || manuallyOpened
 
-    // Auto-dismiss 8s · pausa con hover, restart cuando sale el mouse.
+    // Auto-dismiss 8s · solo cuando triggered by lastAdded (no si manuallyOpened) ·
+    // pausa con hover, restart cuando sale el mouse.
     useEffect(() => {
-        if (!lastAdded || hovering) return
+        if (!lastAdded || hovering || manuallyOpened) return
         const timer = setTimeout(() => clearLastAdded(), 8000)
         return () => clearTimeout(timer)
-    }, [lastAdded, hovering, clearLastAdded])
+    }, [lastAdded, hovering, manuallyOpened, clearLastAdded])
 
-    if (!lastAdded || !activeDraft) return null
+    const handleClose = () => {
+        clearLastAdded()
+        setManuallyOpened(false)
+    }
 
-    const justAddedIds = new Set(lastAdded.addedItems.map(i => i.id))
+    // FAB cuando drawer closed pero el cart tiene items · click → reabre el drawer
+    const cartHasItems = activeDraft && activeDraft.items.length > 0
+    if (!showDrawer) {
+        if (!cartHasItems) return null
+        const totalUnits = activeDraft.items.reduce((s, it) => s + it.qty, 0)
+        return (
+            <button
+                type="button"
+                onClick={() => setManuallyOpened(true)}
+                className="fixed bottom-6 right-6 z-[70] inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 animate-in slide-in-from-bottom-2 fade-in duration-200"
+                aria-label={`Open quote cart · ${totalUnits} units`}
+                title="Open quote cart"
+            >
+                <ShoppingCart className="h-5 w-5" />
+                <span>{totalUnits}</span>
+                <span className="ml-1 text-xs opacity-90">in cart</span>
+            </button>
+        )
+    }
+
+    if (!activeDraft) return null
+
+    // Cuando viene de FAB (manuallyOpened sin lastAdded), no hay items "just added"
+    const justAddedIds = new Set(lastAdded?.addedItems.map(i => i.id) ?? [])
     const allItems = activeDraft.items
     const totalInCart = allItems.reduce((s, it) => s + it.qty, 0)
     const totalPriceInCart = allItems.reduce((s, it) => s + it.totalPrice, 0)
-    const justAddedCount = lastAdded.itemCount
+    const justAddedCount = lastAdded?.itemCount ?? 0
 
     return (
         <div
@@ -41,27 +71,29 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
         >
-            {/* Header · just added count + tenant badge + close */}
+            {/* Header · cambia copy según si es post-add o manual reopen */}
             <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-3">
                 <div className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-foreground">
-                    <CheckCircle2 className="h-4 w-4" />
+                    {lastAdded ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-foreground">
-                        +{justAddedCount} {justAddedCount === 1 ? 'line added' : 'lines added'}
+                        {lastAdded
+                            ? `+${justAddedCount} ${justAddedCount === 1 ? 'line added' : 'lines added'}`
+                            : 'Your quote cart'}
                     </div>
                     <div className="truncate text-[11px] text-muted-foreground">
-                        to <span className="font-semibold text-foreground">{activeDraft.name}</span>
+                        {lastAdded ? 'to' : ''} <span className="font-semibold text-foreground">{activeDraft.name}</span>
                         <span className="ml-1 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-foreground">
-                            {lastAdded.tenantName}
+                            {activeDraft.buyerInfo.tenant.name}
                         </span>
                     </div>
                 </div>
                 <button
                     type="button"
-                    onClick={() => clearLastAdded()}
+                    onClick={handleClose}
                     className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    aria-label="Dismiss"
+                    aria-label="Close"
                 >
                     <X className="h-4 w-4" />
                 </button>
@@ -154,7 +186,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 </div>
                 <button
                     type="button"
-                    onClick={() => { onViewQuote(lastAdded.draftId); clearLastAdded() }}
+                    onClick={() => { onViewQuote(activeDraft.id); handleClose() }}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
                     View Quote
@@ -162,8 +194,8 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 </button>
             </div>
 
-            {/* Hover hint · subtle indicator */}
-            {hovering && (
+            {/* Hover hint · solo aplica si auto-dismiss está activo (lastAdded mode) */}
+            {lastAdded && !manuallyOpened && hovering && (
                 <div className="bg-muted/50 px-4 py-1 text-center text-[10px] text-muted-foreground">
                     Auto-close paused while hovering
                 </div>
