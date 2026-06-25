@@ -136,11 +136,11 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
             <Store className="h-4 w-4" />
             Showroom
           </button>
-          {/* Phase 3 Fix #13 iter 2 · "Mis Cotizaciones" como tab del catalog
+          {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
               (Diego: no salirnos de la sección). Badge count del cart. */}
           <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
             <FileText className="h-4 w-4" />
-            Mis Cotizaciones
+            My Quotes
             {totalCartUnits > 0 && (
               <span className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
                 mode === 'quotes' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
