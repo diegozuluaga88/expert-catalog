@@ -7,7 +7,7 @@
 
 import { useState } from 'react'
 import {
-    ArrowLeft, CheckCircle2, FileText, Plus, Sparkles, Trash2, Upload, X,
+    ArrowLeft, CheckCircle2, FileText, Pencil, Plus, Sparkles, Trash2, X,
     ChevronRight,
 } from 'lucide-react'
 import { useQuote, type QuoteDraft, type QuoteLineItem } from './QuoteContext'
@@ -24,7 +24,7 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
     const {
         drafts, activeDrafts, submittedDrafts, activeDraftId, activeDraft,
         buyerInfo, setActiveDraft, createDraft, deleteDraft, removeItem,
-        updateItem, submitDraft,
+        updateItem, submitDraft, startEditingItem,
     } = useQuote()
 
     const [section, setSection] = useState<QuoteSection>('drafts')
@@ -126,6 +126,7 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
                             onSubmit={handleSubmit}
                             onUpdateItem={(itemId, patch) => updateItem(selectedDraft.id, itemId, patch)}
                             onRemoveItem={(itemId) => removeItem(selectedDraft.id, itemId)}
+                            onEditItem={(item) => startEditingItem(selectedDraft.id, item)}
                         />
                     ) : (
                         <div className="rounded-xl border border-border bg-card p-12 text-center">
@@ -225,9 +226,10 @@ interface DraftDetailProps {
     onSubmit: () => void
     onUpdateItem: (itemId: string, patch: Partial<QuoteLineItem>) => void
     onRemoveItem: (itemId: string) => void
+    onEditItem: (item: QuoteLineItem) => void
 }
 
-function DraftDetail({ draft, isSubmitted, onSubmit, onUpdateItem, onRemoveItem }: DraftDetailProps) {
+function DraftDetail({ draft, isSubmitted, onSubmit, onUpdateItem, onRemoveItem, onEditItem }: DraftDetailProps) {
     const total = draft.items.reduce((s, it) => s + it.totalPrice, 0)
     const totalUnits = draft.items.reduce((s, it) => s + it.qty, 0)
     const maxLead = Math.max(0, ...draft.items.map(it => it.leadTimeDays))
@@ -306,9 +308,26 @@ function DraftDetail({ draft, isSubmitted, onSubmit, onUpdateItem, onRemoveItem 
                                         <div className="text-base font-bold text-foreground">${item.totalPrice.toLocaleString()}</div>
                                     </div>
                                     {!isSubmitted && (
-                                        <button type="button" onClick={() => onRemoveItem(item.id)} className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive" aria-label="Remove">
-                                            <X className="h-3.5 w-3.5" />
-                                        </button>
+                                        <div className="flex flex-col gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => onEditItem(item)}
+                                                className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+                                                aria-label="Edit variants"
+                                                title="Edit variants (color, finish, fabric…)"
+                                            >
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => onRemoveItem(item.id)}
+                                                className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                                aria-label="Remove"
+                                                title="Remove line"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </li>

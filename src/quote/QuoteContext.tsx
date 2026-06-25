@@ -190,8 +190,10 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     const drafts = draftsByTenant[tenant.id] ?? []
     const activeDraftId = activeDraftIds[tenant.id] ?? null
     const activeDraft = drafts.find(d => d.id === activeDraftId) ?? null
-    const activeDrafts = drafts.filter(d => d.status !== 'submitted')
-    const submittedDrafts = drafts.filter(d => d.status === 'submitted')
+    // Más recientes al top · sort por updatedAt desc (Diego ask)
+    const sortByUpdatedDesc = (a: QuoteDraft, b: QuoteDraft) => b.updatedAt.localeCompare(a.updatedAt)
+    const activeDrafts = drafts.filter(d => d.status !== 'submitted').sort(sortByUpdatedDesc)
+    const submittedDrafts = drafts.filter(d => d.status === 'submitted').sort(sortByUpdatedDesc)
 
     const setActiveDraft = useCallback((draftId: string) => {
         setActiveDraftIds(prev => ({ ...prev, [tenant.id]: draftId }))
@@ -200,7 +202,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     const createDraft = useCallback((opts?: { source?: 'manual' | 'ingest'; sourceDocRef?: string; name?: string }): QuoteDraft => {
         const slug = tenant.id
         const id = generateId('draft')
-        const now = new Date(0).toISOString().replace('1970', '2026') // Static-ish · evitamos Date.now leak
+        const now = new Date().toISOString() // Static-ish · evitamos Date.now leak
         const refNum = generateReferenceNumber(slug, drafts.length)
         const draft: QuoteDraft = {
             id,
@@ -239,7 +241,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     const addItems = useCallback((items: Omit<QuoteLineItem, 'id' | 'addedAt'>[], draftId?: string | null): string => {
         const slug = tenant.id
         let targetId = draftId ?? activeDraftIds[slug]
-        const now = new Date(0).toISOString().replace('1970', '2026')
+        const now = new Date().toISOString()
 
         const lineItems: QuoteLineItem[] = items.map((item, i) => ({
             ...item,
@@ -304,7 +306,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
 
     const updateItem = useCallback((draftId: string, itemId: string, patch: Partial<QuoteLineItem>) => {
         const slug = tenant.id
-        const now = new Date(0).toISOString().replace('1970', '2026')
+        const now = new Date().toISOString()
         setDraftsByTenant(prev => ({
             ...prev,
             [slug]: (prev[slug] ?? []).map(d => d.id === draftId
@@ -320,7 +322,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
 
     const removeItem = useCallback((draftId: string, itemId: string) => {
         const slug = tenant.id
-        const now = new Date(0).toISOString().replace('1970', '2026')
+        const now = new Date().toISOString()
         setDraftsByTenant(prev => ({
             ...prev,
             [slug]: (prev[slug] ?? []).map(d => d.id === draftId
@@ -334,7 +336,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         const slug = tenant.id
         const draft = (draftsByTenant[slug] ?? []).find(d => d.id === draftId)
         const refNum = draft?.referenceNumber ?? generateReferenceNumber(slug, drafts.length)
-        const now = new Date(0).toISOString().replace('1970', '2026')
+        const now = new Date().toISOString()
         setDraftsByTenant(prev => ({
             ...prev,
             [slug]: (prev[slug] ?? []).map(d => d.id === draftId
@@ -362,7 +364,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
 
     const renameDraft = useCallback((draftId: string, name: string) => {
         const slug = tenant.id
-        const now = new Date(0).toISOString().replace('1970', '2026')
+        const now = new Date().toISOString()
         setDraftsByTenant(prev => ({
             ...prev,
             [slug]: (prev[slug] ?? []).map(d => d.id === draftId
