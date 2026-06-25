@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search, ChevronDown, Settings2, SlidersHorizontal, Check } from 'lucide-react'
 import type { Product, ProductSortKey } from '../types'
 import {
@@ -15,6 +15,7 @@ import CompareModal from './CompareModal'
 import GenerateReportModal from './GenerateReportModal'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
+import { resetCatalogs } from '../data/catalogs'
 
 // Etapa 8.2/8.6 — Dashboard "Product Catalog" (Figma · Dashboard 1285:10432 / Search 1295:10559).
 // Filtros (Brand, Category, Features, Price) / búsqueda / sort / bulk / paginación funcionales.
@@ -82,6 +83,10 @@ export default function ProductCatalogPage() {
   const [showImport, setShowImport] = useState(false)
   // Phase 2 Fix #5 polish — wire ProductDetailPanel desde esta page también
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+  // Diego ask · sync simulations son ephemeral · reset on mount
+  useEffect(() => {
+    resetCatalogs()
+  }, [])
   const selectedProducts = SHOP_PRODUCTS.filter((p) => selected.has(p.id))
 
   const toggleFromSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) =>

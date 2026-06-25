@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart } from 'lucide-react'
 import type { Category, Product, ProductSortKey } from '../types'
 import {
@@ -15,7 +15,7 @@ import GenerateReportModal from '../shop/GenerateReportModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
-import { useCatalogs } from '../data/catalogs'
+import { useCatalogs, resetCatalogs } from '../data/catalogs'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ShowroomCatalogsBar from './ShowroomCatalogsBar'
@@ -93,6 +93,11 @@ export default function ShowroomPage() {
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set())
   // Phase 1 polish · catalogs reactivos · filter por status responde a sync mutations
   const catalogs = useCatalogs()
+  // Diego ask · sync simulations son ephemeral · reset al montar la page (refleja
+  // que esto es una demo · no hay backend que persista los cambios cross-navegación)
+  useEffect(() => {
+    resetCatalogs()
+  }, [])
   const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set())
   const [selectedPrices, setSelectedPrices] = useState<Set<string>>(new Set())
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())

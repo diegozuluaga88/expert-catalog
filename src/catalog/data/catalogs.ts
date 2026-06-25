@@ -75,6 +75,18 @@ export function setCatalogs(updater: (prev: Catalog[]) => Catalog[]) {
 }
 
 /**
+ * Resetea el store al estado inicial. Diego: "al cambiar de página o sección la
+ * sincronización debería reiniciarse · ahora está persistiendo". Cada page-level
+ * component del catalog area llama este reset on-mount para que las simulaciones
+ * de sync sean ephemeral (no persistan cross-navegación) · refleja que es una
+ * demo, no un backend real.
+ */
+export function resetCatalogs() {
+  catalogsState = INITIAL_CATALOGS
+  listeners.forEach((cb) => cb())
+}
+
+/**
  * Hook reactivo · cualquier componente que lo use re-rendea cuando el store cambia.
  */
 export function useCatalogs(): Catalog[] {

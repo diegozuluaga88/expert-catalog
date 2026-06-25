@@ -78,7 +78,15 @@ export function resolveInternalSku(p: { id: string; internalSku?: string }): str
 import type { Catalog, ItemStatus } from '../types'
 import { getCatalogsSnapshot } from '../data/catalogs'
 
-const DISCONTINUED_IDS = new Set(['bastille', 'hive-ottoman'])
+// IDs match BOTH naked (manufacturers.ts source) y prefijados (unifiedProducts.ts
+// que hace `id: ${manufacturer.id}__${productId}`). Listamos ambas variantes para
+// que el card reciba 'discontinued' independiente del data source.
+const DISCONTINUED_IDS = new Set([
+  'bastille',
+  'hive-ottoman',
+  'allermuir__bastille',
+  'allermuir__hive-ottoman',
+])
 
 export function resolveItemStatus(
   p: { id: string; brand?: string; itemStatus?: ItemStatus },

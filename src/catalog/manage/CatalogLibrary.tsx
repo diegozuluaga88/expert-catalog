@@ -1,4 +1,5 @@
-import React, { useState, Fragment } from 'react';
+import React, { useEffect, useState, Fragment } from 'react';
+import { resetCatalogs } from '../data/catalogs';
 import { Dialog, Transition, Listbox } from '@headlessui/react';
 import { AlertCircle, AlertTriangle, Calendar, CheckCircle2, ChevronDown, ChevronUp, CircleUser, Clock, Filter, RefreshCw, Search, Settings2, Sparkles, Store, Tag, Trash2, TrendingDown, TrendingUp, Wrench, X } from 'lucide-react';
 import CatalogImportModal from './CatalogImportModal';
@@ -71,6 +72,10 @@ export default function CatalogLibrary() {
     const [catalogs, setCatalogs] = useState(INITIAL_CATALOGS);
     const [searchQuery, setSearchQuery] = useState('');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    // Diego ask · sync ephemeral · reset on mount
+    useEffect(() => {
+        resetCatalogs()
+    }, [])
 
     // Filters State
     const [showFilters, setShowFilters] = useState(false);
