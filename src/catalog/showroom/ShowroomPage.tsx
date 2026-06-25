@@ -12,7 +12,7 @@ import BulkActionsBar from '../shop/BulkActionsBar'
 import RequestQuoteModal from '../shop/RequestQuoteModal'
 import CompareModal from '../shop/CompareModal'
 import GenerateReportModal from '../shop/GenerateReportModal'
-import ProductDetailPage from '../browse/ProductDetailPage'
+import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ShowroomCatalogsBar from './ShowroomCatalogsBar'
@@ -211,38 +211,11 @@ export default function ShowroomPage() {
     )
   }
 
-  // ── Detalle rico (drill-down) ─────────────────────────────────────────────
+  // ── Detalle rico (drill-down) · Phase 2 Fix #5 ───────────────────────────
+  // Stakeholder de producto pidió "modal o panel lateral · NO navegación que
+  // rompa el flujo". El panel ahora se renderea como OVERLAY al final del
+  // showroom (no early-return) · el grid del showroom queda detrás dim.
   const ctx = detailId ? getProductContext(detailId) : undefined
-  if (ctx) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setDetailId(null)}
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Showroom
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuoteProducts([ctx.product])}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Request Quote
-          </button>
-        </div>
-        <ProductDetailPage
-          manufacturer={ctx.manufacturer}
-          category={ctx.category}
-          product={ctx.product}
-          onBack={() => setDetailId(null)}
-        />
-        {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
-      </div>
-    )
-  }
 
   // ── Brand page (Etapa 9.5): hero/resources/contactos/categorías; seleccionar categoría filtra el grid ──
   const brandManufacturer = brandName ? getManufacturerByName(brandName) : undefined
@@ -524,6 +497,16 @@ export default function ShowroomPage() {
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         onImportComplete={() => setShowImport(false)}
+      />
+
+      {/* Phase 2 Fix #5 · Product detail como side panel overlay (no full-page nav) */}
+      <ProductDetailPanel
+        open={!!ctx}
+        product={ctx?.product}
+        manufacturer={ctx?.manufacturer}
+        category={ctx?.category}
+        onClose={() => setDetailId(null)}
+        onAddToQuote={(p) => setQuoteProducts([p])}
       />
     </div>
   )
