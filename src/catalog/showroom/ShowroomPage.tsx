@@ -17,6 +17,7 @@ import ManufacturerPage from '../browse/ManufacturerPage'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs, resetCatalogs } from '../data/catalogs'
 import { useQuote } from '../../quote/QuoteContext'
+import IngestQuoteModal from '../../quote/IngestQuoteModal'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ShowroomCatalogsBar from './ShowroomCatalogsBar'
@@ -115,6 +116,8 @@ export default function ShowroomPage() {
   const [showCompare, setShowCompare] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  // Phase 5 Fix #14 · IngestQuoteModal trigger
+  const [showIngest, setShowIngest] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [brandName, setBrandName] = useState<string | null>(null)
 
@@ -370,6 +373,7 @@ export default function ShowroomPage() {
           (data alineada en catalogs.ts). */}
       <ShowroomCatalogsBar
         onImport={() => setShowImport(true)}
+        onUploadQuote={() => setShowIngest(true)}
         selectedBrand={selectedBrands.size === 1 ? Array.from(selectedBrands)[0] : null}
         onSelectBrand={(brand) => {
           setSelectedBrands(brand ? new Set([brand]) : new Set())
@@ -614,6 +618,17 @@ export default function ShowroomPage() {
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         onImportComplete={() => setShowImport(false)}
+      />
+
+      {/* Phase 5 Fix #14 · Upload Quote/PO/ACK · AI mapping → draft */}
+      <IngestQuoteModal
+        isOpen={showIngest}
+        onClose={() => setShowIngest(false)}
+        onComplete={() => {
+          setShowIngest(false)
+          // Navega al tab My Quotes para ver el draft recién creado
+          window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
+        }}
       />
 
       {/* Phase 2 Fix #5 · Product detail · centered modal (no full-page nav) */}

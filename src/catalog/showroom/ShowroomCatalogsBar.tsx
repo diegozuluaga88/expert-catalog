@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, Settings2, CheckCircle2 } from 'lucide-react'
+import { RefreshCw, Settings2, CheckCircle2, FileText } from 'lucide-react'
 import { useCatalogs, setCatalogs } from '../data/catalogs'
 import type { Catalog, CatalogStatus } from '../types'
 
@@ -13,6 +13,8 @@ import type { Catalog, CatalogStatus } from '../types'
 
 interface ShowroomCatalogsBarProps {
   onImport: () => void
+  // Phase 5 Fix #14 · trigger del IngestQuoteModal
+  onUploadQuote: () => void
   // Phase 1 Fix #1 — Dual-purpose chips: filter + sync
   // `null` = "All" (no filter active)
   selectedBrand: string | null
@@ -74,6 +76,7 @@ interface SyncToast {
 
 export default function ShowroomCatalogsBar({
   onImport,
+  onUploadQuote,
   selectedBrand,
   onSelectBrand,
 }: ShowroomCatalogsBarProps) {
@@ -172,14 +175,26 @@ export default function ShowroomCatalogsBar({
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={onImport}
-        className="ml-auto inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-      >
-        <Settings2 className="h-4 w-4" />
-        Manage Catalogs
-      </button>
+      <div className="ml-auto flex items-center gap-2">
+        {/* Phase 5 Fix #14 · Upload Quote/PO/ACK · Strata AI mapping */}
+        <button
+          type="button"
+          onClick={onUploadQuote}
+          title="Upload an existing Quote, Purchase Order, or Acknowledgement · Strata maps it to your catalog"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          <FileText className="h-4 w-4" />
+          Upload Quote / PO
+        </button>
+        <button
+          type="button"
+          onClick={onImport}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Settings2 className="h-4 w-4" />
+          Manage Catalogs
+        </button>
+      </div>
 
       {toast && <SyncResultToast toast={toast} />}
     </div>
