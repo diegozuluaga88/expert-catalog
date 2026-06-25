@@ -14,6 +14,7 @@ import RequestQuoteModal from './RequestQuoteModal'
 import CompareModal from './CompareModal'
 import GenerateReportModal from './GenerateReportModal'
 import CatalogImportModal from '../manage/CatalogImportModal'
+import ProductDetailPanel from '../browse/ProductDetailPanel'
 
 // Etapa 8.2/8.6 — Dashboard "Product Catalog" (Figma · Dashboard 1285:10432 / Search 1295:10559).
 // Filtros (Brand, Category, Features, Price) / búsqueda / sort / bulk / paginación funcionales.
@@ -79,6 +80,8 @@ export default function ProductCatalogPage() {
   const [showCompare, setShowCompare] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  // Phase 2 Fix #5 polish — wire ProductDetailPanel desde esta page también
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const selectedProducts = SHOP_PRODUCTS.filter((p) => selected.has(p.id))
 
   const toggleFromSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) =>
@@ -365,6 +368,7 @@ export default function ProductCatalogPage() {
                 onToggleSelect={(id) => toggleFromSet(setSelected, id)}
                 onToggleFavorite={(id) => toggleFromSet(setFavorites, id)}
                 onRequestQuote={(prod) => setQuoteProducts([prod])}
+                onOpen={(prod) => setDetailProduct(prod)}
               />
             ))}
           </div>
@@ -433,6 +437,16 @@ export default function ProductCatalogPage() {
       {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
       {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
       {showReport && <GenerateReportModal onClose={() => setShowReport(false)} onExport={() => setShowReport(false)} />}
+
+      {/* Phase 2 Fix #5 polish · side panel también desde Product Catalog tab */}
+      <ProductDetailPanel
+        open={!!detailProduct}
+        product={detailProduct ?? undefined}
+        manufacturer={undefined}
+        category={undefined}
+        onClose={() => setDetailProduct(null)}
+        onAddToQuote={(p) => setQuoteProducts([p])}
+      />
     </div>
   )
 }

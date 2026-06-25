@@ -89,10 +89,14 @@ export default function ProductCatalogCard({
         )}
 
         <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">{product.brand}</span>
-            <span className="font-mono text-[10px] text-muted-foreground/80" title={`Internal SKU: ${resolveInternalSku(product)}`}>
-              SKU {resolveInternalSku(product)}
+            <span
+              className="inline-flex w-fit items-center gap-1.5 rounded-md border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground"
+              title={`Internal SKU · click on product to view manufacturer SKU as well`}
+            >
+              <span className="text-[9px] font-sans font-bold uppercase tracking-wide text-muted-foreground">SKU</span>
+              {resolveInternalSku(product)}
             </span>
           </div>
           <span className="flex items-center gap-1 text-xs font-medium text-foreground">
@@ -142,17 +146,30 @@ export default function ProductCatalogCard({
           </div>
         )}
 
-        {/* Price + CTA */}
+        {/* Price + CTA · listPrice strikethrough + savings tooltip explica origen */}
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="leading-tight">
-            {product.listPrice && product.listPrice > (product.price ?? 0) && (
-              <span className="block text-xs text-muted-foreground line-through">
-                ${product.listPrice.toLocaleString()}
+            {product.listPrice && product.price && product.listPrice > product.price && (
+              <span
+                className="flex items-baseline gap-1.5"
+                title={`Manufacturer list price $${product.listPrice.toLocaleString()} · your dealer discount applied`}
+              >
+                <span className="text-xs text-muted-foreground line-through">
+                  ${product.listPrice.toLocaleString()}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  Save {Math.round(((product.listPrice - product.price) / product.listPrice) * 100)}%
+                </span>
               </span>
             )}
             <span className="text-base font-bold text-foreground">
               ${product.price?.toLocaleString()}
             </span>
+            {product.listPrice && product.price && product.listPrice > product.price && (
+              <span className="block text-[10px] text-muted-foreground">
+                Dealer price · list ${product.listPrice.toLocaleString()}
+              </span>
+            )}
           </div>
           <button
             type="button"
