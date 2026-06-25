@@ -32,7 +32,7 @@ export const CATALOGS: Catalog[] = [
     name: 'Herman Miller',
     version: '2023 Master',
     items: 312,
-    lastSync: '4 days ago',
+    lastSync: '14 days ago',
     cover: 'bg-blue-600',
     status: 'Update Avail.',
     owner: 'John Doe',
