@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
 import { X, Star, Plus } from 'lucide-react'
 import type { Product } from '../types'
 import { resolveInternalSku, resolveManufacturerSku } from '../browse/catalogSku'
@@ -115,11 +116,14 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Transition show as={Fragment} appear>
+      <Dialog onClose={onClose} className="relative z-[70]">
+        <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+        </Transition.Child>
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+            <Dialog.Panel className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div>
             <h2 className="font-brand text-lg font-bold text-foreground">Compare Products</h2>
@@ -180,7 +184,10 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+            </Dialog.Panel>
+          </Transition.Child>
+        </div>
+      </Dialog>
+    </Transition>
   )
 }
