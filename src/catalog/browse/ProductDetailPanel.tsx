@@ -20,6 +20,7 @@ import { getProductVariants } from '../data/productVariants'
 import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
 import { useQuote, type EditingItemState, type QuoteLineItem } from '../../quote/QuoteContext'
+import { getRelatedProducts, type RelatedBucket } from '../related'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -333,6 +334,9 @@ export default function ProductDetailPanel({
                                 {activeTab === 'variants' && <VariantsTab product={product} variants={variants} />}
                                 {activeTab === 'specs' && <SpecsTab product={product} />}
                                 {activeTab === 'resources' && <ResourcesTab product={product} />}
+
+                                {/* Strata recommends · siempre visible bajo cualquier tab */}
+                                <StrataRecommendsSection product={product} />
                             </div>
                         </Dialog.Panel>
                     </Transition.Child>
@@ -861,5 +865,114 @@ function InfoTable({ data }: { data: Record<string, string> }) {
                 ))}
             </tbody>
         </table>
+    )
+}
+
+/* ─── Strata recommends section · complementary + price + lead time ───── */
+
+function StrataRecommendsSection({ product }: { product: Product }) {
+    const { addItems } = useQuote()
+    const related = useMemo(() => getRelatedProducts(product), [product])
+
+    const handleAdd = (p: Product) => {
+        const variants = getProductVariants(p)
+        const colorway = p.colorways[0]
+        const finishId = variants.finishes?.[0]?.id
+        const fabricId = variants.fabricOptions?.find(f => f.type === 'standard')?.id
+        const materialTierId = variants.materialTiers?.[0]?.id
+        const totals = computeLineItemTotals(p, { qty: 1, colorwayCode: colorway?.code, finishId, fabricId, materialTierId })
+        const finish = variants.finishes?.find(f => f.id === finishId)
+        const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
+        const tier = variants.materialTiers?.find(t => t.id === materialTierId)
+        addItems([{
+            productId: p.id,
+            productName: p.name,
+            productBrand: p.brand,
+            productImage: p.images[0],
+            qty: 1,
+            colorwayCode: colorway?.code,
+            colorwayName: colorway?.name,
+            colorwayHex: colorway?.hex,
+            finishId: finish?.id,
+            finishName: finish?.name,
+            fabricId: fabric?.id,
+            fabricName: fabric?.name,
+            fabricIsPremium: fabric?.type === 'special',
+            materialTierId: tier?.id,
+            materialTierName: tier?.name,
+            unitPrice: totals.unitPrice,
+            totalPrice: totals.totalPrice,
+            leadTimeDays: totals.leadTimeDays,
+        }])
+    }
+
+    const buckets = [related.complementary, related.betterPrice, related.fasterDelivery].filter(b => b.products.length > 0)
+    if (buckets.length === 0) return null
+
+    return (
+        <div className="mt-6 space-y-5 border-t border-border pt-6">
+            <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-foreground" />
+                <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">Strata recommends</h2>
+            </div>
+            {buckets.map(bucket => (
+                <RelatedBucketRow key={bucket.label} bucket={bucket} ownPrice={product.price ?? 0} onAdd={handleAdd} />
+            ))}
+        </div>
+    )
+}
+
+function RelatedBucketRow({ bucket, ownPrice, onAdd }: { bucket: RelatedBucket; ownPrice: number; onAdd: (p: Product) => void }) {
+    return (
+        <div>
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+                <h3 className="text-sm font-bold text-foreground">{bucket.label}</h3>
+                <span className="text-[11px] text-muted-foreground">{bucket.reason}</span>
+            </div>
+            <ul className="space-y-1.5">
+                {bucket.products.map(p => {
+                    const priceDiff = ownPrice > 0 ? Math.round(((p.price ?? 0) - ownPrice) / ownPrice * 100) : 0
+                    return (
+                        <li key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:border-foreground/20">
+                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-muted">
+                                <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.brand}</span>
+                                    {p.dealerRating && (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                            <Star className="h-2.5 w-2.5 fill-foreground text-foreground" />
+                                            {p.dealerRating.toFixed(1)}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="truncate text-sm font-semibold text-foreground">{p.name}</div>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                    {p.leadTime && <span>Ships {p.leadTime.toLowerCase()}</span>}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm font-bold text-foreground">${p.price?.toLocaleString() ?? '—'}</div>
+                                {priceDiff !== 0 && (
+                                    <div className={`text-[10px] font-semibold ${priceDiff < 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                                        {priceDiff < 0 ? `${priceDiff}% vs this` : `+${priceDiff}% vs this`}
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onAdd(p)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                                title={`Add ${p.name} to your active quote`}
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add
+                            </button>
+                        </li>
+                    )
+                })}
+            </ul>
+        </div>
     )
 }
