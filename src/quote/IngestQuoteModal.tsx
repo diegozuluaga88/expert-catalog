@@ -326,11 +326,21 @@ function StepBadge({ label, active, done }: { label: string; active: boolean; do
 
 /* ─── Step 1 · Upload ────────────────────────────────────────── */
 
+// Mapping docType → sample doc id que se simula al clickear la drop zone.
+// Si user cambia docType y luego dropea, va al sample correspondiente.
+const DOC_TYPE_SAMPLE: Record<DocType, string> = {
+    po: 'PO-2026-AC-887',
+    quote: 'Q-2026-MK-4421',
+    ack: 'ACK-2026-AS-103',
+}
+
 function UploadStep({ docType, setDocType, onSelectSample }: {
     docType: DocType
     setDocType: (t: DocType) => void
     onSelectSample: (docId: string) => void
 }) {
+    const dropZoneSampleId = DOC_TYPE_SAMPLE[docType]
+    const dropZoneSample = MOCK_INGEST_DOCS[dropZoneSampleId]
     return (
         <div className="space-y-6">
             <div>
@@ -350,16 +360,22 @@ function UploadStep({ docType, setDocType, onSelectSample }: {
                 </div>
             </div>
 
-            {/* Drop zone · placeholder */}
-            <div className="rounded-xl border-2 border-dashed border-border bg-muted/20 p-8 text-center">
-                <Upload className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                <p className="mt-2 text-sm font-medium text-foreground">Drop a PDF, CSV, or XML here</p>
-                <p className="mt-1 text-xs text-muted-foreground">Real OCR / parsing coming soon · for now use a sample below</p>
-            </div>
+            {/* Drop zone · clickable · simula upload del sample correspondiente al docType activo */}
+            <button
+                type="button"
+                onClick={() => onSelectSample(dropZoneSampleId)}
+                className="group block w-full rounded-xl border-2 border-dashed border-border bg-muted/20 p-8 text-center transition-all hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+                <Upload className="mx-auto h-10 w-10 text-muted-foreground/40 transition-colors group-hover:text-foreground" />
+                <p className="mt-2 text-sm font-medium text-foreground">Drop a {docType === 'ack' ? 'XML' : 'PDF, CSV, or XML'} here · or <span className="text-foreground underline decoration-dotted underline-offset-2">click to simulate</span></p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                    Click to simulate upload of <span className="font-mono font-bold text-foreground">{dropZoneSample.filename}</span> · {dropZoneSample.lines.length} lines · Strata will parse + map
+                </p>
+            </button>
 
-            {/* Sample picker */}
+            {/* Sample picker · alternativa explícita */}
             <div>
-                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Try with a sample document</h3>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Or pick a specific sample document</h3>
                 <div className="space-y-2">
                     {MOCK_DOC_IDS.map(id => {
                         const doc = MOCK_INGEST_DOCS[id]
