@@ -92,6 +92,9 @@ export default function ProductDetailPanel({
                 setLines([makeDefaultLine(product)])
             }
             setActiveTab('quote')
+            // Reset compare flow al cambiar de product (queue advance, manual nav)
+            setShowComparePicker(false)
+            setCompareProducts(null)
         }
     }, [product, editingItem])
 
@@ -204,6 +207,7 @@ export default function ProductDetailPanel({
     }
 
     return (
+        <>
         <Transition show={open} as={Fragment}>
             <Dialog onClose={onClose} className="relative z-50">
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
@@ -369,23 +373,24 @@ export default function ProductDetailPanel({
                         </Dialog.Panel>
                     </Transition.Child>
                 </div>
-
-                {/* Compare picker overlay · z-[80] sobre el panel */}
-                <ComparePickerModal
-                    open={showComparePicker}
-                    currentProduct={product}
-                    onClose={() => setShowComparePicker(false)}
-                    onConfirm={(selected) => {
-                        setShowComparePicker(false)
-                        setCompareProducts([product, ...selected])
-                    }}
-                />
-                {/* CompareModal final con current + picked · z-[70] ya configurado */}
-                {compareProducts && (
-                    <CompareModal products={compareProducts} onClose={() => setCompareProducts(null)} />
-                )}
             </Dialog>
         </Transition>
+
+        {/* Compare picker + CompareModal OUTSIDE del Dialog para evitar que Headless UI
+            interprete sus clicks como "outside Dialog.Panel" y cierre el detail. */}
+        <ComparePickerModal
+            open={showComparePicker}
+            currentProduct={product}
+            onClose={() => setShowComparePicker(false)}
+            onConfirm={(selected) => {
+                setShowComparePicker(false)
+                setCompareProducts([product, ...selected])
+            }}
+        />
+        {compareProducts && (
+            <CompareModal products={compareProducts} onClose={() => setCompareProducts(null)} />
+        )}
+        </>
     )
 }
 
