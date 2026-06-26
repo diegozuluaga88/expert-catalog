@@ -176,23 +176,26 @@ export default function ShowroomCatalogsBar({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Phase 5 Fix #14 · Upload Quote/PO/ACK · Strata AI mapping */}
+        {/* Diego polish · Manage Catalogs es secondary · la acción principal del
+            operator B2B es ingestar transactions (Upload Quote/PO) que crea quotes. */}
+        <button
+          type="button"
+          onClick={onImport}
+          title="Manage connected catalogs · add, sync, or disconnect"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          <Settings2 className="h-4 w-4" />
+          Manage Catalogs
+        </button>
+        {/* Phase 5 Fix #14 · Upload Quote/PO/ACK · acción primaria · Strata AI mapping */}
         <button
           type="button"
           onClick={onUploadQuote}
           title="Upload an existing Quote, Purchase Order, or Acknowledgement · Strata maps it to your catalog"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <FileText className="h-4 w-4" />
           Upload Quote / PO
-        </button>
-        <button
-          type="button"
-          onClick={onImport}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Settings2 className="h-4 w-4" />
-          Manage Catalogs
         </button>
       </div>
 
