@@ -5,7 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 8085,
+    // expert-catalog corre en 8086 para evitar conflicto con expert-hub (8085)
+    // cuando se tienen ambos `npm run dev` corriendo en paralelo.
+    port: 8086,
     strictPort: false,
   },
 })
