@@ -41,6 +41,11 @@ interface ProductDetailPanelProps {
     onClose: () => void
     /** Cuando set, panel arranca en modo Update con la config del item prellenada */
     editingItem?: EditingItemState
+    /** Diego polish · Queue mode (bulk Request Quote) · si set, en vez de onClose
+     *  después de add llama onAfterAdd · parent advances al next product. */
+    onAfterAdd?: () => void
+    /** Indicador de posición en queue · "Item 2 of 3" en el header */
+    queueInfo?: { current: number; total: number }
 }
 
 function makeDefaultLine(product: Product): QuoteLine {
@@ -58,7 +63,7 @@ function makeDefaultLine(product: Product): QuoteLine {
 }
 
 export default function ProductDetailPanel({
-    open, manufacturer, category, product, onClose, editingItem,
+    open, manufacturer, category, product, onClose, editingItem, onAfterAdd, queueInfo,
 }: ProductDetailPanelProps) {
     const { addItems, updateItem, quotedHistory, buyerInfo } = useQuote()
     const isEditMode = !!editingItem
@@ -185,7 +190,12 @@ export default function ProductDetailPanel({
                 .filter((it): it is Omit<QuoteLineItem, 'id' | 'addedAt'> => it !== null)
             addItems(items)
         }
-        onClose()
+        // Queue mode (bulk RFQ) · parent advances al next product · sino, close normal
+        if (onAfterAdd) {
+            onAfterAdd()
+        } else {
+            onClose()
+        }
     }
 
     return (
@@ -216,9 +226,20 @@ export default function ProductDetailPanel({
                                     )}
                                     <span className="truncate font-semibold text-foreground">{product.name}</span>
                                 </nav>
-                                <button type="button" onClick={onClose} className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close">
-                                    <X className="h-5 w-5" />
-                                </button>
+                                <div className="flex flex-shrink-0 items-center gap-3">
+                                    {/* Queue indicator (bulk RFQ flow) · "Item 2 of 3" */}
+                                    {queueInfo && queueInfo.total > 1 && (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-foreground">
+                                            <span className="font-mono">{queueInfo.current}</span>
+                                            <span className="text-muted-foreground">of</span>
+                                            <span className="font-mono">{queueInfo.total}</span>
+                                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">queued</span>
+                                        </span>
+                                    )}
+                                    <button type="button" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Sticky identity · thumbnail + name + SKUs + status (Diego ask) */}
@@ -328,6 +349,7 @@ export default function ProductDetailPanel({
                                         updateLine={updateLine}
                                         onAddToQuote={handleAddToQuote}
                                         isEditMode={isEditMode}
+                                        queueInfo={queueInfo}
                                     />
                                 )}
                                 {activeTab === 'overview' && <OverviewTab product={product} />}
@@ -404,9 +426,11 @@ interface QuoteTabProps {
     onAddToQuote: () => void
     /** Edit mode · single line · CTA cambia a Update */
     isEditMode?: boolean
+    /** Queue mode info · si pasada, CTA muestra "Add & Next" / "Add & Finish" */
+    queueInfo?: { current: number; total: number }
 }
 
-function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote, isEditMode }: QuoteTabProps) {
+function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote, isEditMode, queueInfo }: QuoteTabProps) {
     return (
         <div className="space-y-5">
             {/* Intro · adapta a edit mode */}
@@ -478,7 +502,11 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                         ? <><Ban className="h-4 w-4" /> Discontinued</>
                         : isEditMode
                             ? <>Update item <ArrowUpRight className="h-4 w-4" /></>
-                            : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
+                            : queueInfo && queueInfo.total > 1
+                                ? (queueInfo.current < queueInfo.total
+                                    ? <>Add & Next ({queueInfo.current + 1}/{queueInfo.total}) <ArrowUpRight className="h-4 w-4" /></>
+                                    : <>Add & Finish <ArrowUpRight className="h-4 w-4" /></>)
+                                : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
                     }
                 </button>
                 <p className="mt-2 text-center text-[11px] text-muted-foreground">

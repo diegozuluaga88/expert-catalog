@@ -1,9 +1,14 @@
 import { Fragment } from 'react'
-import { X, Star } from 'lucide-react'
+import { X, Star, Plus } from 'lucide-react'
 import type { Product } from '../types'
+import { resolveInternalSku, resolveManufacturerSku } from '../browse/catalogSku'
+import { getProductVariants } from '../data/productVariants'
+import { computeLineItemTotals } from '../../quote/helpers'
+import { useQuote } from '../../quote/QuoteContext'
 
 // Etapa 8.4 — Modal Compare Products (Figma · Compare 1329:27352).
 // Tabla comparativa. Campos no presentes en el mock se muestran como "—" (sin inventar datos).
+// Diego polish · SKU (MFR + Internal) visibles + botón "Add to Quote" por column.
 
 interface CompareModalProps {
   products: Product[]
@@ -13,9 +18,54 @@ interface CompareModalProps {
 export default function CompareModal({ products, onClose }: CompareModalProps) {
   const cols = products.slice(0, 4)
   const dash = <span className="text-muted-foreground">—</span>
+  const { addItems } = useQuote()
+
+  const handleAddToQuote = (p: Product) => {
+    const variants = getProductVariants(p)
+    const colorway = p.colorways[0]
+    const finishId = variants.finishes?.[0]?.id
+    const fabricId = variants.fabricOptions?.find(f => f.type === 'standard')?.id
+    const materialTierId = variants.materialTiers?.[0]?.id
+    const totals = computeLineItemTotals(p, { qty: 1, colorwayCode: colorway?.code, finishId, fabricId, materialTierId })
+    const finish = variants.finishes?.find(f => f.id === finishId)
+    const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
+    const tier = variants.materialTiers?.find(t => t.id === materialTierId)
+    addItems([{
+      productId: p.id,
+      productName: p.name,
+      productBrand: p.brand,
+      productImage: p.images[0],
+      qty: 1,
+      colorwayCode: colorway?.code,
+      colorwayName: colorway?.name,
+      colorwayHex: colorway?.hex,
+      finishId: finish?.id,
+      finishName: finish?.name,
+      fabricId: fabric?.id,
+      fabricName: fabric?.name,
+      fabricIsPremium: fabric?.type === 'special',
+      materialTierId: tier?.id,
+      materialTierName: tier?.name,
+      unitPrice: totals.unitPrice,
+      totalPrice: totals.totalPrice,
+      leadTimeDays: totals.leadTimeDays,
+    }])
+  }
 
   const rows: { label: string; render: (p: Product) => React.ReactNode }[] = [
     { label: 'Brand', render: (p) => p.brand ?? dash },
+    {
+      label: 'MFR SKU',
+      render: (p) => (
+        <span className="font-mono text-xs text-foreground">{resolveManufacturerSku(p)}</span>
+      ),
+    },
+    {
+      label: 'Internal SKU',
+      render: (p) => (
+        <span className="font-mono text-xs text-foreground">{resolveInternalSku(p)}</span>
+      ),
+    },
     { label: 'Tags', render: (p) => (p.tags && p.tags.length ? p.tags.join(', ') : dash) },
     {
       label: 'Rating',
@@ -67,13 +117,13 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div>
             <h2 className="font-brand text-lg font-bold text-foreground">Compare Products</h2>
-            <p className="text-sm text-muted-foreground">Compare key details to choose the right option.</p>
+            <p className="text-sm text-muted-foreground">Compare key details and add directly to your quote · per item.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
@@ -83,13 +133,22 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
         <div className="overflow-auto p-5">
           <table className="w-full border-collapse text-sm">
             <tbody>
-              {/* Image + Name */}
+              {/* Image + Name + Add to Quote button per column */}
               <tr>
                 <td className="w-40 align-bottom" />
                 {cols.map((p) => (
                   <td key={p.id} className="p-2 align-bottom">
                     <img src={p.images[0]} alt={p.name} className="mb-2 h-24 w-full rounded-lg object-cover" />
                     <div className="font-bold text-foreground">{p.name}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddToQuote(p)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                      title={`Add ${p.name} to your active quote`}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add to Quote
+                    </button>
                   </td>
                 ))}
               </tr>

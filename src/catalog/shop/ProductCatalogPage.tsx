@@ -10,9 +10,7 @@ import {
 } from './data/products'
 import ProductCatalogCard from './ProductCatalogCard'
 import BulkActionsBar from './BulkActionsBar'
-import RequestQuoteModal from './RequestQuoteModal'
 import CompareModal from './CompareModal'
-import GenerateReportModal from './GenerateReportModal'
 import CatalogImportModal from '../manage/CatalogImportModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import { resetCatalogs } from '../data/catalogs'
@@ -77,12 +75,13 @@ export default function ProductCatalogPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<Set<string>>(new Set())
   // Modales (Etapa 8.4)
-  const [quoteProducts, setQuoteProducts] = useState<Product[] | null>(null)
   const [showCompare, setShowCompare] = useState(false)
-  const [showReport, setShowReport] = useState(false)
   const [showImport, setShowImport] = useState(false)
   // Phase 2 Fix #5 polish — wire ProductDetailPanel desde esta page también
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+  // Bulk RFQ queue
+  const [quoteQueue, setQuoteQueue] = useState<Product[]>([])
+  const [queueIndex, setQueueIndex] = useState(0)
   // Diego ask · sync simulations son ephemeral · reset on mount
   useEffect(() => {
     resetCatalogs()
@@ -283,23 +282,29 @@ export default function ProductCatalogPage() {
                   type="button"
                   disabled={selected.size === 0}
                   onClick={() => {
-                    setShowReport(true)
+                    setFavorites(prev => {
+                      const next = new Set(prev)
+                      for (const id of selected) next.add(id)
+                      return next
+                    })
+                    setSelected(new Set())
                     setBulkOpen(false)
                   }}
                   className={bulkItem}
                 >
-                  Export selected
+                  Save to favorites
                 </button>
                 <button
                   type="button"
                   disabled={selected.size === 0}
                   onClick={() => {
-                    setQuoteProducts(selectedProducts)
+                    setQuoteQueue(selectedProducts)
+                    setSelected(new Set())
                     setBulkOpen(false)
                   }}
                   className={bulkItem}
                 >
-                  Request quote
+                  Request quote ({selected.size})
                 </button>
               </div>
             </>
@@ -428,8 +433,18 @@ export default function ProductCatalogPage() {
           count={selected.size}
           onDeselectAll={() => setSelected(new Set())}
           onCompare={() => setShowCompare(true)}
-          onExport={() => setShowReport(true)}
-          onRequestQuote={() => setQuoteProducts(selectedProducts)}
+          onAddToFavorites={() => {
+            setFavorites(prev => {
+              const next = new Set(prev)
+              for (const id of selected) next.add(id)
+              return next
+            })
+            setSelected(new Set())
+          }}
+          onRequestQuote={() => {
+            setQuoteQueue(selectedProducts)
+            setSelected(new Set())
+          }}
         />
       )}
 
@@ -439,17 +454,31 @@ export default function ProductCatalogPage() {
         onClose={() => setShowImport(false)}
         onImportComplete={() => setShowImport(false)}
       />
-      {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
       {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
-      {showReport && <GenerateReportModal onClose={() => setShowReport(false)} onExport={() => setShowReport(false)} />}
 
-      {/* Phase 2 Fix #5 · panel también desde Product Catalog tab */}
+      {/* Phase 2 Fix #5 · panel · si hay queue, prioriza queue · sino detail normal */}
       <ProductDetailPanel
-        open={!!detailProduct}
-        product={detailProduct ?? undefined}
+        open={quoteQueue.length > 0 || !!detailProduct}
+        product={quoteQueue.length > 0 ? quoteQueue[queueIndex] : (detailProduct ?? undefined)}
         manufacturer={undefined}
         category={undefined}
-        onClose={() => setDetailProduct(null)}
+        onClose={() => {
+          if (quoteQueue.length > 0) {
+            setQuoteQueue([])
+            setQueueIndex(0)
+          } else {
+            setDetailProduct(null)
+          }
+        }}
+        queueInfo={quoteQueue.length > 0 ? { current: queueIndex + 1, total: quoteQueue.length } : undefined}
+        onAfterAdd={quoteQueue.length > 0 ? () => {
+          if (queueIndex + 1 < quoteQueue.length) {
+            setQueueIndex(queueIndex + 1)
+          } else {
+            setQuoteQueue([])
+            setQueueIndex(0)
+          }
+        } : undefined}
       />
     </div>
   )

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { GitCompareArrows, FolderPlus, Download, FileText, Plus, Check } from 'lucide-react'
+import { GitCompareArrows, FolderPlus, FileText, Plus, Check, Heart } from 'lucide-react'
 
 // Etapa 8.3 — Barra flotante de acciones masivas (Figma · Bulk Actions).
-// Aparece cuando hay productos seleccionados. Deselect All y Add to Project funcionan;
-// Compare / Export / Request Quote disparan los modales (8.4) vía callbacks.
+// Diego polish · removido Export · agregado Save to Favorites · Request Quote
+// ahora dispara queue-mode del ProductDetailPanel para configurar cada item.
 
 const PROJECTS = ['Project 1', 'Project 2', 'Project 3', 'Project 4']
 
@@ -11,7 +11,7 @@ interface BulkActionsBarProps {
   count: number
   onDeselectAll: () => void
   onCompare: () => void
-  onExport: () => void
+  onAddToFavorites: () => void
   onRequestQuote: () => void
 }
 
@@ -22,7 +22,7 @@ export default function BulkActionsBar({
   count,
   onDeselectAll,
   onCompare,
-  onExport,
+  onAddToFavorites,
   onRequestQuote,
 }: BulkActionsBarProps) {
   const [projOpen, setProjOpen] = useState(false)
@@ -54,6 +54,11 @@ export default function BulkActionsBar({
         <button type="button" onClick={onCompare} className={actionBtn}>
           <GitCompareArrows className="h-4 w-4" />
           Compare
+        </button>
+
+        <button type="button" onClick={onAddToFavorites} className={actionBtn} title="Save selected products to your favorites">
+          <Heart className="h-4 w-4" />
+          Save to Favorites
         </button>
 
         <div className="relative">
@@ -97,18 +102,14 @@ export default function BulkActionsBar({
           )}
         </div>
 
-        <button type="button" onClick={onExport} className={actionBtn}>
-          <Download className="h-4 w-4" />
-          Export
-        </button>
-
         <button
           type="button"
           onClick={onRequestQuote}
+          title="Configure each selected product in the panel · added to your active quote one by one"
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <FileText className="h-4 w-4" />
-          Request Quote
+          Request Quote ({count})
         </button>
       </div>
     </div>

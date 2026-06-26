@@ -9,9 +9,7 @@ import {
 } from './data/unifiedProducts'
 import ProductCatalogCard from '../shop/ProductCatalogCard'
 import BulkActionsBar from '../shop/BulkActionsBar'
-import RequestQuoteModal from '../shop/RequestQuoteModal'
 import CompareModal from '../shop/CompareModal'
-import GenerateReportModal from '../shop/GenerateReportModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
@@ -112,9 +110,10 @@ export default function ShowroomPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [quoteProducts, setQuoteProducts] = useState<Product[] | null>(null)
+  // Bulk RFQ · queue mode · panel cycles through products via onAfterAdd
+  const [quoteQueue, setQuoteQueue] = useState<Product[]>([])
+  const [queueIndex, setQueueIndex] = useState(0)
   const [showCompare, setShowCompare] = useState(false)
-  const [showReport, setShowReport] = useState(false)
   const [showImport, setShowImport] = useState(false)
   // Phase 5 Fix #14 · IngestQuoteModal trigger
   const [showIngest, setShowIngest] = useState(false)
@@ -606,14 +605,23 @@ export default function ShowroomPage() {
           count={selected.size}
           onDeselectAll={() => setSelected(new Set())}
           onCompare={() => setShowCompare(true)}
-          onExport={() => setShowReport(true)}
-          onRequestQuote={() => setQuoteProducts(selectedProducts)}
+          onAddToFavorites={() => {
+            setFavorites(prev => {
+              const next = new Set(prev)
+              for (const id of selected) next.add(id)
+              return next
+            })
+            setSelected(new Set())
+          }}
+          onRequestQuote={() => {
+            // Queue mode · arranca con el 1er producto · panel cycle vía onAfterAdd
+            setQuoteQueue(selectedProducts)
+            setSelected(new Set())
+          }}
         />
       )}
 
-      {quoteProducts && <RequestQuoteModal products={quoteProducts} onClose={() => setQuoteProducts(null)} />}
       {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
-      {showReport && <GenerateReportModal onClose={() => setShowReport(false)} onExport={() => setShowReport(false)} />}
       <CatalogImportModal
         isOpen={showImport}
         onClose={() => setShowImport(false)}
@@ -631,13 +639,32 @@ export default function ShowroomPage() {
         }}
       />
 
-      {/* Phase 2 Fix #5 · Product detail · centered modal (no full-page nav) */}
+      {/* Phase 2 Fix #5 · Product detail · centered modal (no full-page nav).
+          Si hay queue activo (bulk RFQ), priorizamos el queue product · sino el ctx normal. */}
       <ProductDetailPanel
-        open={!!ctx}
-        product={ctx?.product}
-        manufacturer={ctx?.manufacturer}
-        category={ctx?.category}
-        onClose={() => setDetailId(null)}
+        open={quoteQueue.length > 0 || !!ctx}
+        product={quoteQueue.length > 0 ? quoteQueue[queueIndex] : ctx?.product}
+        manufacturer={quoteQueue.length > 0 ? undefined : ctx?.manufacturer}
+        category={quoteQueue.length > 0 ? undefined : ctx?.category}
+        onClose={() => {
+          // Cancel queue (manual close) o cierre normal
+          if (quoteQueue.length > 0) {
+            setQuoteQueue([])
+            setQueueIndex(0)
+          } else {
+            setDetailId(null)
+          }
+        }}
+        queueInfo={quoteQueue.length > 0 ? { current: queueIndex + 1, total: quoteQueue.length } : undefined}
+        onAfterAdd={quoteQueue.length > 0 ? () => {
+          if (queueIndex + 1 < quoteQueue.length) {
+            setQueueIndex(queueIndex + 1)
+          } else {
+            // Última · cerrar queue
+            setQuoteQueue([])
+            setQueueIndex(0)
+          }
+        } : undefined}
       />
     </div>
   )
