@@ -132,12 +132,9 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
             <ShoppingBag className="h-4 w-4" />
             Product Catalog
           </button>
-          <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
-            <Store className="h-4 w-4" />
-            Showroom
-          </button>
           {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
-              (Diego: no salirnos de la sección). Badge count del cart. */}
+              (Diego: no salirnos de la sección). Badge count del cart.
+              Diego polish · My Quotes va antes de Showroom (orden visual swapped). */}
           <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
             <FileText className="h-4 w-4" />
             My Quotes
@@ -148,6 +145,10 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
                 {totalCartUnits}
               </span>
             )}
+          </button>
+          <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
+            <Store className="h-4 w-4" />
+            Showroom
           </button>
         </div>
 
