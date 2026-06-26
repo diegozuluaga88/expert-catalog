@@ -11,8 +11,8 @@
 import React, { Fragment, useEffect, useMemo, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import {
-    ArrowUpRight, Ban, ChevronRight, Copy, CheckCircle2, Download, Heart,
-    Plus, Sparkles, Star, Trash2, X,
+    ArrowUpRight, Ban, ChevronRight, Copy, CheckCircle2, Download,
+    GitCompareArrows, Heart, Plus, Sparkles, Star, Trash2, X,
 } from 'lucide-react'
 import type { Category, FabricOption, Finish, Manufacturer, MaterialTier, Product } from '../types'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
@@ -21,6 +21,8 @@ import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
 import { useQuote, type EditingItemState, type QuoteLineItem } from '../../quote/QuoteContext'
 import { getRelatedProducts, type RelatedBucket } from '../related'
+import ComparePickerModal from './ComparePickerModal'
+import CompareModal from '../shop/CompareModal'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -70,6 +72,9 @@ export default function ProductDetailPanel({
     const [lines, setLines] = useState<QuoteLine[]>([])
     const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
     const [activeTab, setActiveTab] = useState<DetailTab>('quote')
+    // Compare flow · picker overlay → CompareModal con [current, ...selected]
+    const [showComparePicker, setShowComparePicker] = useState(false)
+    const [compareProducts, setCompareProducts] = useState<Product[] | null>(null)
 
     useEffect(() => {
         if (product) {
@@ -350,6 +355,7 @@ export default function ProductDetailPanel({
                                         onAddToQuote={handleAddToQuote}
                                         isEditMode={isEditMode}
                                         queueInfo={queueInfo}
+                                        onCompare={() => setShowComparePicker(true)}
                                     />
                                 )}
                                 {activeTab === 'overview' && <OverviewTab product={product} />}
@@ -363,6 +369,21 @@ export default function ProductDetailPanel({
                         </Dialog.Panel>
                     </Transition.Child>
                 </div>
+
+                {/* Compare picker overlay · z-[80] sobre el panel */}
+                <ComparePickerModal
+                    open={showComparePicker}
+                    currentProduct={product}
+                    onClose={() => setShowComparePicker(false)}
+                    onConfirm={(selected) => {
+                        setShowComparePicker(false)
+                        setCompareProducts([product, ...selected])
+                    }}
+                />
+                {/* CompareModal final con current + picked · z-[70] ya configurado */}
+                {compareProducts && (
+                    <CompareModal products={compareProducts} onClose={() => setCompareProducts(null)} />
+                )}
             </Dialog>
         </Transition>
     )
@@ -428,9 +449,11 @@ interface QuoteTabProps {
     isEditMode?: boolean
     /** Queue mode info · si pasada, CTA muestra "Add & Next" / "Add & Finish" */
     queueInfo?: { current: number; total: number }
+    /** Optional · click "Compare with…" abre el picker overlay */
+    onCompare?: () => void
 }
 
-function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote, isEditMode, queueInfo }: QuoteTabProps) {
+function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote, isEditMode, queueInfo, onCompare }: QuoteTabProps) {
     return (
         <div className="space-y-5">
             {/* Intro · adapta a edit mode */}
@@ -509,6 +532,18 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                                 : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
                     }
                 </button>
+                {/* Secondary action · Compare with… (Diego polish · feature en detail) */}
+                {onCompare && (
+                    <button
+                        type="button"
+                        onClick={onCompare}
+                        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                        title="Pick other products to compare against this one side-by-side"
+                    >
+                        <GitCompareArrows className="h-3.5 w-3.5" />
+                        Compare with…
+                    </button>
+                )}
                 <p className="mt-2 text-center text-[11px] text-muted-foreground">
                     Sold by {product.brand} · Free returns within 30 days
                 </p>
