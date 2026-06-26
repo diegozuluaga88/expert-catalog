@@ -116,6 +116,8 @@ interface QuoteContextValue {
     addItems: (items: Omit<QuoteLineItem, 'id' | 'addedAt'>[], draftId?: string | null) => string
     updateItem: (draftId: string, itemId: string, patch: Partial<QuoteLineItem>) => void
     removeItem: (draftId: string, itemId: string) => void
+    /** Vaciar todos los items del draft sin eliminar el draft (Diego polish) */
+    clearDraftItems: (draftId: string) => void
     submitDraft: (draftId: string) => string
     markInProgressIngest: (draftId: string) => void
     renameDraft: (draftId: string, name: string) => void
@@ -370,6 +372,20 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         }))
     }, [tenant.id])
 
+    /** Vaciar todos los items pero mantener el draft activo · preserva referenceNumber.
+     *  Diego polish · "Clear all" no debe romper el flow del subsequent add. */
+    const clearDraftItems = useCallback((draftId: string) => {
+        const slug = tenant.id
+        const now = new Date().toISOString()
+        setDraftsByTenant(prev => ({
+            ...prev,
+            [slug]: (prev[slug] ?? []).map(d => d.id === draftId
+                ? { ...d, items: [], updatedAt: now }
+                : d
+            ),
+        }))
+    }, [tenant.id])
+
     const submitDraft = useCallback((draftId: string): string => {
         const slug = tenant.id
         const draft = (draftsByTenant[slug] ?? []).find(d => d.id === draftId)
@@ -429,6 +445,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             addItems,
             updateItem,
             removeItem,
+            clearDraftItems,
             submitDraft,
             markInProgressIngest,
             renameDraft,

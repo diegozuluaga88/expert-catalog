@@ -15,7 +15,7 @@ interface MiniCartDrawerProps {
 }
 
 export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
-    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem, startEditingItem, deleteDraft } = useQuote()
+    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem, startEditingItem, clearDraftItems } = useQuote()
     const [hovering, setHovering] = useState(false)
     // Diego ask · drawer puede reabrirse via FAB cuando ya no hay lastAdded
     const [manuallyOpened, setManuallyOpened] = useState(false)
@@ -39,7 +39,9 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
 
     const handleClearAll = () => {
         if (!activeDraft) return
-        deleteDraft(activeDraft.id)
+        // Vaciar items pero mantener el draft activo (preserva referenceNumber y
+        // activeDraftId · evita bugs de empty-state al hacer subsequent add)
+        clearDraftItems(activeDraft.id)
         setConfirmClear(false)
         clearLastAdded()
         setManuallyOpened(false)
