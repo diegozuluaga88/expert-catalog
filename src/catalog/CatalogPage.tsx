@@ -130,7 +130,7 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
           </button>
           <button type="button" onClick={() => setMode('shop')} className={tabClass(mode === 'shop')}>
             <ShoppingBag className="h-4 w-4" />
-            Product Catalog
+            Figma
           </button>
           {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
               (Diego: no salirnos de la sección). Badge count del cart.
@@ -148,7 +148,7 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
           </button>
           <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
             <Store className="h-4 w-4" />
-            Showroom
+            Product Catalog
           </button>
         </div>
 
