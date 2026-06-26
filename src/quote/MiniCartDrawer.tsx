@@ -7,7 +7,7 @@
 //  - Footer · "X new items · Y total in cart · $Z" claro · accumulación visible
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, Minus, Pencil, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, Minus, Pencil, Plus, ShoppingCart, Trash2, X, AlertTriangle } from 'lucide-react'
 import { useQuote } from './QuoteContext'
 
 interface MiniCartDrawerProps {
@@ -15,10 +15,12 @@ interface MiniCartDrawerProps {
 }
 
 export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
-    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem, startEditingItem } = useQuote()
+    const { lastAdded, clearLastAdded, activeDraft, updateItem, removeItem, startEditingItem, deleteDraft } = useQuote()
     const [hovering, setHovering] = useState(false)
     // Diego ask · drawer puede reabrirse via FAB cuando ya no hay lastAdded
     const [manuallyOpened, setManuallyOpened] = useState(false)
+    // Confirm clear-all (Diego polish) · evita destructive accidental
+    const [confirmClear, setConfirmClear] = useState(false)
     const showDrawer = !!lastAdded || manuallyOpened
 
     // Auto-dismiss 8s · solo cuando triggered by lastAdded (no si manuallyOpened) ·
@@ -30,6 +32,15 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
     }, [lastAdded, hovering, manuallyOpened, clearLastAdded])
 
     const handleClose = () => {
+        clearLastAdded()
+        setManuallyOpened(false)
+        setConfirmClear(false)
+    }
+
+    const handleClearAll = () => {
+        if (!activeDraft) return
+        deleteDraft(activeDraft.id)
+        setConfirmClear(false)
         clearLastAdded()
         setManuallyOpened(false)
     }
@@ -184,13 +195,47 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 )}
             </div>
 
-            {/* Footer · totals + CTA */}
+            {/* Clear all confirmation (inline · evita destructive accidental) */}
+            {confirmClear && (
+                <div className="flex items-center gap-2 border-t border-border bg-destructive/10 px-4 py-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-destructive" />
+                    <span className="flex-1 text-xs font-medium text-foreground">
+                        Clear all {allItems.length} {allItems.length === 1 ? 'line' : 'lines'}?
+                    </span>
+                    <button
+                        type="button"
+                        onClick={handleClearAll}
+                        className="rounded bg-destructive px-2.5 py-1 text-[11px] font-bold text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        Yes, clear
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setConfirmClear(false)}
+                        className="rounded border border-border px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-muted"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
+
+            {/* Footer · totals + Clear all link + CTA */}
             <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
                 <div>
                     <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Cart total</div>
                     <div className="text-base font-bold text-foreground">${totalPriceInCart.toLocaleString()}</div>
-                    <div className="text-[10px] text-muted-foreground">
-                        {totalInCart} {totalInCart === 1 ? 'unit' : 'units'} · {allItems.length} {allItems.length === 1 ? 'line' : 'lines'}
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <span>{totalInCart} {totalInCart === 1 ? 'unit' : 'units'} · {allItems.length} {allItems.length === 1 ? 'line' : 'lines'}</span>
+                        {!confirmClear && allItems.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setConfirmClear(true)}
+                                className="font-medium text-muted-foreground underline transition-colors hover:text-destructive"
+                                title="Remove all items from this quote draft"
+                            >
+                                Clear all
+                            </button>
+                        )}
                     </div>
                 </div>
                 <button
