@@ -21,9 +21,9 @@ export interface TenantMetadata {
 }
 
 const TENANT_DATA: Record<string, TenantMetadata> = {
-    'SPECIAL T': {
+    'DEALER 1': {
         id: 'special-t',
-        name: 'SPECIAL T',
+        name: 'DEALER 1',
         industry: 'Higher Education',
         legalName: 'Special T Furniture LLC',
         billingAddress: { line1: '450 Industrial Park Rd', city: 'Liverpool', state: 'NY', zip: '13088' },

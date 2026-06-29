@@ -61,12 +61,12 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                         <div className="w-px h-6 bg-border mx-1"></div>
                         <div className="hidden sm:flex items-center gap-1 px-2" ref={tenantRef}>
                             <div>
-                                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider leading-none">TENANT</div>
+                                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider leading-none">DEALER</div>
                                 <button
                                     onClick={() => setIsTenantOpen(!isTenantOpen)}
                                     className="flex items-center gap-1.5 text-sm font-bold text-foreground leading-tight hover:text-primary transition-colors"
                                 >
-                                    {selectedTenants.length === 1 ? selectedTenants[0] : `${selectedTenants.length} Tenants`}
+                                    {selectedTenants.length === 1 ? selectedTenants[0] : `${selectedTenants.length} Dealers`}
                                     <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${isTenantOpen ? 'rotate-180' : ''}`} />
                                 </button>
                             </div>

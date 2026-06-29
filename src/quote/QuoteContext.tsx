@@ -196,8 +196,8 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         if (list) saveDrafts(slug, list)
     }, [draftsByTenant, tenant.id])
 
-    // Limpiar lastAdded feedback cuando cambia el tenant · evita mostrar
-    // "X added to SPECIAL T" mientras el user ya está en otro tenant.
+    // Limpiar lastAdded feedback cuando cambia el dealer · evita mostrar
+    // "X added to DEALER 1" mientras el user ya está en otro dealer.
     useEffect(() => {
         setLastAdded(null)
         // eslint-disable-next-line react-hooks/exhaustive-deps
