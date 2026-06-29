@@ -8,6 +8,7 @@ import {
   getManufacturerByName,
 } from './data/unifiedProducts'
 import ProductCatalogCard from '../shop/ProductCatalogCard'
+import BulkActionsBar from '../shop/BulkActionsBar'
 import CompareModal from '../shop/CompareModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
@@ -538,7 +539,7 @@ export default function ShowroomPage() {
                   className="flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   <FileText className="h-3 w-3" />
-                  Quote ({selected.size})
+                  Selection ({selected.size})
                 </button>
               </div>
             </div>
@@ -782,7 +783,29 @@ export default function ShowroomPage() {
         </div>
       </div>
 
-      {/* Bulk actions movidos al sidebar · sin floating bar */}
+      {/* Bulk actions · floating bar centrada al bottom (mismo UX que ProductCatalogPage).
+          Diego ask · el panel inline del sidebar era poco visible · ahora bar
+          flotante consistente con todo el catálogo. El sidebar inline se mantiene
+          como entry-point alternativo cuando el sidebar está expandido. */}
+      {selected.size > 0 && (
+        <BulkActionsBar
+          count={selected.size}
+          onDeselectAll={() => setSelected(new Set())}
+          onCompare={() => setShowCompare(true)}
+          onAddToFavorites={() => {
+            setFavorites(prev => {
+              const next = new Set(prev)
+              for (const id of selected) next.add(id)
+              return next
+            })
+            setSelected(new Set())
+          }}
+          onRequestQuote={() => {
+            setQuoteQueue(selectedProducts)
+            setSelected(new Set())
+          }}
+        />
+      )}
 
       {/* Sync toast · feedback de catalog sync desde el sidebar Brand section */}
       {syncToast && <SyncResultToast toast={syncToast} />}
