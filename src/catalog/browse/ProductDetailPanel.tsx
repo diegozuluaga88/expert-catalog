@@ -276,6 +276,20 @@ export default function ProductDetailPanel({
                                         <SkuChip label="MFR" value={mfrSku} copied={skuCopied === 'mfr'} onCopy={() => handleCopy(mfrSku, 'mfr')} />
                                         <SkuChip label="Internal" value={internalSku} copied={skuCopied === 'internal'} onCopy={() => handleCopy(internalSku, 'internal')} />
                                         <span className="text-[10px] font-mono text-muted-foreground/80" title="Product ID">ID · {product.id}</span>
+                                        {/* Previously selected · inline en la línea del SKU para ganar espacio */}
+                                        {(() => {
+                                            const entry = quotedHistory.get(product.id)
+                                            if (!entry) return null
+                                            return (
+                                                <span
+                                                    className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-foreground"
+                                                    title={`Previously selected for ${buyerInfo.tenant.name} · ${entry.occurrences} ${entry.occurrences === 1 ? 'line' : 'lines'} · ${entry.totalUnits} units across history`}
+                                                >
+                                                    <Star className="h-2.5 w-2.5 fill-foreground" />
+                                                    Previously selected · {entry.totalUnits}u
+                                                </span>
+                                            )
+                                        })()}
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1 text-right">
@@ -313,24 +327,9 @@ export default function ProductDetailPanel({
                                     </span>
                                 </div>
                             )}
-                            {/* Phase 4 Fix #13b · Previously quoted banner para este tenant */}
-                            {(() => {
-                                const entry = quotedHistory.get(product.id)
-                                if (!entry) return null
-                                return (
-                                    <div className="flex flex-shrink-0 items-center gap-3 border-b border-border bg-primary/5 px-6 py-2 text-sm">
-                                        <Star className="h-4 w-4 flex-shrink-0 fill-foreground text-foreground" />
-                                        <span className="flex-1 text-foreground">
-                                            <span className="font-semibold">Previously quoted for {buyerInfo.tenant.name}.</span>
-                                            <span className="ml-1 text-muted-foreground">
-                                                {entry.occurrences} {entry.occurrences === 1 ? 'line' : 'lines'} · {entry.totalUnits} units across history
-                                            </span>
-                                        </span>
-                                    </div>
-                                )
-                            })()}
+                            {/* Previously selected · ahora vive inline con SKU chips (ganamos espacio vertical) */}
 
-                            {/* Tabs · Quote first (Diego ask) */}
+                            {/* Tabs · Selection first (Diego ask) */}
                             <div className="flex-shrink-0 border-b border-border bg-muted/20 px-6">
                                 <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Product details">
                                     <TabButton label="Selection" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} primary />
@@ -366,9 +365,8 @@ export default function ProductDetailPanel({
                                 {activeTab === 'variants' && <VariantsTab product={product} variants={variants} />}
                                 {activeTab === 'specs' && <SpecsTab product={product} />}
                                 {activeTab === 'resources' && <ResourcesTab product={product} />}
-
-                                {/* Strata recommends · siempre visible bajo cualquier tab */}
-                                <StrataRecommendsSection product={product} />
+                                {/* Strata recommends · ahora vive dentro del Overview tab (después de los tags)
+                                    para evitar scroll vertical excesivo en las otras tabs */}
                             </div>
                         </Dialog.Panel>
                     </Transition.Child>
@@ -610,7 +608,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 {/* Colorway selector · swatch picker visual (Diego ask · ver color en la lista) */}
                 {product.colorways.length > 0 && (
                     <LineField label={`Colorway · ${selectedColorway?.name ?? '—'}`}>
-                        <div className="flex flex-wrap gap-1.5 rounded-lg border border-input bg-background p-2">
+                        <div className="flex h-9 items-center flex-wrap gap-1.5 rounded-lg border border-input bg-background px-2">
                             {product.colorways.map(c => {
                                 const isSel = line.colorwayCode === c.code
                                 return (
@@ -621,7 +619,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                                         onClick={() => onChange({ colorwayCode: c.code })}
                                         aria-pressed={isSel}
                                         title={`${c.name} · ${c.code}`}
-                                        className={`group relative h-7 w-7 flex-shrink-0 rounded border-2 shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                                        className={`group relative h-6 w-6 flex-shrink-0 rounded border-2 shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                                             isSel
                                                 ? 'border-primary ring-2 ring-primary/30 scale-105'
                                                 : 'border-border/60 hover:border-foreground/40'
@@ -639,7 +637,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 {/* Finish */}
                 {variants.finishes && variants.finishes.length > 0 && (
                     <LineField label="Finish">
-                        <select disabled={disabled} value={line.finishId ?? ''} onChange={(e) => onChange({ finishId: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                        <select disabled={disabled} value={line.finishId ?? ''} onChange={(e) => onChange({ finishId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                             {variants.finishes.map(f => (
                                 <option key={f.id} value={f.id}>{f.name}{f.priceModifier > 0 ? ` · +$${f.priceModifier}` : ''}</option>
                             ))}
@@ -650,7 +648,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 {/* Fabric */}
                 {variants.fabricOptions && variants.fabricOptions.length > 0 && (
                     <LineField label="Fabric">
-                        <select disabled={disabled} value={line.fabricId ?? ''} onChange={(e) => onChange({ fabricId: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                        <select disabled={disabled} value={line.fabricId ?? ''} onChange={(e) => onChange({ fabricId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                             {variants.fabricOptions.map(f => (
                                 <option key={f.id} value={f.id}>
                                     {f.name}{f.priceModifier > 0 ? ` · +$${f.priceModifier}` : ''}{f.type === 'special' ? ' (premium)' : ''}
@@ -663,7 +661,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 {/* Material tier */}
                 {variants.materialTiers && variants.materialTiers.length > 1 && (
                     <LineField label="Material tier">
-                        <select disabled={disabled} value={line.materialTierId ?? ''} onChange={(e) => onChange({ materialTierId: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                        <select disabled={disabled} value={line.materialTierId ?? ''} onChange={(e) => onChange({ materialTierId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                             {variants.materialTiers.map(t => (
                                 <option key={t.id} value={t.id}>{t.name}{t.priceModifier > 0 ? ` · +$${t.priceModifier}` : ''}</option>
                             ))}
@@ -757,6 +755,8 @@ function OverviewTab({ product }: { product: Product }) {
                         </div>
                     </div>
                 )}
+                {/* Strata Recommends · movido dentro del Overview · after tags (Diego polish · evitar scroll) */}
+                <StrataRecommendsSection product={product} />
                 {product.standardFeatures && product.standardFeatures.length > 0 && (
                     <div>
                         <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">Standard features</h3>
