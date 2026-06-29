@@ -12,7 +12,7 @@ import React, { Fragment, useEffect, useMemo, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import {
     ArrowUpRight, Ban, ChevronRight, Copy, CheckCircle2, Download,
-    GitCompareArrows, Heart, Plus, Sparkles, Star, Trash2, X,
+    GitCompareArrows, Heart, Plus, ShoppingCart, Sparkles, Star, Trash2, X,
 } from 'lucide-react'
 import type { Category, FabricOption, Finish, Manufacturer, MaterialTier, Product } from '../types'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
@@ -67,7 +67,7 @@ function makeDefaultLine(product: Product): QuoteLine {
 export default function ProductDetailPanel({
     open, manufacturer, category, product, onClose, editingItem, onAfterAdd, queueInfo,
 }: ProductDetailPanelProps) {
-    const { addItems, updateItem, quotedHistory, buyerInfo } = useQuote()
+    const { addItems, updateItem, quotedHistory, buyerInfo, activeDraft } = useQuote()
     const isEditMode = !!editingItem
     const [lines, setLines] = useState<QuoteLine[]>([])
     const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
@@ -236,6 +236,16 @@ export default function ProductDetailPanel({
                                     <span className="truncate font-semibold text-foreground">{product.name}</span>
                                 </nav>
                                 <div className="flex flex-shrink-0 items-center gap-3">
+                                    {/* Cart counter inline · feedback inmediato del Add to Selection
+                                        para que el user vea el counter creciendo sin depender del FAB
+                                        (Diego ask · "no aparece la ventana flotante que registra items"). */}
+                                    {activeDraft && activeDraft.items.length > 0 && (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-foreground" title={`${activeDraft.items.length} items in your active selection`}>
+                                            <ShoppingCart className="h-3 w-3" />
+                                            <span className="font-mono tabular-nums">{activeDraft.items.length}</span>
+                                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">in selection</span>
+                                        </span>
+                                    )}
                                     {/* Queue indicator (bulk RFQ flow) · "Item 2 of 3" */}
                                     {queueInfo && queueInfo.total > 1 && (
                                         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-foreground">

@@ -26,20 +26,21 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
     const [recentlyAdded, setRecentlyAdded] = useState(false)
     const showDrawer = !!lastAdded || manuallyOpened
 
-    // Auto-dismiss 8s · solo cuando triggered by lastAdded (no si manuallyOpened) ·
-    // pausa con hover, restart cuando sale el mouse.
+    // Auto-dismiss 20s (Diego ask · 8s era muy corto para queue/bulk adds donde
+    // el user puede no estar mirando el bottom-right justo al cerrarse el panel).
+    // Pausa con hover, restart cuando sale el mouse.
     useEffect(() => {
         if (!lastAdded || hovering || manuallyOpened) return
-        const timer = setTimeout(() => clearLastAdded(), 8000)
+        const timer = setTimeout(() => clearLastAdded(), 20000)
         return () => clearTimeout(timer)
     }, [lastAdded, hovering, manuallyOpened, clearLastAdded])
 
-    // Mark FAB como recién-actualizado por 3s cada vez que lastAdded cambia ·
-    // el FAB pulsea para indicar visualmente que el counter se incrementó.
+    // Mark FAB como recién-actualizado por 5s cada vez que lastAdded cambia ·
+    // el FAB pulsea + escala para llamar la atención al counter incrementado.
     useEffect(() => {
         if (!lastAdded) return
         setRecentlyAdded(true)
-        const timer = setTimeout(() => setRecentlyAdded(false), 3000)
+        const timer = setTimeout(() => setRecentlyAdded(false), 5000)
         return () => clearTimeout(timer)
     }, [lastAdded])
 
@@ -61,6 +62,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
 
     // FAB cuando drawer closed pero el cart tiene items · click → reabre el drawer.
     // z-[80] · arriba de toasts (z-[60]) y modales (z-50) para garantizar visibilidad.
+    // Tamaño bumped (px-5 py-4 + text-base) · más prominente que antes.
     const cartHasItems = activeDraft && activeDraft.items.length > 0
     if (!showDrawer) {
         if (!cartHasItems) return null
@@ -69,13 +71,13 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
             <button
                 type="button"
                 onClick={() => setManuallyOpened(true)}
-                className={`fixed bottom-6 right-6 z-[80] inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 animate-in slide-in-from-bottom-2 fade-in duration-200 ${recentlyAdded ? 'ring-4 ring-primary/40 animate-pulse' : ''}`}
+                className={`fixed bottom-6 right-6 z-[80] inline-flex items-center gap-2 rounded-full bg-primary px-5 py-4 text-base font-bold text-primary-foreground shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 animate-in slide-in-from-bottom-2 fade-in duration-200 ${recentlyAdded ? 'scale-110 ring-4 ring-primary/40 animate-pulse' : ''}`}
                 aria-label={`Open selection cart · ${totalUnits} units`}
                 title="Open selection cart"
             >
-                <ShoppingCart className="h-5 w-5" />
-                <span>{totalUnits}</span>
-                <span className="ml-1 text-xs opacity-90">in cart</span>
+                <ShoppingCart className="h-6 w-6" />
+                <span className="tabular-nums">{totalUnits}</span>
+                <span className="text-xs opacity-90">in selection</span>
             </button>
         )
     }
