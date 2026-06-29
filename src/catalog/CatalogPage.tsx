@@ -118,15 +118,15 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
       />
 
       <div className="pt-24 px-4 max-w-screen-2xl mx-auto space-y-6">
-        {/* Mode switch: Browse | Manage | Product Catalog | Showroom | Mis Cotizaciones */}
+        {/* Mode switch: MRL | Dealer / Quote | Figma | Product Catalog | My Quotes */}
         <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
           <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
             <LibraryBig className="h-4 w-4" />
-            Browse
+            MRL
           </button>
           <button type="button" onClick={() => setMode('manage')} className={tabClass(mode === 'manage')}>
             <Settings2 className="h-4 w-4" />
-            Manage
+            Dealer / Quote
           </button>
           <button type="button" onClick={() => setMode('shop')} className={tabClass(mode === 'shop')}>
             <ShoppingBag className="h-4 w-4" />
