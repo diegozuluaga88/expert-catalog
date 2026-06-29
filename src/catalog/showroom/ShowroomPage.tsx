@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText } from 'lucide-react'
 import type { Category, Product, ProductSortKey } from '../types'
 import {
   UNIFIED_PRODUCTS,
@@ -8,17 +8,17 @@ import {
   getManufacturerByName,
 } from './data/unifiedProducts'
 import ProductCatalogCard from '../shop/ProductCatalogCard'
-import BulkActionsBar from '../shop/BulkActionsBar'
 import CompareModal from '../shop/CompareModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
-import { useCatalogs, resetCatalogs } from '../data/catalogs'
+import { useCatalogs, setCatalogs, resetCatalogs } from '../data/catalogs'
+import type { Catalog, CatalogStatus } from '../types'
 import { useQuote } from '../../quote/QuoteContext'
 import IngestQuoteModal from '../../quote/IngestQuoteModal'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
-import ShowroomCatalogsBar from './ShowroomCatalogsBar'
+import { simulateSyncDelta, SyncResultToast, type SyncToast } from './ShowroomCatalogsBar'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -119,6 +119,26 @@ export default function ShowroomPage() {
   const [showIngest, setShowIngest] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [brandName, setBrandName] = useState<string | null>(null)
+  // Sidebar refactor · sync state local (antes vivía en ShowroomCatalogsBar)
+  const [syncingId, setSyncingId] = useState<number | null>(null)
+  const [syncToast, setSyncToast] = useState<SyncToast | null>(null)
+
+  const handleSyncCatalog = (c: Catalog) => {
+    setSyncingId(c.id)
+    setTimeout(() => {
+      const delta = simulateSyncDelta(c)
+      setCatalogs((prev) =>
+        prev.map((x) =>
+          x.id === c.id
+            ? { ...x, lastSync: 'Just now', status: 'Active' as CatalogStatus, items: x.items + delta.added }
+            : x
+        )
+      )
+      setSyncingId(null)
+      setSyncToast({ name: c.name, delta })
+      setTimeout(() => setSyncToast(null), 3500)
+    }, 1400)
+  }
 
   const toggleFromSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) =>
     setter((prev) => {
@@ -366,81 +386,6 @@ export default function ShowroomPage() {
         </div>
       </div>
 
-      {/* Phase 1 Fix #1 — Connected catalogs · dual-purpose chips (filter + sync).
-          Reemplaza el FILTER BY BRAND row independiente que existía aquí. Click en un
-          chip toggle el filter via setSelectedBrands · catalog name === brand 1:1
-          (data alineada en catalogs.ts). */}
-      <ShowroomCatalogsBar
-        onImport={() => setShowImport(true)}
-        onUploadQuote={() => setShowIngest(true)}
-        selectedBrand={selectedBrands.size === 1 ? Array.from(selectedBrands)[0] : null}
-        onSelectBrand={(brand) => {
-          setSelectedBrands(brand ? new Set([brand]) : new Set())
-          setPage(1)
-        }}
-      />
-
-      {/* Search + sort row (brand pills merged arriba en ShowroomCatalogsBar) */}
-      <div className="flex flex-wrap items-center gap-2">
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={clearAll}
-            className="text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
-          >
-            Clear filters
-          </button>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative w-44 sm:w-56">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
-              placeholder="Search by SKU, name, brand…"
-              title="Try a manufacturer SKU (e.g. ALL-1234A), internal SKU (IN-87423), name, or category"
-              className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-            />
-          </div>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setSortOpen((o) => !o)}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-            >
-              {activeSortLabel}
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
-            {sortOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
-                <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-border bg-card p-1 shadow-lg">
-                  {SORT_OPTIONS.map((o) => (
-                    <button
-                      key={o.key}
-                      type="button"
-                      onClick={() => {
-                        setSort(o.key)
-                        setSortOpen(false)
-                        setPage(1)
-                      }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
-                    >
-                      {o.label}
-                      {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
         <button
           type="button"
@@ -453,34 +398,238 @@ export default function ShowroomPage() {
 
       {/* Main: sidebar + grid */}
       <div className="flex gap-6">
-        <aside className="hidden w-56 shrink-0 lg:block">
-          {/* Favorites submenu */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowFavoritesOnly((v) => !v)
-              setPage(1)
-            }}
-            className={`mb-3 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-              showFavoritesOnly ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-foreground hover:bg-muted'
-            }`}
-          >
-            <Heart className={`h-4 w-4 ${showFavoritesOnly ? 'fill-destructive text-destructive' : ''}`} />
-            Favorites
-            <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {favorites.size}
-            </span>
-          </button>
+        <aside className="hidden w-64 shrink-0 lg:block space-y-5">
 
-          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <SlidersHorizontal className="h-4 w-4" />
-            Filter
+          {/* ───── QUICK ACTIONS ───── */}
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => setShowIngest(true)}
+                className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Quote / PO
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <Settings2 className="h-4 w-4" />
+                Manage Catalogs
+              </button>
+            </div>
           </div>
+
+          {/* ───── SEARCH + SORT ───── */}
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Search</h3>
+            <div className="space-y-1.5">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setPage(1)
+                  }}
+                  placeholder="SKU, name, brand…"
+                  title="Try a manufacturer SKU (e.g. ALL-1234A), internal SKU (IN-87423), name, or category"
+                  className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                />
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSortOpen((o) => !o)}
+                  className="inline-flex h-9 w-full items-center justify-between rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  <span className="truncate">{activeSortLabel}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+                {sortOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
+                    <div className="absolute left-0 top-full z-40 mt-2 w-full rounded-xl border border-border bg-card p-1 shadow-lg">
+                      {SORT_OPTIONS.map((o) => (
+                        <button
+                          key={o.key}
+                          type="button"
+                          onClick={() => {
+                            setSort(o.key)
+                            setSortOpen(false)
+                            setPage(1)
+                          }}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                        >
+                          {o.label}
+                          {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ───── BULK ACTIONS · conditional ───── */}
+          {selected.size > 0 && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  Bulk · {selected.size} selected
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  title="Clear selection"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCompare(true)}
+                  className="flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <GitCompare className="h-3 w-3" />
+                  Compare
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFavorites(prev => {
+                      const next = new Set(prev)
+                      for (const id of selected) next.add(id)
+                      return next
+                    })
+                    setSelected(new Set())
+                  }}
+                  className="flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <Heart className="h-3 w-3" />
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+                  title="Add to project (coming soon)"
+                >
+                  <FolderPlus className="h-3 w-3" />
+                  Project
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuoteQueue(selectedProducts)
+                    setSelected(new Set())
+                  }}
+                  className="flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <FileText className="h-3 w-3" />
+                  Quote ({selected.size})
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ───── FILTERS ───── */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <SlidersHorizontal className="h-3 w-3" />
+                Filters
+              </h3>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Favorites toggle inside Filters */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowFavoritesOnly((v) => !v)
+                setPage(1)
+              }}
+              className={`mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                showFavoritesOnly ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-foreground hover:bg-muted'
+              }`}
+            >
+              <Heart className={`h-4 w-4 ${showFavoritesOnly ? 'fill-destructive text-destructive' : ''}`} />
+              Favorites
+              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {favorites.size}
+              </span>
+            </button>
+
           <FilterSection title="Category">
             {categories.map((c) => checkRow(c, selectedCategories, setSelectedCategories))}
           </FilterSection>
           <FilterSection title="Brand" defaultOpen>
-            {brands.map((b) => checkRow(b, selectedBrands, setSelectedBrands))}
+            {brands.map((b) => {
+              const checked = selectedBrands.has(b)
+              const cat = catalogs.find((x) => x.name === b)
+              const needsSync = cat?.status === 'Update Avail.'
+              const isSyncing = cat ? syncingId === cat.id : false
+              return (
+                <div key={b} className="flex items-center gap-2">
+                  <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm text-muted-foreground min-w-0">
+                    <span
+                      onClick={() => toggleFilter(setSelectedBrands, b)}
+                      className={`flex h-4 w-4 items-center justify-center rounded border transition-colors shrink-0 ${
+                        checked ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
+                      }`}
+                    >
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    <span className="truncate">{b}</span>
+                  </label>
+                  {cat && (
+                    <>
+                      {needsSync && !isSyncing && (
+                        <span
+                          title="Catalog update available"
+                          className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"
+                        />
+                      )}
+                      {!needsSync && !isSyncing && (
+                        <span
+                          title="Catalog up to date"
+                          className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleSyncCatalog(cat)}
+                        disabled={isSyncing}
+                        title={isSyncing ? 'Syncing…' : needsSync ? 'Sync catalog' : 'Re-sync catalog'}
+                        className={`p-1 rounded-md transition-colors shrink-0 ${
+                          isSyncing
+                            ? 'text-muted-foreground cursor-wait'
+                            : needsSync
+                              ? 'text-amber-600 hover:bg-amber-500/10'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </FilterSection>
           {/* Phase 2 Fix #7 — Status filter (active / discontinued / discrepancy) */}
           <FilterSection title="Status">
@@ -538,6 +687,7 @@ export default function ShowroomPage() {
               })}
             </div>
           </FilterSection>
+          </div>
         </aside>
 
         <div className="flex-1">
@@ -600,26 +750,10 @@ export default function ShowroomPage() {
         </div>
       </div>
 
-      {selected.size > 0 && (
-        <BulkActionsBar
-          count={selected.size}
-          onDeselectAll={() => setSelected(new Set())}
-          onCompare={() => setShowCompare(true)}
-          onAddToFavorites={() => {
-            setFavorites(prev => {
-              const next = new Set(prev)
-              for (const id of selected) next.add(id)
-              return next
-            })
-            setSelected(new Set())
-          }}
-          onRequestQuote={() => {
-            // Queue mode · arranca con el 1er producto · panel cycle vía onAfterAdd
-            setQuoteQueue(selectedProducts)
-            setSelected(new Set())
-          }}
-        />
-      )}
+      {/* Bulk actions movidos al sidebar · sin floating bar */}
+
+      {/* Sync toast · feedback de catalog sync desde el sidebar Brand section */}
+      {syncToast && <SyncResultToast toast={syncToast} />}
 
       {showCompare && <CompareModal products={selectedProducts} onClose={() => setShowCompare(false)} />}
       <CatalogImportModal
