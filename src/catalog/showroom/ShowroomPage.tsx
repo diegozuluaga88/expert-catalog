@@ -429,29 +429,6 @@ export default function ShowroomPage() {
           {/* Resto del sidebar oculto cuando collapsed */}
           {!sidebarCollapsed && <>
 
-          {/* ───── QUICK ACTIONS ───── */}
-          <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
-            <div className="space-y-1.5">
-              <button
-                type="button"
-                onClick={() => setShowIngest(true)}
-                className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Upload className="h-4 w-4" />
-                Upload Quote / PO
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowImport(true)}
-                className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <Settings2 className="h-4 w-4" />
-                Manage Catalogs
-              </button>
-            </div>
-          </div>
-
           {/* ───── SEARCH + SORT ───── */}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Search</h3>
@@ -717,6 +694,29 @@ export default function ShowroomPage() {
               })}
             </div>
           </FilterSection>
+          </div>
+
+          {/* ───── QUICK ACTIONS · al final del sidebar como utilidades globales ───── */}
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => setShowIngest(true)}
+                className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Quote / PO
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <Settings2 className="h-4 w-4" />
+                Manage Catalogs
+              </button>
+            </div>
           </div>
 
           </>}
