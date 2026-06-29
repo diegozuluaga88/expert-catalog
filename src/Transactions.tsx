@@ -368,7 +368,6 @@ const acksSummaryByPeriod: Record<TimePeriod, Record<string, SummaryItem>> = {
 };
 
 import AcknowledgementUploadModal from './components/AcknowledgementUploadModal'
-import ResolveInconsistencyModal from './components/ResolveDiscrepancyModal'
 
 interface ConvertedDoc {
     id: string;
@@ -805,7 +804,6 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
 
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
     const [trackingOrder, setTrackingOrder] = useState<any>(null)
-    const [resolveAckDoc, setResolveAckDoc] = useState<any>(null)
 
     const toggleExpand = (id: string) => {
         const newExpanded = new Set(expandedIds)
@@ -2367,20 +2365,16 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                         >
                                                                             <DocumentTextIcon className="h-4 w-4" />
                                                                         </button>
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                if (lifecycleTab === 'acknowledgments') {
-                                                                                    setResolveAckDoc({ id: order.id, name: order.id, vendor: order.vendor || order.client, inconsistencyCount: 3 });
-                                                                                } else {
-                                                                                    setTrackingOrder(order);
-                                                                                }
-                                                                            }}
-                                                                            className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-50/50 transition-colors"
-                                                                            title={lifecycleTab === 'acknowledgments' ? 'Resolve Inconsistency' : 'Track Order'}
-                                                                        >
-                                                                            <MapPinIcon className="h-4 w-4" />
-                                                                        </button>
+                                                                        {/* Track Order solo para POs · ACK ya no usa Resolve (se hace en Compare) */}
+                                                                        {lifecycleTab !== 'acknowledgments' && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); setTrackingOrder(order); }}
+                                                                                className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-50/50 transition-colors"
+                                                                                title="Track Order"
+                                                                            >
+                                                                                <MapPinIcon className="h-4 w-4" />
+                                                                            </button>
+                                                                        )}
                                                                         <button
                                                                             onClick={(e) => { e.stopPropagation(); toggleExpand(order.id); }}
                                                                             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
@@ -2598,19 +2592,9 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                                                             <span className="font-semibold text-foreground truncate ml-2 max-w-[160px]">{lifecycleTab === 'acknowledgments' ? (order as any).relatedPo : (order as any).project}</span>
                                                                         </div>
 
-                                                                        {/* ACK with inconsistency: Resolve button */}
-                                                                        {lifecycleTab === 'acknowledgments' && (order as any).tag && (
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setResolveAckDoc({ id: order.id, name: order.id, vendor: (order as any).vendor, inconsistencyCount: 3 });
-                                                                                }}
-                                                                                className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-zinc-900 bg-brand-300 dark:bg-brand-500 hover:bg-brand-400 dark:hover:bg-brand-600 rounded-lg transition-colors"
-                                                                            >
-                                                                                <ExclamationTriangleIcon className="h-3.5 w-3.5" />
-                                                                                Resolve
-                                                                            </button>
-                                                                        )}
+                                                                        {/* Resolve button removido (Diego ask) · la resolución de discrepancias
+                                                                            ahora ocurre exclusivamente en el flow de Compare with PO ·
+                                                                            ComparisonLauncher es el único entry-point para resolver. */}
 
                                                                         {/* Compare ACK vs its PO — moved here from OCR (reconciliation belongs to the transaction stage) */}
                                                                         {lifecycleTab === 'acknowledgments' && (order as any).relatedPo && (
@@ -2811,7 +2795,6 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
                                     >
                                         <span>
                                             {lifecycleTab === 'quotes' ? 'Quote Analysis' :
-                                                lifecycleTab === 'acknowledgments' ? 'Inconsistency Resolver' :
                                                     `Tracking Details - ${trackingOrder?.id}`}
                                         </span>
                                         <button
@@ -3085,7 +3068,8 @@ export default function Transactions({ onLogout, onNavigateToDetail, onNavigateT
 
             <CreateOrderModal isOpen={isCreateOrderOpen} onClose={() => setIsCreateOrderOpen(false)} />
             <AcknowledgementUploadModal isOpen={isAckModalOpen} onClose={() => setIsAckModalOpen(false)} />
-            <ResolveInconsistencyModal isOpen={!!resolveAckDoc} onClose={() => setResolveAckDoc(null)} document={resolveAckDoc} />
+            {/* ResolveInconsistencyModal removido · resolución de discrepancias
+                ACK ↔ PO ahora se hace exclusivamente en ComparisonLauncher (Compare with PO) */}
 
             {/* PO↔ACK comparison launcher — relocated from OCR; compares an ACK against its PO */}
             <ComparisonLauncher
