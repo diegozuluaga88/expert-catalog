@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft } from 'lucide-react'
 import type { Category, Product, ProductSortKey } from '../types'
 import {
   UNIFIED_PRODUCTS,
@@ -122,6 +122,10 @@ export default function ShowroomPage() {
   // Sidebar refactor · sync state local (antes vivía en ShowroomCatalogsBar)
   const [syncingId, setSyncingId] = useState<number | null>(null)
   const [syncToast, setSyncToast] = useState<SyncToast | null>(null)
+  // Collapsible sidebar · click toggle (PanelLeftClose / PanelLeft icon)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Materials mode usa subset reducido de filtros (sin Status ni Collection)
+  const isMaterials = taxonomy === 'materials'
 
   const handleSyncCatalog = (c: Catalog) => {
     setSyncingId(c.id)
@@ -296,11 +300,6 @@ export default function ShowroomPage() {
   const activeSortLabel = SORT_OPTIONS.find((o) => o.key === sort)?.label ?? 'Sort'
   const selectedProducts = UNIFIED_PRODUCTS.filter((p) => selected.has(p.id))
 
-  const taxoClass = (active: boolean) =>
-    `rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-      active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-    }`
-
   const checkRow = (item: string, set: Set<string>, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
     const checked = set.has(item)
     return (
@@ -355,35 +354,10 @@ export default function ShowroomPage() {
   // ── Storefront grid ───────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Showroom</h1>
-          <p className="text-sm text-muted-foreground">Browse products and materials in one place.</p>
-        </div>
-        {/* Products | Materials toggle */}
-        <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setTaxonomy('products')
-              resetFacets()
-            }}
-            className={taxoClass(taxonomy === 'products')}
-          >
-            Products
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTaxonomy('materials')
-              resetFacets()
-            }}
-            className={taxoClass(taxonomy === 'materials')}
-          >
-            Materials
-          </button>
-        </div>
+      {/* Header · simplificado · toggle Products/Materials movido al sidebar */}
+      <div>
+        <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Showroom</h1>
+        <p className="text-sm text-muted-foreground">Browse products and materials in one place.</p>
       </div>
 
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
@@ -398,7 +372,62 @@ export default function ShowroomPage() {
 
       {/* Main: sidebar + grid */}
       <div className="flex gap-6">
-        <aside className="hidden w-64 shrink-0 lg:block space-y-5">
+        <aside className={`hidden shrink-0 lg:block transition-[width] duration-200 ${
+          sidebarCollapsed ? 'w-12' : 'w-64 space-y-5'
+        }`}>
+          {/* ───── COLLAPSE TOGGLE + (when expanded) MODE SWITCH ───── */}
+          {sidebarCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="inline-flex flex-1 items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTaxonomy('products')
+                    resetFacets()
+                  }}
+                  className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
+                    taxonomy === 'products' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Products
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTaxonomy('materials')
+                    resetFacets()
+                  }}
+                  className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
+                    taxonomy === 'materials' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Materials
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(true)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Resto del sidebar oculto cuando collapsed */}
+          {!sidebarCollapsed && <>
 
           {/* ───── QUICK ACTIONS ───── */}
           <div>
@@ -631,33 +660,34 @@ export default function ShowroomPage() {
               )
             })}
           </FilterSection>
-          {/* Phase 2 Fix #7 — Status filter (active / discontinued / discrepancy) */}
-          <FilterSection title="Status">
-            {itemStatusOptions.map((opt) => {
-              const checked = selectedItemStatuses.has(opt.value)
-              return (
-                <label key={opt.value} className="mb-1.5 flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => {
-                      setSelectedItemStatuses((prev) => {
-                        const next = new Set(prev)
-                        if (next.has(opt.value)) next.delete(opt.value)
-                        else next.add(opt.value)
-                        return next
-                      })
-                      setPage(1)
-                    }}
-                    className="h-4 w-4 cursor-pointer rounded border-input accent-primary"
-                  />
-                  <span className="text-sm text-foreground">{opt.label}</span>
-                </label>
-              )
-            })}
-          </FilterSection>
-          {/* Phase 2 Fix #7 — Collection filter (mock collections per brand) */}
-          {collectionsMock.length > 0 && (
+          {/* Status + Collection · solo aplican a Products · ocultos en Materials mode */}
+          {!isMaterials && (
+            <FilterSection title="Status">
+              {itemStatusOptions.map((opt) => {
+                const checked = selectedItemStatuses.has(opt.value)
+                return (
+                  <label key={opt.value} className="mb-1.5 flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setSelectedItemStatuses((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(opt.value)) next.delete(opt.value)
+                          else next.add(opt.value)
+                          return next
+                        })
+                        setPage(1)
+                      }}
+                      className="h-4 w-4 cursor-pointer rounded border-input accent-primary"
+                    />
+                    <span className="text-sm text-foreground">{opt.label}</span>
+                  </label>
+                )
+              })}
+            </FilterSection>
+          )}
+          {!isMaterials && collectionsMock.length > 0 && (
             <FilterSection title="Collection">
               {collectionsMock.map((c) => checkRow(c, selectedCollections, setSelectedCollections))}
             </FilterSection>
@@ -688,6 +718,8 @@ export default function ShowroomPage() {
             </div>
           </FilterSection>
           </div>
+
+          </>}
         </aside>
 
         <div className="flex-1">
