@@ -69,9 +69,9 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
                         </button>
                     )}
                     <div className="flex-1">
-                        <h1 className="text-xl font-bold text-foreground">Quotes</h1>
+                        <h1 className="text-xl font-bold text-foreground">My Selection</h1>
                         <p className="text-xs text-muted-foreground">
-                            All quotes for <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground ${buyerInfo.tenant.badgeColor}`}>{buyerInfo.tenant.name}</span>
+                            All selections for <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground ${buyerInfo.tenant.badgeColor}`}>{buyerInfo.tenant.name}</span>
                         </p>
                     </div>
                     <button type="button" onClick={handleNewDraft} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
@@ -294,10 +294,10 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                                             return (
                                                 <span
                                                     className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-foreground"
-                                                    title={`Quoted ${otherDraftLines} ${otherDraftLines === 1 ? 'time' : 'times'} in other drafts · ${entry.totalUnits} total units across history`}
+                                                    title={`Selected ${otherDraftLines} ${otherDraftLines === 1 ? 'time' : 'times'} in other drafts · ${entry.totalUnits} total units across history`}
                                                 >
                                                     <History className="h-2.5 w-2.5" />
-                                                    Previously quoted
+                                                    Previously selected
                                                 </span>
                                             )
                                         })()}
@@ -364,12 +364,12 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                     <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
                         <Stat label="Total units" value={`${totalUnits}`} />
                         <Stat label="Estimated lead" value={formatLeadTime(maxLead)} />
-                        <Stat label="Quote total" value={`$${total.toLocaleString()}`} highlight />
+                        <Stat label="Selection total" value={`$${total.toLocaleString()}`} highlight />
                     </div>
                     {!isSubmitted ? (
                         <button type="button" onClick={onSubmit} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
                             <CheckCircle2 className="h-4 w-4" />
-                            Submit quote request
+                            Submit selection
                             <ChevronRight className="h-4 w-4" />
                         </button>
                     ) : (

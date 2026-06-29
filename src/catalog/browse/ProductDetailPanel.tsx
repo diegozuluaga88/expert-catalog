@@ -333,7 +333,7 @@ export default function ProductDetailPanel({
                             {/* Tabs · Quote first (Diego ask) */}
                             <div className="flex-shrink-0 border-b border-border bg-muted/20 px-6">
                                 <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Product details">
-                                    <TabButton label="Quote" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} primary />
+                                    <TabButton label="Selection" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} primary />
                                     <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
                                     <TabButton label="Variants & Materials" active={activeTab === 'variants'} onClick={() => setActiveTab('variants')} />
                                     <TabButton label="Specifications" active={activeTab === 'specs'} onClick={() => setActiveTab('specs')} />
@@ -517,13 +517,13 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                 <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
                     <Stat label="Total units" value={`${totalUnits}`} />
                     <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
-                    <Stat label={isEditMode ? 'New line total' : 'Quote total'} value={`$${totalPrice.toLocaleString()}`} highlight />
+                    <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={`$${totalPrice.toLocaleString()}`} highlight />
                 </div>
                 <button
                     type="button"
                     onClick={onAddToQuote}
                     disabled={disabled}
-                    title={disabled ? 'Discontinued · quoting disabled' : (isEditMode ? 'Update the existing item with new variants' : `Add ${lines.length} line${lines.length === 1 ? '' : 's'} to your quote`)}
+                    title={disabled ? 'Discontinued · selection disabled' : (isEditMode ? 'Update the existing item with new variants' : `Add ${lines.length} line${lines.length === 1 ? '' : 's'} to your selection`)}
                     className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
                 >
                     {disabled
@@ -534,7 +534,7 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                                 ? (queueInfo.current < queueInfo.total
                                     ? <>Add & Next ({queueInfo.current + 1}/{queueInfo.total}) <ArrowUpRight className="h-4 w-4" /></>
                                     : <>Add & Finish <ArrowUpRight className="h-4 w-4" /></>)
-                                : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Quote <ArrowUpRight className="h-4 w-4" /></>
+                                : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Selection <ArrowUpRight className="h-4 w-4" /></>
                     }
                 </button>
                 {/* Secondary action · Compare with… (Diego polish · feature en detail) */}

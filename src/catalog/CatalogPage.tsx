@@ -141,7 +141,7 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
               (Diego: no salirnos de la sección). Badge count del cart. */}
           <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
             <FileText className="h-4 w-4" />
-            My Quotes
+            My Selection
             {totalCartUnits > 0 && (
               <span className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
                 mode === 'quotes' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'

@@ -148,10 +148,10 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
                       type="button"
                       onClick={() => handleAddToQuote(p)}
                       className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-                      title={`Add ${p.name} to your active quote`}
+                      title={`Add ${p.name} to your active selection`}
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add to Quote
+                      Add to Selection
                     </button>
                   </td>
                 ))}

@@ -105,11 +105,11 @@ export default function BulkActionsBar({
         <button
           type="button"
           onClick={onRequestQuote}
-          title="Configure each selected product in the panel · added to your active quote one by one"
+          title="Configure each selected product in the panel · added to your active selection one by one"
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <FileText className="h-4 w-4" />
-          Request Quote ({count})
+          Add to Selection ({count})
         </button>
       </div>
     </div>

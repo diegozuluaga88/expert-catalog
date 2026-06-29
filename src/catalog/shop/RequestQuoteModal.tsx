@@ -30,8 +30,8 @@ export default function RequestQuoteModal({ products, onClose }: RequestQuoteMod
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div>
-            <h2 className="font-brand text-lg font-bold text-foreground">Request Quote</h2>
-            <p className="text-sm text-muted-foreground">Fill out the form below to request a quote for this product.</p>
+            <h2 className="font-brand text-lg font-bold text-foreground">Submit Selection</h2>
+            <p className="text-sm text-muted-foreground">Fill out the form below to submit your selection for this product to the dealer.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
@@ -195,7 +195,7 @@ export default function RequestQuoteModal({ products, onClose }: RequestQuoteMod
             onClick={onClose}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Submit Quote Request
+            Submit Selection
           </button>
         </div>
       </div>

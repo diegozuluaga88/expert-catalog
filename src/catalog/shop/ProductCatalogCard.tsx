@@ -75,10 +75,10 @@ export default function ProductCatalogCard({
       {!isDiscontinued && historyEntry && (
         <span
           className="pointer-events-none absolute right-12 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground shadow-sm backdrop-blur"
-          title={`Previously quoted ${historyEntry.occurrences} ${historyEntry.occurrences === 1 ? 'time' : 'times'} · ${historyEntry.totalUnits} total units`}
+          title={`Previously selected ${historyEntry.occurrences} ${historyEntry.occurrences === 1 ? 'time' : 'times'} · ${historyEntry.totalUnits} total units`}
         >
           <History className="h-2.5 w-2.5" />
-          Previously quoted
+          Previously selected
         </span>
       )}
       {/* Image + select + favorite */}
@@ -221,7 +221,7 @@ export default function ProductCatalogCard({
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
           >
-            {isDiscontinued ? <><Ban className="h-3.5 w-3.5" /> Unavailable</> : <>Request Quote <ArrowUpRight className="h-3.5 w-3.5" /></>}
+            {isDiscontinued ? <><Ban className="h-3.5 w-3.5" /> Unavailable</> : <>Add to Selection <ArrowUpRight className="h-3.5 w-3.5" /></>}
           </button>
         </div>
       </div>

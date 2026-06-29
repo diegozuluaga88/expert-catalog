@@ -636,7 +636,7 @@ function ConfirmStep({ doc, reviewLines, acceptedCount }: { doc: MockIngestedDoc
             </div>
 
             <p className="text-xs text-muted-foreground">
-                A new draft will appear at the top of <span className="font-semibold text-foreground">My Quotes</span> with the source doc reference. You can edit any line variants from there.
+                A new draft will appear at the top of <span className="font-semibold text-foreground">My Selection</span> with the source doc reference. You can edit any line variants from there.
             </p>
         </div>
     )
