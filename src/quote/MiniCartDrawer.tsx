@@ -72,8 +72,8 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 type="button"
                 onClick={() => setManuallyOpened(true)}
                 className={`fixed bottom-6 right-6 z-[80] inline-flex items-center gap-2 rounded-full bg-primary px-5 py-4 text-base font-bold text-primary-foreground shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 animate-in slide-in-from-bottom-2 fade-in duration-200 ${recentlyAdded ? 'scale-110 ring-4 ring-primary/40 animate-pulse' : ''}`}
-                aria-label={`Open selection cart · ${totalUnits} units`}
-                title="Open selection cart"
+                aria-label={`Open My Selection · ${totalUnits} units`}
+                title="Open My Selection"
             >
                 <ShoppingCart className="h-6 w-6" />
                 <span className="tabular-nums">{totalUnits}</span>
@@ -108,7 +108,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                     <div className="text-sm font-semibold text-foreground">
                         {lastAdded
                             ? `+${justAddedCount} ${justAddedCount === 1 ? 'line added' : 'lines added'}`
-                            : 'Your quote cart'}
+                            : 'Your selection'}
                     </div>
                     <div className="truncate text-[11px] text-muted-foreground">
                         {lastAdded ? 'to' : ''} <span className="font-semibold text-foreground">{activeDraft.name}</span>
@@ -207,7 +207,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 </ul>
                 {allItems.length > 4 && (
                     <p className="border-t border-border bg-muted/40 px-4 py-1.5 text-center text-[10px] text-muted-foreground">
-                        + {allItems.length - 4} more in cart
+                        + {allItems.length - 4} more in selection
                     </p>
                 )}
             </div>
@@ -239,7 +239,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
             {/* Footer · totals + Clear all link + CTA */}
             <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
                 <div>
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Cart total</div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Selection total</div>
                     <div className="text-base font-bold text-foreground">${totalPriceInCart.toLocaleString()}</div>
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                         <span>{totalInCart} {totalInCart === 1 ? 'unit' : 'units'} · {allItems.length} {allItems.length === 1 ? 'line' : 'lines'}</span>
@@ -260,7 +260,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                     onClick={() => { onViewQuote(activeDraft.id); handleClose() }}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
-                    View Quote
+                    View Selection
                     <ArrowUpRight className="h-3.5 w-3.5" />
                 </button>
             </div>

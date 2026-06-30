@@ -10,6 +10,7 @@ import ManageCatalogs from './manage/ManageCatalogs'
 import ProductCatalogPage from './shop/ProductCatalogPage'
 import ShowroomPage from './showroom/ShowroomPage'
 import QuotesPage from '../quote/QuotesPage'
+import MiniCartDrawer from '../quote/MiniCartDrawer'
 import { useQuote } from '../quote/QuoteContext'
 
 // Etapa 4 — Modo Browse: estructura de catalog-test (Library→Manufacturer→Category→Product),
@@ -164,6 +165,12 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
           <ShowroomPage />
         )}
       </div>
+
+      {/* Cart/FAB "Your selection" · solo en Product Catalog (showroom) + My Selection
+          (quotes) · Diego ask. Internamente retorna null si no hay items. */}
+      {(mode === 'showroom' || mode === 'quotes') && (
+        <MiniCartDrawer onViewQuote={() => setMode('quotes')} />
+      )}
     </>
   )
 }

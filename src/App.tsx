@@ -9,7 +9,6 @@ import OrderDetail from "./OrderDetail"
 import AckDetail from "./AckDetail"
 import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
-import MiniCartDrawer from "./quote/MiniCartDrawer"
 import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
 
 type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
@@ -123,12 +122,8 @@ function App() {
           internamente retorna null cuando no hay cart items · así garantizamos
           que cuando se agreguen items desde el catalog el drawer/FAB sea
           visible inmediatamente sin importar la página activa. */}
-      <MiniCartDrawer
-        onViewQuote={() => {
-          setCurrentPage('catalog')
-          window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
-        }}
-      />
+      {/* Diego · el cart/FAB se monta dentro de CatalogPage y solo en los tabs
+          Product Catalog (showroom) + My Selection (quotes). Ver CatalogPage.tsx. */}
       {/* Phase 3 polish · panel global para editar variants de un item del cart.
           Aparece cuando user click "Edit" en el drawer o en My Quotes detail.
           También scoped al catalog ya que es relevante solo en ese contexto. */}
