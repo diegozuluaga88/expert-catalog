@@ -24,6 +24,18 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
     // Diego fix · pulse el FAB cuando recién se agregó un item · 3s después del
     // lastAdded set para llamar la atención del user al counter de la esquina.
     const [recentlyAdded, setRecentlyAdded] = useState(false)
+    // Diego ask · ocultar FAB/drawer cuando hay un Dialog (modal) abierto · el FAB
+    // estaba tapando el "Next" del Manage Catalogs modal (mismo bottom-right corner).
+    // MutationObserver detecta cuando Headless UI Dialog aparece/desaparece en el DOM.
+    const [hasOpenDialog, setHasOpenDialog] = useState(false)
+    useEffect(() => {
+        const check = () => setHasOpenDialog(!!document.querySelector('[role="dialog"]'))
+        check()
+        const observer = new MutationObserver(check)
+        observer.observe(document.body, { childList: true, subtree: true })
+        return () => observer.disconnect()
+    }, [])
+
     const showDrawer = !!lastAdded || manuallyOpened
 
     // Auto-dismiss 20s (Diego ask · 8s era muy corto para queue/bulk adds donde
@@ -60,8 +72,14 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
         setManuallyOpened(false)
     }
 
+    // Hide entirely cuando hay un Dialog abierto (Manage Catalogs, ProductDetail,
+    // ImportWithAI, etc) · el FAB tapaba el "Next/Submit" de los modales que viven
+    // en el mismo bottom-right corner. Modal cerrado → FAB reaparece.
+    if (hasOpenDialog) return null
+
     // FAB cuando drawer closed pero el cart tiene items · click → reabre el drawer.
-    // z-[80] · arriba de toasts (z-[60]) y modales (z-50) para garantizar visibilidad.
+    // z-[80] · arriba de toasts (z-[60]) y navbar (z-[50]) para garantizar visibilidad
+    // cuando no hay modal activo.
     // Tamaño bumped (px-5 py-4 + text-base) · más prominente que antes.
     const cartHasItems = activeDraft && activeDraft.items.length > 0
     if (!showDrawer) {
