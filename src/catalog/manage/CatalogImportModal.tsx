@@ -27,7 +27,9 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 // (lista con disconnect per row + confirm). File name preservado para no romper imports
 // existentes (ShowroomPage, ProductCatalogPage, CatalogLibrary).
 
-export type ManageTab = 'add' | 'sync' | 'delete' | 'preferences';
+// 'sync' tab fusionado (era Edit & Sync + Delete · ahora "Catalogs" con
+// ambas acciones inline · Diego ask 2026-06-30 · evita redundancia visual).
+export type ManageTab = 'add' | 'sync' | 'preferences';
 
 interface CatalogImportModalProps {
     isOpen: boolean;
@@ -353,17 +355,11 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                             onClick={() => setActiveTab('add')}
                                         />
                                         <TabButton
-                                            label="Edit & Sync"
+                                            label="Catalogs"
                                             icon={RefreshCw}
                                             active={activeTab === 'sync'}
                                             onClick={() => setActiveTab('sync')}
                                             badgeCount={manageCatalogs.filter(c => c.status === 'Update Avail.').length}
-                                        />
-                                        <TabButton
-                                            label="Delete"
-                                            icon={Trash2}
-                                            active={activeTab === 'delete'}
-                                            onClick={() => setActiveTab('delete')}
                                         />
                                         <TabButton
                                             label="Preferences"
@@ -378,13 +374,15 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
 
                             {/* Content */}
                             <div className="flex-1 overflow-y-auto">
-                                {/* ─── EDIT & SYNC TAB ──────────────────────────────── */}
+                                {/* ─── CATALOGS TAB (was Edit & Sync + Delete · fused 2026-06-30) ─── */}
                                 {activeTab === 'sync' && (
                                     <div className="p-6">
                                         <div className="mb-4 flex items-center justify-between">
                                             <div>
                                                 <h3 className="text-sm font-semibold text-foreground">Connected catalogs</h3>
-                                                <p className="text-xs text-muted-foreground mt-0.5">Sync to pull the latest items from each manufacturer.</p>
+                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                    Sync to pull latest items. Disconnect to hide products (quote history preserved).
+                                                </p>
                                             </div>
                                             <span className="text-xs text-muted-foreground">{manageCatalogs.length} connected</span>
                                         </div>
@@ -406,46 +404,8 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                                                 {c.items} items · {c.version} · synced {c.lastSync}
                                                             </p>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleSyncCatalog(c)}
-                                                            disabled={syncingId === c.id}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-                                                        >
-                                                            <RefreshCw className={cn('w-3.5 h-3.5', syncingId === c.id && 'animate-spin')} />
-                                                            {syncingId === c.id ? 'Syncing…' : 'Sync'}
-                                                        </button>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* ─── DELETE TAB ────────────────────────────────────── */}
-                                {activeTab === 'delete' && (
-                                    <div className="p-6">
-                                        <div className="mb-4">
-                                            <h3 className="text-sm font-semibold text-foreground">Disconnect catalogs</h3>
-                                            <p className="text-xs text-muted-foreground mt-0.5">
-                                                Removing a catalog hides its products from the showroom. Quote history is preserved.
-                                            </p>
-                                        </div>
-                                        {manageCatalogs.length === 0 ? (
-                                            <div className="text-center py-12 text-sm text-muted-foreground">No catalogs to disconnect.</div>
-                                        ) : (
-                                            <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-                                                {manageCatalogs.map(c => (
-                                                    <li key={c.id} className="flex items-center gap-4 p-4 bg-card">
-                                                        <div className={cn('w-10 h-10 rounded-lg flex-shrink-0', c.cover)} aria-hidden="true" />
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-semibold text-foreground truncate">{c.name}</span>
-                                                                <StatusBadge status={c.status} />
-                                                            </div>
-                                                            <p className="text-xs text-muted-foreground mt-0.5">{c.items} items</p>
-                                                        </div>
                                                         {confirmDeleteId === c.id ? (
+                                                            // Inline confirm · reemplaza ambos buttons mientras user confirma
                                                             <div className="flex items-center gap-2 bg-destructive/10 px-3 py-1.5 rounded-lg">
                                                                 <AlertTriangle className="w-4 h-4 text-destructive" />
                                                                 <span className="text-xs font-medium text-destructive">Disconnect?</span>
@@ -465,14 +425,28 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setConfirmDeleteId(c.id)}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-destructive border border-destructive/30 rounded-lg hover:bg-destructive/10 transition-colors"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                                Disconnect
-                                                            </button>
+                                                            <div className="flex items-center gap-2">
+                                                                {/* Primary action · Sync */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSyncCatalog(c)}
+                                                                    disabled={syncingId === c.id}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                                                                >
+                                                                    <RefreshCw className={cn('w-3.5 h-3.5', syncingId === c.id && 'animate-spin')} />
+                                                                    {syncingId === c.id ? 'Syncing…' : 'Sync'}
+                                                                </button>
+                                                                {/* Secondary action · Disconnect icon-only ghost rojo */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setConfirmDeleteId(c.id)}
+                                                                    aria-label={`Disconnect ${c.name}`}
+                                                                    title="Disconnect catalog"
+                                                                    className="inline-flex items-center justify-center h-8 w-8 text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </li>
                                                 ))}
