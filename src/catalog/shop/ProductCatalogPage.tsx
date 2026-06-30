@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, Settings2, SlidersHorizontal, Check } from 'lucide-react'
+import { Search, ChevronDown, Settings2, SlidersHorizontal, Check, PanelLeft, PanelLeftClose } from 'lucide-react'
 import type { Product, ProductSortKey } from '../types'
 import {
   SHOP_PRODUCTS,
@@ -82,6 +82,8 @@ export default function ProductCatalogPage() {
   // Bulk RFQ queue
   const [quoteQueue, setQuoteQueue] = useState<Product[]>([])
   const [queueIndex, setQueueIndex] = useState(0)
+  // Sidebar collapse · espejo del FilterSidebar (LibraryPage) y ShowroomPage.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Diego ask · sync simulations son ephemeral · reset on mount
   useEffect(() => {
     resetCatalogs()
@@ -184,23 +186,13 @@ export default function ProductCatalogPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
-          <p className="text-sm text-muted-foreground">Track your orders and shipments</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowImport(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Settings2 className="h-4 w-4" />
-          Manage Catalogs
-        </button>
+      {/* Header simplificado · solo título (acciones se movieron al sidebar) */}
+      <div>
+        <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
+        <p className="text-sm text-muted-foreground">Track your orders and shipments</p>
       </div>
 
-      {/* Brand pills */}
+      {/* Brand pills · quedan en el header como filtro rápido visible */}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setOnlyBrand(null)} className={pillClass(selectedBrands.size === 0)}>
           All Products
@@ -217,154 +209,154 @@ export default function ProductCatalogPage() {
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Search catalog..."
-            className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-          />
-        </div>
-
-        {/* Bulk Actions dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setBulkOpen((o) => !o)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Bulk Actions{selected.size > 0 ? ` (${selected.size})` : ''}
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </button>
-          {bulkOpen && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setBulkOpen(false)} />
-              <div className="absolute right-0 top-full z-40 mt-2 w-56 rounded-xl border border-border bg-card p-1 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected(new Set(pageItems.map((p) => p.id)))
-                    setBulkOpen(false)
-                  }}
-                  className={bulkItem}
-                >
-                  Select all on page
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected(new Set())
-                    setBulkOpen(false)
-                  }}
-                  className={bulkItem}
-                >
-                  Deselect all
-                </button>
-                <div className="my-1 border-t border-border" />
-                <button
-                  type="button"
-                  disabled={selected.size === 0}
-                  onClick={() => {
-                    setShowCompare(true)
-                    setBulkOpen(false)
-                  }}
-                  className={bulkItem}
-                >
-                  Compare selected
-                </button>
-                <button
-                  type="button"
-                  disabled={selected.size === 0}
-                  onClick={() => {
-                    setFavorites(prev => {
-                      const next = new Set(prev)
-                      for (const id of selected) next.add(id)
-                      return next
-                    })
-                    setSelected(new Set())
-                    setBulkOpen(false)
-                  }}
-                  className={bulkItem}
-                >
-                  Save to favorites
-                </button>
-                <button
-                  type="button"
-                  disabled={selected.size === 0}
-                  onClick={() => {
-                    setQuoteQueue(selectedProducts)
-                    setSelected(new Set())
-                    setBulkOpen(false)
-                  }}
-                  className={bulkItem}
-                >
-                  Request quote ({selected.size})
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Sort dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setSortOpen((o) => !o)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            {activeSortLabel}
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </button>
-          {sortOpen && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
-              <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-border bg-card p-1 shadow-lg">
-                {SORT_OPTIONS.map((o) => (
-                  <button
-                    key={o.key}
-                    type="button"
-                    onClick={() => {
-                      setSort(o.key)
-                      setSortOpen(false)
-                      setPage(1)
-                    }}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
-                  >
-                    {o.label}
-                    {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Main: sidebar + grid */}
+      {/* Main: sidebar (con toolbar adentro) + grid · sidebar collapsible (Diego ask).
+          Search + Bulk Actions + Sort + Manage Catalogs movidos del header al sidebar
+          para consistency con LibraryPage FilterSidebar y ShowroomPage. */}
       <div className="flex gap-6">
-        <aside className="hidden w-56 shrink-0 lg:block">
-          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <SlidersHorizontal className="h-4 w-4" />
-            Filter
+        <aside className={`hidden shrink-0 lg:flex lg:flex-col bg-card border border-border rounded-xl overflow-hidden transition-[width] duration-200 ${sidebarCollapsed ? 'w-12' : 'w-64'}`}>
+          {/* Collapse / expand toggle */}
+          <div className={`flex items-center border-b border-border px-2 py-2 ${sidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(c => !c)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
           </div>
-          <FilterSection title="Category">
-            {SHOP_CATEGORIES.map((c) => checkRow(c, selectedCategories, setSelectedCategories))}
-          </FilterSection>
-          <FilterSection title="Brand" defaultOpen>
-            {SHOP_BRANDS.map((b) => checkRow(b, selectedBrands, setSelectedBrands))}
-          </FilterSection>
-          <FilterSection title="Features">
-            {SHOP_FEATURES.map((f) => checkRow(f, selectedFeatures, setSelectedFeatures))}
-          </FilterSection>
-          <FilterSection title="Price Range">
-            {PRICE_RANGES.map((r) => checkRow(r.label, selectedPrices, setSelectedPrices))}
-          </FilterSection>
+
+          {!sidebarCollapsed && (
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setPage(1)
+                  }}
+                  placeholder="Search catalog..."
+                  className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                />
+              </div>
+
+              {/* Manage Catalogs CTA */}
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Settings2 className="h-4 w-4" />
+                Manage Catalogs
+              </button>
+
+              {/* Bulk Actions dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setBulkOpen((o) => !o)}
+                  className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  <span>Bulk Actions{selected.size > 0 ? ` (${selected.size})` : ''}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
+                {bulkOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setBulkOpen(false)} />
+                    <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-xl border border-border bg-card p-1 shadow-lg">
+                      <button type="button" onClick={() => { setSelected(new Set(pageItems.map((p) => p.id))); setBulkOpen(false) }} className={bulkItem}>
+                        Select all on page
+                      </button>
+                      <button type="button" onClick={() => { setSelected(new Set()); setBulkOpen(false) }} className={bulkItem}>
+                        Deselect all
+                      </button>
+                      <div className="my-1 border-t border-border" />
+                      <button type="button" disabled={selected.size === 0} onClick={() => { setShowCompare(true); setBulkOpen(false) }} className={bulkItem}>
+                        Compare selected
+                      </button>
+                      <button
+                        type="button"
+                        disabled={selected.size === 0}
+                        onClick={() => {
+                          setFavorites(prev => {
+                            const next = new Set(prev)
+                            for (const id of selected) next.add(id)
+                            return next
+                          })
+                          setSelected(new Set())
+                          setBulkOpen(false)
+                        }}
+                        className={bulkItem}
+                      >
+                        Save to favorites
+                      </button>
+                      <button
+                        type="button"
+                        disabled={selected.size === 0}
+                        onClick={() => { setQuoteQueue(selectedProducts); setSelected(new Set()); setBulkOpen(false) }}
+                        className={bulkItem}
+                      >
+                        Request quote ({selected.size})
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Sort dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSortOpen((o) => !o)}
+                  className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  <span>{activeSortLabel}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
+                {sortOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
+                    <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-xl border border-border bg-card p-1 shadow-lg">
+                      {SORT_OPTIONS.map((o) => (
+                        <button
+                          key={o.key}
+                          type="button"
+                          onClick={() => { setSort(o.key); setSortOpen(false); setPage(1) }}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                        >
+                          {o.label}
+                          {sort === o.key && <Check className="h-4 w-4 text-foreground" />}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Filters */}
+              <div className="border-t border-border pt-3">
+                <div className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filter
+                </div>
+                <FilterSection title="Category">
+                  {SHOP_CATEGORIES.map((c) => checkRow(c, selectedCategories, setSelectedCategories))}
+                </FilterSection>
+                <FilterSection title="Brand" defaultOpen>
+                  {SHOP_BRANDS.map((b) => checkRow(b, selectedBrands, setSelectedBrands))}
+                </FilterSection>
+                <FilterSection title="Features">
+                  {SHOP_FEATURES.map((f) => checkRow(f, selectedFeatures, setSelectedFeatures))}
+                </FilterSection>
+                <FilterSection title="Price Range">
+                  {PRICE_RANGES.map((r) => checkRow(r.label, selectedPrices, setSelectedPrices))}
+                </FilterSection>
+              </div>
+            </div>
+          )}
         </aside>
 
         <div className="flex-1">
