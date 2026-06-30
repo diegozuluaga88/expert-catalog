@@ -327,7 +327,7 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                         leaveFrom="opacity-100 scale-100"
                         leaveTo="opacity-0 scale-95"
                     >
-                        <Dialog.Panel className="relative w-full max-w-2xl bg-card rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]">
+                        <Dialog.Panel className="relative w-full max-w-4xl h-[85vh] bg-card rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col">
 
                             {/* Header */}
                             <div className="border-b border-border">
