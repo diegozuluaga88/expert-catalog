@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
-import type { Manufacturer, LibraryTab } from '../types'
+import { MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { PanelLeft, PanelLeftClose } from 'lucide-react'
+import type { Manufacturer, LibraryTab, ViewMode } from '../types'
+import ViewToggle from './ViewToggle'
 
 interface FilterSidebarProps {
   manufacturers: Manufacturer[]
@@ -8,6 +10,11 @@ interface FilterSidebarProps {
   onTabChange: (t: LibraryTab) => void
   selectedCategory: string | null
   onCategoryChange: (cat: string | null) => void
+  // Reubicados desde la toolbar de LibraryPage al panel lateral (espejo de Product Catalog)
+  search: string
+  onSearchChange: (v: string) => void
+  viewMode: ViewMode
+  onViewModeChange: (v: ViewMode) => void
 }
 
 const SWATCH_COLORS = [
@@ -57,7 +64,12 @@ export default function FilterSidebar({
   onTabChange,
   selectedCategory,
   onCategoryChange,
+  search,
+  onSearchChange,
+  viewMode,
+  onViewModeChange,
 }: FilterSidebarProps) {
+  const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
   const [categoryOpen, setCategoryOpen] = useState(true)
   const [colorOpen, setColorOpen] = useState(false)
@@ -78,7 +90,40 @@ export default function FilterSidebar({
   )
 
   return (
-    <aside className="w-56 shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto h-full">
+    <aside className={`shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto h-full transition-[width] duration-200 ${collapsed ? 'w-12' : 'w-56'}`}>
+
+      {/* Collapse / expand toggle (espejo de Product Catalog) */}
+      <div className={`flex items-center border-b border-border px-2 py-2 ${collapsed ? 'justify-center' : 'justify-end'}`}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(c => !c)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <>
+      {/* Search + View mode · reubicados desde la toolbar de LibraryPage (espejo de Product Catalog) */}
+      <div className="px-4 py-3 border-b border-border space-y-2">
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="search"
+            placeholder="Search manufacturers…"
+            value={search}
+            onChange={e => onSearchChange(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 text-sm bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">View</span>
+          <ViewToggle value={viewMode} onChange={onViewModeChange} />
+        </div>
+      </div>
 
       {/* SELECT YOUR LIBRARY */}
       <div className="px-4 py-3 border-b border-border">
@@ -200,6 +245,8 @@ export default function FilterSidebar({
           </>
         )}
       </FilterSection>
+        </>
+      )}
     </aside>
   )
 }

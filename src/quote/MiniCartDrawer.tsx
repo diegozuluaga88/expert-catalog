@@ -7,7 +7,7 @@
 //  - Footer · "X new items · Y total in cart · $Z" claro · accumulación visible
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CheckCircle2, Minus, Pencil, Plus, ShoppingCart, Trash2, X, AlertTriangle } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, Minus, Pencil, Plus, ListChecks, Trash2, X, AlertTriangle } from 'lucide-react'
 import { useQuote } from './QuoteContext'
 
 interface MiniCartDrawerProps {
@@ -75,7 +75,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                 aria-label={`Open My Selection · ${totalUnits} units`}
                 title="Open My Selection"
             >
-                <ShoppingCart className="h-6 w-6" />
+                <ListChecks className="h-6 w-6" />
                 <span className="tabular-nums">{totalUnits}</span>
                 <span className="text-xs opacity-90">in selection</span>
             </button>
@@ -102,7 +102,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
             {/* Header · cambia copy según si es post-add o manual reopen */}
             <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-3">
                 <div className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 text-foreground">
-                    {lastAdded ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                    {lastAdded ? <CheckCircle2 className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-foreground">

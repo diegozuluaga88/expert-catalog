@@ -525,7 +525,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     textColor: '#1c1917',
     type: 'materials',
     binderCount: 4,
-    binderLabel: 'Fabrics',
+    binderLabel: 'Camira — Fabrics',
     categories: [
       {
         id: 'upholstery',
