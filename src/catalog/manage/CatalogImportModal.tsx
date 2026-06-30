@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { AlertTriangle, Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, ImageIcon, Plus, RefreshCw, Server, Settings2, Trash2, Users, X } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, ImageIcon, Plus, RefreshCw, Server, Settings2, SlidersHorizontal, Trash2, Users, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useCatalogs, setCatalogs } from '../data/catalogs';
 import type { Catalog, CatalogStatus } from '../types';
 import { simulateSyncDelta, type SyncDelta } from '../showroom/ShowroomCatalogsBar';
+import { useTenant } from '../../TenantContext';
+import PreferencesPanel from './PreferencesPanel';
+import SmartRuleBuilderModal, { type CustomRule } from './SmartRuleBuilderModal';
+import {
+    defaultPreferences,
+    loadPreferences,
+    savePreferences,
+    summarizePreferences,
+    type TenantPreferences,
+} from './tenantPreferences';
 
 // Helper for classes
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -17,7 +27,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 // (lista con disconnect per row + confirm). File name preservado para no romper imports
 // existentes (ShowroomPage, ProductCatalogPage, CatalogLibrary).
 
-export type ManageTab = 'add' | 'sync' | 'delete';
+export type ManageTab = 'add' | 'sync' | 'delete' | 'preferences';
 
 interface CatalogImportModalProps {
     isOpen: boolean;
@@ -98,6 +108,20 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
     const [tabToast, setTabToast] = useState<
         { kind: 'sync'; name: string; delta: SyncDelta } | { kind: 'info'; message: string } | null
     >(null);
+
+    // Preferences tab state (Phase 5 · Diego ask 2026-06-30) · per-tenant buying
+    // preferences · UI demo only, no se conecta a catalog filters.
+    const { currentTenant } = useTenant();
+    const [prefs, setPrefs] = useState<TenantPreferences>(() => loadPreferences(currentTenant));
+    const [showRuleBuilder, setShowRuleBuilder] = useState(false);
+
+    // Re-sync prefs cuando cambia el tenant activo (multi-tenant aware).
+    useEffect(() => {
+        setPrefs(loadPreferences(currentTenant));
+    }, [currentTenant]);
+
+    const prefsSummary = summarizePreferences(prefs);
+    const totalPrefsActive = prefsSummary.active + prefsSummary.compliance + prefsSummary.custom;
 
     // Reset state on open · NO reseteamos manageCatalogs porque ahora vive en el store
     // reactivo (mutaciones previas se preservan deliberadamente · el operator quiere
@@ -341,6 +365,13 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                             active={activeTab === 'delete'}
                                             onClick={() => setActiveTab('delete')}
                                         />
+                                        <TabButton
+                                            label="Preferences"
+                                            icon={SlidersHorizontal}
+                                            active={activeTab === 'preferences'}
+                                            onClick={() => setActiveTab('preferences')}
+                                            badgeCount={totalPrefsActive}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -447,6 +478,30 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                                 ))}
                                             </ul>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* ─── PREFERENCES TAB ─────────────────────────────── */}
+                                {activeTab === 'preferences' && (
+                                    <div className="p-6">
+                                        {/* Summary badge (5-second test · qué veo / cuántas reglas) */}
+                                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold text-foreground">
+                                            <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span>{prefsSummary.active} rules active</span>
+                                            <span className="text-muted-foreground">·</span>
+                                            <span>{prefsSummary.compliance} compliance</span>
+                                            <span className="text-muted-foreground">·</span>
+                                            <span>{prefsSummary.custom} custom</span>
+                                        </div>
+                                        <PreferencesPanel
+                                            tenantName={currentTenant}
+                                            prefs={prefs}
+                                            onChange={setPrefs}
+                                            onAddCustomRule={() => setShowRuleBuilder(true)}
+                                            onRemoveCustomRule={(id) =>
+                                                setPrefs(p => ({ ...p, customRules: p.customRules.filter(r => r.id !== id) }))
+                                            }
+                                        />
                                     </div>
                                 )}
 
@@ -756,6 +811,37 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                 </div>
                             )}
 
+                            {/* Footer · Preferences tab · Reset + Save grouped right */}
+                            {activeTab === 'preferences' && (
+                                <div className="p-4 border-t border-border flex items-center justify-between gap-3 bg-muted/50">
+                                    <span className="text-xs text-muted-foreground">
+                                        {totalPrefsActive} {totalPrefsActive === 1 ? 'rule' : 'rules'} active for {currentTenant}
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setPrefs(defaultPreferences());
+                                                setTabToast({ kind: 'info', message: 'Preferences reset to defaults' });
+                                                setTimeout(() => setTabToast(null), 2500);
+                                            }}
+                                            className="px-4 py-2 bg-background border border-input hover:bg-muted text-foreground font-medium rounded-lg transition-colors text-sm"
+                                        >
+                                            Reset
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                savePreferences(currentTenant, prefs);
+                                                setTabToast({ kind: 'info', message: `Preferences saved for ${currentTenant}` });
+                                                setTimeout(() => setTabToast(null), 2500);
+                                            }}
+                                            className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-sm text-sm"
+                                        >
+                                            Save preferences
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Toast in-modal · sync con delta chips · delete con plain text */}
                             {tabToast && (
                                 <div className="absolute bottom-4 right-4 flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-lg z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -791,6 +877,20 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                     </Transition.Child>
                 </div>
             </Dialog>
+
+            {/* AI Custom Rule Builder · invocado desde Preferences tab · ya existente */}
+            <SmartRuleBuilderModal
+                isOpen={showRuleBuilder}
+                onClose={() => setShowRuleBuilder(false)}
+                onSaveRule={(rule: CustomRule) => {
+                    setPrefs(p => ({ ...p, customRules: [...p.customRules, rule] }));
+                    setShowRuleBuilder(false);
+                    setTabToast({ kind: 'info', message: `Custom rule "${rule.name}" added` });
+                    setTimeout(() => setTabToast(null), 2500);
+                }}
+                currentNet={prefs.maxProjectBudget ?? 0}
+                existingRulesCount={prefs.customRules.length}
+            />
         </Transition>
     );
 }
