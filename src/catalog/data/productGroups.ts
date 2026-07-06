@@ -660,6 +660,50 @@ export function productImageUrl(productGroupCode: string): string {
     return `/images/products/${productGroupCode.toLowerCase()}.jpg`
 }
 
+/** Fase 3 · matching heurístico Product → ProductGroup para el badge
+ *  "Used in N settings". Como el seed histórico de Allermuir/Allsteel/AIS no
+ *  populó productGroupCode, se infiere del category/name con regex ordered
+ *  de más específico a más genérico. Retorna undefined si nada matchea.
+ *  El caller decide si mostrar el badge (undefined → no) · el badge nunca
+ *  miente (si aparece, hay N >= 1 settings reales usando ese group).
+ */
+const INFER_RULES: Array<[RegExp, string]> = [
+    // Seating · más específico primero (evita colisiones con 'chair')
+    [/task\s*chair|desk\s*chair|ergonomic\s*chair/i, 'CH01'],
+    [/meeting\s*chair|conference\s*chair/i, 'CH03'],
+    [/dining\s*chair|cafe\s*chair/i, 'CH06'],
+    [/lounge\s*chair|casual\s*(work\s*posture|chair)/i, 'CH08'],
+    [/ottoman/i, 'CH09'],
+    [/bench/i, 'CH10'],
+    [/perfect\s*pitch|lounge\s*(low|arm)/i, 'CH12'],
+    [/stool|bar\s*chair|counter\s*chair/i, 'CH15'],
+    [/pouf/i, 'CH17'],
+    // Tables
+    [/height\s*adjustable|standing\s*desk|sit[-\s]*stand/i, 'TB15'],
+    [/communal\s*table|long\s*table/i, 'TB12'],
+    [/round\s*meeting\s*table/i, 'TB04'],
+    [/meeting\s*table|conference\s*table/i, 'TB01'],
+    [/laptop\s*table/i, 'TB18'],
+    [/side\s*table|occasional\s*table/i, 'TB17'],
+    [/dining\s*table|cafe\s*table/i, 'TB20'],
+    // Ancillary
+    [/floor\s*lamp|lamp\b/i, 'AL13'],
+    [/shelving|display\s*system|bookcase/i, 'AL04'],
+]
+
+export function inferProductGroupCode(product: {
+    productGroupCode?: string
+    category?: string
+    name?: string
+}): string | undefined {
+    if (product.productGroupCode) return product.productGroupCode
+    const text = `${product.category ?? ''} ${product.name ?? ''}`
+    for (const [rx, code] of INFER_RULES) {
+        if (rx.test(text)) return code
+    }
+    return undefined
+}
+
 export function findProductStub(itemId: string): ProductStub | undefined {
     const stub = PRODUCT_STUBS.find(s => s.id === itemId)
     if (!stub) return undefined

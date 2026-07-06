@@ -1,8 +1,10 @@
-import { Star, Heart, Sparkles, ArrowUpRight, Ban, History } from 'lucide-react'
+import { Star, Heart, Sparkles, ArrowUpRight, Ban, History, MapPin } from 'lucide-react'
 import type { ItemStatus, Product } from '../types'
 import { resolveInternalSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs } from '../data/catalogs'
 import { useQuote } from '../../quote/QuoteContext'
+import { inferProductGroupCode } from '../data/productGroups'
+import { settingsUsingProductGroup } from '../data/spaceTypes'
 
 // Etapa 8.2 — Card de producto del "Product Catalog" (Figma Dashboard 1285:10432).
 // DS-compliant: tokens semánticos; lima solo en el CTA. Swatches usan el hex del dato.
@@ -54,6 +56,12 @@ export default function ProductCatalogCard({
   // Phase 4 Fix #13b · Previously quoted history info (per tenant)
   const { quotedHistory } = useQuote()
   const historyEntry = quotedHistory.get(product.id)
+  // Fase 3 · badge "Used in N settings" · infiere el ProductGroup del product
+  // (name/category) y busca en cuántos Space Type Settings aparece. Si no se
+  // puede inferir o no aparece en ningún setting, no se muestra badge.
+  const inferredGroupCode = inferProductGroupCode(product)
+  const settingsUsingThis = inferredGroupCode ? settingsUsingProductGroup(inferredGroupCode) : []
+  const usedInCount = settingsUsingThis.length
   return (
     <article
       className={`group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 ${
@@ -124,6 +132,19 @@ export default function ProductCatalogCard({
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
             <Sparkles className="h-3 w-3" />
             Often selected for similar projects
+          </span>
+        )}
+
+        {/* Fase 3 · Space Type Settings usage badge · cross-nav pointer al
+            catálogo de bundles (no click handler · el detail panel del producto
+            expone la lista completa clickable). */}
+        {usedInCount > 0 && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground w-fit"
+            title={`This product ({${inferredGroupCode}}) appears in ${usedInCount} Space Type Setting${usedInCount === 1 ? '' : 's'} · ${settingsUsingThis.map(s => s.code).join(', ')}`}
+          >
+            <MapPin className="h-2.5 w-2.5" />
+            Used in {usedInCount} setting{usedInCount === 1 ? '' : 's'}
           </span>
         )}
 

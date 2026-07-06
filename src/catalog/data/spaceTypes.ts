@@ -326,3 +326,17 @@ export function settingsForSpaceType(spaceTypeId: string): SpaceTypeSetting[] {
 export function findSettingByCode(code: string): SpaceTypeSetting | undefined {
     return SPACE_TYPE_SETTINGS.find(s => s.code === code)
 }
+
+/** Fase 3 · settings donde el ProductGroup aparece en su bundle · alimenta
+ *  el badge "Used in N settings" en las product cards y el drill-down cross-nav
+ *  desde ProductDetailPanel a los settings. */
+export function settingsUsingProductGroup(productGroupCode: string): SpaceTypeSetting[] {
+    return SPACE_TYPE_SETTINGS.filter(s =>
+        s.bundle.items.some(i => i.productGroupCode === productGroupCode)
+    )
+}
+
+/** Fase 3 · lookup SpaceType por id (para renderizar el header de un setting). */
+export function findSpaceTypeById(id: string): SpaceType | undefined {
+    return SPACE_TYPES.find(s => s.id === id)
+}

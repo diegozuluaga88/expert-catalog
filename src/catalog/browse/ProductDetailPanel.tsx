@@ -12,7 +12,7 @@ import React, { Fragment, useEffect, useMemo, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import {
     ArrowUpRight, Ban, ChevronRight, Copy, CheckCircle2, Download,
-    GitCompareArrows, Heart, Plus, ShoppingCart, Sparkles, Star, Trash2, X,
+    GitCompareArrows, Heart, MapPin, Plus, ShoppingCart, Sparkles, Star, Trash2, X,
 } from 'lucide-react'
 import type { Category, FabricOption, Finish, Manufacturer, MaterialTier, Product } from '../types'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
@@ -23,6 +23,8 @@ import { useQuote, type EditingItemState, type QuoteLineItem } from '../../quote
 import { getRelatedProducts, type RelatedBucket } from '../related'
 import ComparePickerModal from './ComparePickerModal'
 import CompareModal from '../shop/CompareModal'
+import { inferProductGroupCode } from '../data/productGroups'
+import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -783,7 +785,54 @@ function OverviewTab({ product }: { product: Product }) {
                         </ul>
                     </div>
                 )}
+
+                {/* Fase 3 · Used in Space Type Settings · cross-nav a los settings
+                    donde este producto (via ProductGroup) aparece. Solo se muestra
+                    si inferProductGroupCode resuelve. Cada chip es informativo
+                    (no navega · el drill-down desde Product Catalog no rompe el
+                    modal). */}
+                <UsedInSettingsSection product={product} />
             </div>
+        </div>
+    )
+}
+
+/** Fase 3 · sub-componente de OverviewTab · settings donde el ProductGroup
+ *  del producto aparece. Silencioso si el matching heurístico no resuelve o
+ *  el group no está en ningún bundle. */
+function UsedInSettingsSection({ product }: { product: Product }) {
+    const groupCode = inferProductGroupCode(product)
+    if (!groupCode) return null
+    const settings = settingsUsingProductGroup(groupCode)
+    if (settings.length === 0) return null
+    return (
+        <div>
+            <div className="mb-2 flex items-baseline gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3" />
+                    Used in Space Type Settings
+                </h3>
+                <span className="text-[10px] text-muted-foreground">via {groupCode}</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+                {settings.map(s => {
+                    const sp = findSpaceTypeById(s.spaceTypeId)
+                    return (
+                        <span
+                            key={s.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 py-1 text-[11px]"
+                            title={`${sp?.name ?? 'Space'} · ${s.name}`}
+                        >
+                            <span className="text-sm leading-none">{sp?.icon ?? '🏢'}</span>
+                            <span className="font-bold text-foreground">{s.code}</span>
+                            <span className="text-muted-foreground">{sp?.name}</span>
+                        </span>
+                    )
+                })}
+            </div>
+            <p className="mt-2 text-[10px] text-muted-foreground italic">
+                Open Product Catalog → Spaces to see the full bundle configuration for each setting.
+            </p>
         </div>
     )
 }
