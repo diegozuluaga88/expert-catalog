@@ -12,7 +12,7 @@ import ShowroomPage from './showroom/ShowroomPage'
 import QuotesPage from '../quote/QuotesPage'
 import MiniCartDrawer from '../quote/MiniCartDrawer'
 import { useQuote } from '../quote/QuoteContext'
-import TabInfoTooltip, {
+import { TabInfoTrigger,
   TAB_INFO_MRL,
   TAB_INFO_DEALER_QUOTE,
   TAB_INFO_FIGMA,
@@ -129,51 +129,48 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
 
       <div className="pt-24 px-4 max-w-screen-2xl mx-auto space-y-6">
         {/* Mode switch: MRL | Dealer / Quote | Figma | Product Catalog | My Quotes ·
-            Fase 6 · cada tab está envuelto en TabInfoTooltip · popover rich al hover
-            (delay 300ms) explicando qué se ve, origen, estructura y features. */}
+            Fase 6.1 · icono Info (i) inline por tab · el tooltip aparece solo al
+            hover del icono, no del tab entero (evita popovers accidentales al navegar).
+            Align smart · start para MRL (evita corte contra borde izq), end para
+            My Selection, center para el resto. */}
         <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
-          <TabInfoTooltip content={TAB_INFO_MRL}>
-            <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
-              <LibraryBig className="h-4 w-4" />
-              MRL
-            </button>
-          </TabInfoTooltip>
-          <TabInfoTooltip content={TAB_INFO_DEALER_QUOTE}>
-            <button type="button" onClick={() => setMode('manage')} className={tabClass(mode === 'manage')}>
-              <Settings2 className="h-4 w-4" />
-              Dealer / Quote
-            </button>
-          </TabInfoTooltip>
-          <TabInfoTooltip content={TAB_INFO_FIGMA}>
-            <button type="button" onClick={() => setMode('shop')} className={tabClass(mode === 'shop')}>
-              <ShoppingBag className="h-4 w-4" />
-              Figma
-            </button>
-          </TabInfoTooltip>
+          <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
+            <LibraryBig className="h-4 w-4" />
+            MRL
+            <TabInfoTrigger content={TAB_INFO_MRL} align="start" />
+          </button>
+          <button type="button" onClick={() => setMode('manage')} className={tabClass(mode === 'manage')}>
+            <Settings2 className="h-4 w-4" />
+            Dealer / Quote
+            <TabInfoTrigger content={TAB_INFO_DEALER_QUOTE} align="center" />
+          </button>
+          <button type="button" onClick={() => setMode('shop')} className={tabClass(mode === 'shop')}>
+            <ShoppingBag className="h-4 w-4" />
+            Figma
+            <TabInfoTrigger content={TAB_INFO_FIGMA} align="center" />
+          </button>
           {/* Diego polish · Product Catalog antes de My Quotes (browsing → cart flow) */}
           {/* Fase 2 v2 · Spaces vive dentro de Product Catalog como 3ra taxonomía
               del toggle sidebar (Products/Materials/Spaces) · sin tab dedicado. */}
-          <TabInfoTooltip content={TAB_INFO_PRODUCT_CATALOG}>
-            <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
-              <Store className="h-4 w-4" />
-              Product Catalog
-            </button>
-          </TabInfoTooltip>
+          <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
+            <Store className="h-4 w-4" />
+            Product Catalog
+            <TabInfoTrigger content={TAB_INFO_PRODUCT_CATALOG} align="center" />
+          </button>
           {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
               (Diego: no salirnos de la sección). Badge count del cart. */}
-          <TabInfoTooltip content={TAB_INFO_MY_SELECTION}>
-            <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
-              <FileText className="h-4 w-4" />
-              My Selection
-              {totalCartUnits > 0 && (
-                <span className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
-                  mode === 'quotes' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
-                }`}>
-                  {totalCartUnits}
-                </span>
-              )}
-            </button>
-          </TabInfoTooltip>
+          <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
+            <FileText className="h-4 w-4" />
+            My Selection
+            {totalCartUnits > 0 && (
+              <span className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
+                mode === 'quotes' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
+              }`}>
+                {totalCartUnits}
+              </span>
+            )}
+            <TabInfoTrigger content={TAB_INFO_MY_SELECTION} align="end" />
+          </button>
         </div>
 
         {mode === 'browse' ? (
