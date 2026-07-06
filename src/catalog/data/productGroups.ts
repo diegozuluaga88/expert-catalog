@@ -126,7 +126,8 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
         linkedFinishMasterCodes: ['Shell', 'Base'],
-        itemIds: ['stub-ch15-1'],
+        // Fase 3.1 · seed expandido con 3 variantes (Enea Lotus / Enea Altzo / Shortcut).
+        itemIds: ['stub-ch15-1', 'stub-ch15-2', 'stub-ch15-3'],
     },
     {
         id: 'pg-ch17',
@@ -158,7 +159,9 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
         linkedFinishMasterCodes: ['Top', 'Base'],
-        itemIds: ['stub-tb04-1'],
+        // Fase 3.1 · seed expandido con 3 variantes · demuestra la relación
+        // 1-a-N ProductGroup → ProductItem del silver schema de Notion.
+        itemIds: ['stub-tb04-1', 'stub-tb04-2', 'stub-tb04-3'],
     },
     {
         id: 'pg-tb12',
@@ -270,7 +273,8 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         sectionId: 'sec-ancillary',
         productTypeId: 'pt-lamp',
         linkedFinishMasterCodes: ['Finish'],
-        itemIds: ['stub-al13-1'],
+        // Fase 3.1 · seed expandido con 2 variantes.
+        itemIds: ['stub-al13-1', 'stub-al13-2'],
     },
 ]
 
@@ -560,6 +564,80 @@ export const PRODUCT_STUBS: ProductStub[] = [
         priceEstimateMax: 1200,
         dimensions: '14.7"W × 60.5"H × 8.3"D',
         notes: ['Foot dimmer switch', '10-100% light adjustment'],
+        isStub: true,
+    },
+
+    /* ═══════════════════════════════════════════════════════════════════
+       Fase 3.1 · Variantes adicionales para demostrar la agrupación
+       ProductGroup → ProductItem del silver schema (relación 1-a-N).
+       Cada grupo abajo comparte linkedOptionGroup/linkedFinishMaster con
+       sus hermanos · en producción se materializa como filas en la tabla
+       ProductItem con FK productGroupId.
+       ═══════════════════════════════════════════════════════════════════ */
+
+    // CH15 · Stool Casual · variantes
+    {
+        id: 'stub-ch15-2',
+        productGroupCode: 'CH15',
+        productItemCode: 'CH15.2',
+        name: 'Enea Altzo Counter Stool',
+        manufacturerHint: 'Coalesse',
+        priceEstimateMin: 520,
+        priceEstimateMax: 720,
+        dimensions: 'Seat 26.25" (counter) · 19"W × 19"D',
+        notes: ['Upholstered seat', 'Steel tubular 4-leg base', 'Foot ring'],
+        isStub: true,
+    },
+    {
+        id: 'stub-ch15-3',
+        productGroupCode: 'CH15',
+        productItemCode: 'CH15.3',
+        name: 'Shortcut X-Base Bar Stool',
+        manufacturerHint: 'Steelcase',
+        priceEstimateMin: 380,
+        priceEstimateMax: 540,
+        dimensions: 'Seat 30" (bar) · 17.5"W × 17.5"D',
+        notes: ['Cast aluminum X-base', 'Polypropylene seat with flex back'],
+        isStub: true,
+    },
+
+    // TB04 · Round Meeting Table · variantes
+    {
+        id: 'stub-tb04-2',
+        productGroupCode: 'TB04',
+        productItemCode: 'TB04.2',
+        name: 'Lagunitas Round Meeting Table',
+        manufacturerHint: 'Coalesse',
+        priceEstimateMin: 1400,
+        priceEstimateMax: 1900,
+        dimensions: '42" Dia · 29"H',
+        notes: ['Solid wood top', 'Powder-coated steel base'],
+        isStub: true,
+    },
+    {
+        id: 'stub-tb04-3',
+        productGroupCode: 'TB04',
+        productItemCode: 'TB04.3',
+        name: 'media:scape Round Table (Non-Powered)',
+        manufacturerHint: 'Steelcase',
+        priceEstimateMin: 1800,
+        priceEstimateMax: 2400,
+        dimensions: '48" Dia · 29"H',
+        notes: ['Cable trough integrated', 'Laminate top w/ 3mm edge'],
+        isStub: true,
+    },
+
+    // AL13 · Floor Lamp · variante
+    {
+        id: 'stub-al13-2',
+        productGroupCode: 'AL13',
+        productItemCode: 'AL13.2',
+        name: 'Elka Floor Lamp',
+        manufacturerHint: 'MillerKnoll (Muuto)',
+        priceEstimateMin: 620,
+        priceEstimateMax: 850,
+        dimensions: '10"Dia × 51.5"H',
+        notes: ['Aluminum shade', 'Fabric-covered cord', '3-step dimmer'],
         isStub: true,
     },
 ]

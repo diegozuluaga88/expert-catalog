@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ChevronLeft, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, ChevronDown } from 'lucide-react'
 import { settingsForSpaceType } from '../data/spaceTypes'
-import { findProductStub } from '../data/productGroups'
+import { findProductStub, PRODUCT_STUBS } from '../data/productGroups'
 import type { SpaceType, SpaceTypeSetting } from '../types'
 import SpaceBundleCard from './SpaceBundleCard'
 import ProductIcon from './ProductIcon'
@@ -22,6 +22,17 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
     const { addBundle } = useQuote()
 
     const [toast, setToast] = useState<{ code: string; itemCount: number } | null>(null)
+    // Fase 3.1 · state del variant expander en las mini cards de Bundle products.
+    // Key = `${settingId}-${itemIndex}` (unique por card).
+    const [expandedVariants, setExpandedVariants] = useState<Set<string>>(new Set())
+
+    const toggleVariants = (key: string) => {
+        setExpandedVariants(prev => {
+            const next = new Set(prev)
+            next.has(key) ? next.delete(key) : next.add(key)
+            return next
+        })
+    }
 
     const handleAdd = (setting: SpaceTypeSetting) => {
         addBundle(setting)
@@ -90,12 +101,32 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
                                     const stub = findProductStub(bi.itemId)
                                     if (!stub) return null
                                     const priceMid = Math.round((stub.priceEstimateMin + stub.priceEstimateMax) / 2)
+                                    // Fase 3.1 · variantes del mismo ProductGroup (silver schema · relación 1-a-N).
+                                    // Excluye el default para el count del badge "+N variants".
+                                    const variantsInGroup = PRODUCT_STUBS.filter(
+                                        s => s.productGroupCode === bi.productGroupCode && s.id !== bi.itemId
+                                    )
+                                    const cardKey = `${setting.id}-${idx}`
+                                    const isExpanded = expandedVariants.has(cardKey)
                                     return (
                                         <div
-                                            key={`${setting.id}-${idx}`}
+                                            key={cardKey}
                                             className="rounded-lg border border-border bg-card overflow-hidden hover:border-primary/40 transition-colors"
                                         >
-                                            <ProductIcon productGroupCode={bi.productGroupCode} size="md" />
+                                            <div className="relative">
+                                                <ProductIcon productGroupCode={bi.productGroupCode} size="md" />
+                                                {variantsInGroup.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleVariants(cardKey)}
+                                                        className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-card/90 backdrop-blur border border-border/60 px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm hover:bg-card hover:border-primary/60 transition-colors"
+                                                        title={`${variantsInGroup.length} variants available in ${bi.productGroupCode}`}
+                                                    >
+                                                        +{variantsInGroup.length} variants
+                                                        <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                )}
+                                            </div>
                                             <div className="p-2.5 space-y-1.5">
                                                 <div className="flex items-baseline gap-1.5">
                                                     <span className="text-[10px] font-bold text-foreground">
@@ -117,6 +148,38 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
                                                     </span>
                                                 </div>
                                             </div>
+                                            {/* Variant expander · inline · sin cambiar el default del bundle-add */}
+                                            {isExpanded && variantsInGroup.length > 0 && (
+                                                <div className="border-t border-border bg-muted/30 p-2 space-y-1.5">
+                                                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                                                        Also in {bi.productGroupCode}
+                                                    </p>
+                                                    {variantsInGroup.map(v => {
+                                                        const vPrice = Math.round((v.priceEstimateMin + v.priceEstimateMax) / 2)
+                                                        return (
+                                                            <div key={v.id} className="flex items-start justify-between gap-2 text-[11px]">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <span className="font-bold text-foreground">{v.productItemCode}</span>
+                                                                        {v.manufacturerHint && (
+                                                                            <span className="text-[9px] text-muted-foreground truncate">
+                                                                                {v.manufacturerHint}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-foreground/80 truncate">{v.name}</p>
+                                                                </div>
+                                                                <span className="text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+                                                                    ${vPrice.toLocaleString()}
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                    <p className="text-[9px] text-muted-foreground italic pt-1 border-t border-border/60">
+                                                        Add uses default (silver schema · single ProductItem)
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}

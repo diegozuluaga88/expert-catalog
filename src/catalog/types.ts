@@ -227,6 +227,13 @@ export type CatalogMode = 'browse' | 'manage'
    Overlay adicional (fuera del silver schema · nuestro):
    SpaceType → SpaceTypeSetting → SpaceBundle (items[] + cost range)
 
+   Fase 3.1 · agrupación 1-a-N ProductGroup → ProductItem verificada:
+   ProductGroup.itemIds[] soporta N ProductStubs. Ejemplo seed:
+     CH15 "Stool Casual" agrupa CH15.1 Enea Lotus, CH15.2 Enea Altzo, CH15.3 Shortcut
+     TB04 "Round Meeting" agrupa TB04, TB04.2 Lagunitas, TB04.3 media:scape
+     AL13 "Floor Lamp" agrupa AL13 Captain Flint, AL13.2 Elka
+   Ver docs/silver-schema-alignment.md para la tabla de mapping completa.
+
    Ver plan · C:\Users\User\.claude\plans\cuddly-greeting-meadow.md
    ═══════════════════════════════════════════════════════════════════════════ */
 
