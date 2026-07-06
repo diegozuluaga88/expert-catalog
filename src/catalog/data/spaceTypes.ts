@@ -9,6 +9,7 @@
 // definidos en `productGroups.ts` (Fase 1 · mismo commit).
 
 import type { SpaceType, SpaceTypeSetting, SpaceBundle } from '../types'
+import { findProductStub } from './productGroups'
 
 /* ═══════════════════════════════════════════════════════════════════════
    Space Types · 6 tipologías principales
@@ -339,4 +340,66 @@ export function settingsUsingProductGroup(productGroupCode: string): SpaceTypeSe
 /** Fase 3 · lookup SpaceType por id (para renderizar el header de un setting). */
 export function findSpaceTypeById(id: string): SpaceType | undefined {
     return SPACE_TYPES.find(s => s.id === id)
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Fase 4 · Filter/Sort helpers para el sidebar de Spaces
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** Costo mínimo entre todos los settings del SpaceType · alimenta buckets +
+ *  sort ascendente + "From $X" en las cards del grid. */
+export function spaceTypeMinCost(type: SpaceType): number {
+    const settings = settingsForSpaceType(type.id)
+    if (settings.length === 0) return 0
+    return Math.min(...settings.map(s => s.bundle.estimatedCostMin))
+}
+
+/** Costo máximo (rango superior) entre settings · alimenta sort descendente. */
+export function spaceTypeMaxCost(type: SpaceType): number {
+    const settings = settingsForSpaceType(type.id)
+    if (settings.length === 0) return 0
+    return Math.max(...settings.map(s => s.bundle.estimatedCostMax))
+}
+
+/** Cantidad de settings configurados para el SpaceType · sort "Settings count". */
+export function spaceTypeSettingsCount(type: SpaceType): number {
+    return settingsForSpaceType(type.id).length
+}
+
+/** Brands únicas referenciadas por los stubs de los bundles de este SpaceType.
+ *  Se recorren settings → bundle.items → resolve stub → manufacturerHint.
+ *  Alimenta el filtro Brand y el count por SpaceType. */
+export function getBrandsInSpaceType(type: SpaceType): string[] {
+    const set = new Set<string>()
+    for (const setting of settingsForSpaceType(type.id)) {
+        for (const item of setting.bundle.items) {
+            const stub = findProductStub(item.itemId)
+            if (stub?.manufacturerHint) set.add(stub.manufacturerHint)
+        }
+    }
+    return Array.from(set).sort()
+}
+
+/** Unión de brands a lo largo de todos los SpaceTypes · alimenta la lista
+ *  del FilterSection "Brand" en el sidebar. */
+export function getAllBrandsInSpaces(): string[] {
+    const set = new Set<string>()
+    for (const type of SPACE_TYPES) {
+        for (const b of getBrandsInSpaceType(type)) set.add(b)
+    }
+    return Array.from(set).sort()
+}
+
+/** Search fuzzy · normaliza query y busca en name/description del SpaceType
+ *  y en code/name de sus settings. Retorna true si algún campo matchea. */
+export function spaceTypeMatchesSearch(type: SpaceType, rawQuery: string): boolean {
+    const q = rawQuery.trim().toLowerCase()
+    if (!q) return true
+    if (type.name.toLowerCase().includes(q)) return true
+    if (type.description.toLowerCase().includes(q)) return true
+    for (const s of settingsForSpaceType(type.id)) {
+        if (s.code.toLowerCase().includes(q)) return true
+        if (s.name.toLowerCase().includes(q)) return true
+    }
+    return false
 }

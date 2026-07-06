@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft } from 'lucide-react'
 import type { Category, Product, ProductSortKey, SpaceType } from '../types'
-import SpaceTypesPage from '../spaces/SpaceTypesPage'
+import SpaceTypesPage, { SPACES_COST_BUCKETS, type SpacesFilters, type SpacesSortKey } from '../spaces/SpaceTypesPage'
 import SpaceTypeDetailPage from '../spaces/SpaceTypeDetailPage'
+import { getAllBrandsInSpaces } from '../data/spaceTypes'
 import {
   UNIFIED_PRODUCTS,
   UNIFIED_PRICE_RANGES,
@@ -136,6 +137,40 @@ export default function ShowroomPage() {
   const isSpaces = taxonomy === 'spaces'
   // Fase 2 refactor · state local del Space Type seleccionado (antes vivía en CatalogPage).
   const [selectedSpaceType, setSelectedSpaceType] = useState<SpaceType | null>(null)
+  // Fase 4 · state de filtros/sort del sidebar de Spaces
+  const [spacesSearch, setSpacesSearch] = useState('')
+  const [spacesSelectedProfiles, setSpacesSelectedProfiles] = useState<Set<string>>(new Set())
+  const [spacesSelectedCostBuckets, setSpacesSelectedCostBuckets] = useState<Set<string>>(new Set())
+  const [spacesSelectedBrands, setSpacesSelectedBrands] = useState<Set<string>>(new Set())
+  const [spacesSort, setSpacesSort] = useState<SpacesSortKey>('alpha')
+  const [spacesSortOpen, setSpacesSortOpen] = useState(false)
+  const clearSpacesFilters = () => {
+    setSpacesSearch('')
+    setSpacesSelectedProfiles(new Set())
+    setSpacesSelectedCostBuckets(new Set())
+    setSpacesSelectedBrands(new Set())
+  }
+  const hasActiveSpacesFilters =
+    spacesSearch.trim() !== '' ||
+    spacesSelectedProfiles.size > 0 ||
+    spacesSelectedCostBuckets.size > 0 ||
+    spacesSelectedBrands.size > 0
+  // Composición del filters object para SpaceTypesPage (memo no necesario · Sets
+  // se crean por referencia en set/clear/toggle).
+  const spacesFilters: SpacesFilters = {
+    search: spacesSearch,
+    profiles: spacesSelectedProfiles as Set<'CCO' | 'GW' | 'CI'>,
+    costBuckets: spacesSelectedCostBuckets,
+    brands: spacesSelectedBrands,
+  }
+  const spacesBrandList = useMemo(() => getAllBrandsInSpaces(), [])
+  const SPACES_SORT_OPTIONS: { key: SpacesSortKey; label: string }[] = [
+    { key: 'alpha', label: 'Alphabetical' },
+    { key: 'cost-asc', label: 'Cost ↑ (low to high)' },
+    { key: 'cost-desc', label: 'Cost ↓ (high to low)' },
+    { key: 'settings-count', label: 'Settings count' },
+  ]
+  const spacesActiveSortLabel = SPACES_SORT_OPTIONS.find(o => o.key === spacesSort)?.label ?? 'Sort'
 
   const handleSyncCatalog = (c: Catalog) => {
     setSyncingId(c.id)
@@ -405,6 +440,7 @@ export default function ShowroomPage() {
                     setTaxonomy('products')
                     resetFacets()
                     setSelectedSpaceType(null)
+                    clearSpacesFilters()
                   }}
                   className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
                     taxonomy === 'products' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -418,6 +454,7 @@ export default function ShowroomPage() {
                     setTaxonomy('materials')
                     resetFacets()
                     setSelectedSpaceType(null)
+                    clearSpacesFilters()
                   }}
                   className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
                     taxonomy === 'materials' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -431,6 +468,7 @@ export default function ShowroomPage() {
                     setTaxonomy('spaces')
                     resetFacets()
                     setSelectedSpaceType(null)
+                    clearSpacesFilters()
                   }}
                   className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
                     taxonomy === 'spaces' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -729,6 +767,93 @@ export default function ShowroomPage() {
           </>}
           {/* /!isSpaces · fin del bloque Search/Filters/Bulk */}
 
+          {/* Fase 4 · Sidebar block para Spaces mode · Search + Sort + Filters
+              (Space Profile, Estimated Cost, Brand). Reusa FilterSection +
+              checkRow que ya existen arriba. Solo visible cuando el toggle
+              taxonomy está en 'spaces' (y el sidebar no está collapsed). */}
+          {isSpaces && (<>
+            {/* SEARCH + SORT */}
+            <div>
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Search</h3>
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={spacesSearch}
+                    onChange={(e) => setSpacesSearch(e.target.value)}
+                    placeholder="Space name, F1, WC1…"
+                    title="Search by space name, description, or setting code (F1, WC1, etc)"
+                    className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                  />
+                </div>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setSpacesSortOpen((o) => !o)}
+                    className="inline-flex h-9 w-full items-center justify-between rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <span className="truncate">{spacesActiveSortLabel}</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                  {spacesSortOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setSpacesSortOpen(false)} />
+                      <div className="absolute left-0 top-full z-40 mt-2 w-full rounded-xl border border-border bg-card p-1 shadow-lg">
+                        {SPACES_SORT_OPTIONS.map((o) => (
+                          <button
+                            key={o.key}
+                            type="button"
+                            onClick={() => {
+                              setSpacesSort(o.key)
+                              setSpacesSortOpen(false)
+                            }}
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
+                          >
+                            {o.label}
+                            {spacesSort === o.key && <Check className="h-4 w-4 text-foreground" />}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* FILTERS */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <SlidersHorizontal className="h-3 w-3" />
+                  Filters
+                </h3>
+                {hasActiveSpacesFilters && (
+                  <button
+                    type="button"
+                    onClick={clearSpacesFilters}
+                    className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <FilterSection title="Space Profile" defaultOpen>
+                {(['CCO', 'GW', 'CI'] as const).map((sp) =>
+                  checkRow(sp, spacesSelectedProfiles, setSpacesSelectedProfiles)
+                )}
+              </FilterSection>
+              <FilterSection title="Estimated Cost">
+                {SPACES_COST_BUCKETS.map((b) =>
+                  checkRow(b.label, spacesSelectedCostBuckets, setSpacesSelectedCostBuckets)
+                )}
+              </FilterSection>
+              <FilterSection title="Brand">
+                {spacesBrandList.map((b) => checkRow(b, spacesSelectedBrands, setSpacesSelectedBrands))}
+              </FilterSection>
+            </div>
+          </>)}
+          {/* /isSpaces sidebar block */}
+
           {/* ───── QUICK ACTIONS · al final del sidebar como utilidades globales ───── */}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
@@ -769,7 +894,12 @@ export default function ShowroomPage() {
                 }
               />
             ) : (
-              <SpaceTypesPage onSelectSpaceType={setSelectedSpaceType} />
+              <SpaceTypesPage
+                onSelectSpaceType={setSelectedSpaceType}
+                filters={spacesFilters}
+                sort={spacesSort}
+                onClearFilters={clearSpacesFilters}
+              />
             )
           ) : (
           <>
