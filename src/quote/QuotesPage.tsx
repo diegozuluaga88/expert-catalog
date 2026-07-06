@@ -13,6 +13,7 @@ import {
 import { useQuote, type QuoteDraft, type QuoteLineItem, type QuotedHistoryEntry } from './QuoteContext'
 import { formatLeadTime } from './helpers'
 import { findSpaceTypeById } from '../catalog/data/spaceTypes'
+import { formatPrice } from '../catalog/data/catalogues'
 
 type QuoteSection = 'drafts' | 'submitted'
 
@@ -198,7 +199,7 @@ function DraftListItem({ draft, selected, onClick, onDelete, confirmDelete, onCa
                 <div className="mt-0.5 truncate text-sm font-bold text-foreground">{draft.name}</div>
                 <div className="mt-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{itemCount} {itemCount === 1 ? 'line' : 'lines'} · {unitCount} units</span>
-                    <span className="font-semibold text-foreground">${total.toLocaleString()}</span>
+                    <span className="font-semibold text-foreground">{formatPrice(total)}</span>
                 </div>
             </button>
             {onDelete && (
@@ -403,7 +404,7 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-sm font-bold text-foreground">${groupSubtotal.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">{formatPrice(groupSubtotal)}</div>
                                             <div className="text-[10px] text-muted-foreground">subtotal</div>
                                         </div>
                                     </button>
@@ -482,8 +483,8 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                                         ) : (
                                             <span className="text-sm font-semibold text-foreground">×{item.qty}</span>
                                         )}
-                                        <div className="mt-1 text-xs text-muted-foreground">@ ${item.unitPrice.toLocaleString()}</div>
-                                        <div className="text-base font-bold text-foreground">${item.totalPrice.toLocaleString()}</div>
+                                        <div className="mt-1 text-xs text-muted-foreground">@ {formatPrice(item.unitPrice)}</div>
+                                        <div className="text-base font-bold text-foreground">{formatPrice(item.totalPrice)}</div>
                                     </div>
                                     {!isSubmitted && (
                                         <div className="flex flex-col gap-1">
@@ -520,7 +521,7 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                     <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
                         <Stat label="Total units" value={`${totalUnits}`} />
                         <Stat label="Estimated lead" value={formatLeadTime(maxLead)} />
-                        <Stat label="Selection total" value={`$${total.toLocaleString()}`} highlight />
+                        <Stat label="Selection total" value={`${formatPrice(total)}`} highlight />
                     </div>
                     {!isSubmitted ? (
                         <button type="button" onClick={onSubmit} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
@@ -628,8 +629,8 @@ function ItemRow({
                     ) : (
                         <span className="text-sm font-semibold text-foreground">×{item.qty}</span>
                     )}
-                    <div className="mt-1 text-xs text-muted-foreground">@ ${item.unitPrice.toLocaleString()}</div>
-                    <div className="text-base font-bold text-foreground">${item.totalPrice.toLocaleString()}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">@ {formatPrice(item.unitPrice)}</div>
+                    <div className="text-base font-bold text-foreground">{formatPrice(item.totalPrice)}</div>
                 </div>
                 {!isSubmitted && (
                     <div className="flex flex-col gap-1">

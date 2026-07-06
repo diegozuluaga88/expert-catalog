@@ -22,6 +22,7 @@ import { findProductById } from '../catalog/productLookup'
 import { getProductVariants } from '../catalog/data/productVariants'
 import { computeLineItemTotals } from './helpers'
 import { useQuote, type QuoteLineItem } from './QuoteContext'
+import { formatPrice } from '../catalog/data/catalogues'
 
 type IngestStep = 'upload' | 'processing' | 'review' | 'confirm'
 
@@ -393,7 +394,7 @@ function UploadStep({ docType, setDocType, onSelectSample }: {
                                     <div>
                                         <div className="font-mono text-sm font-bold text-foreground">{doc.id}</div>
                                         <div className="text-xs text-muted-foreground">
-                                            {docTypeLabel(doc.docType)} · {doc.lines.length} lines · est. ${doc.estimatedTotal.toLocaleString()}
+                                            {docTypeLabel(doc.docType)} · {doc.lines.length} lines · est. {formatPrice(doc.estimatedTotal)}
                                         </div>
                                     </div>
                                 </div>

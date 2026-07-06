@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, CheckCircle2, Minus, Pencil, Plus, ListChecks, Trash2, X, AlertTriangle } from 'lucide-react'
 import { useQuote } from './QuoteContext'
+import { formatPrice } from '../catalog/data/catalogues'
 
 interface MiniCartDrawerProps {
     onViewQuote: (draftId: string) => void
@@ -201,7 +202,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="text-[10px] font-semibold text-foreground">${item.totalPrice.toLocaleString()}</div>
+                                    <div className="text-[10px] font-semibold text-foreground">{formatPrice(item.totalPrice)}</div>
                                 </div>
                                 {/* Qty stepper + edit + delete · inline */}
                                 <div className="flex items-center gap-0.5">
@@ -281,7 +282,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
             <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
                 <div>
                     <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Selection total</div>
-                    <div className="text-base font-bold text-foreground">${totalPriceInCart.toLocaleString()}</div>
+                    <div className="text-base font-bold text-foreground">{formatPrice(totalPriceInCart)}</div>
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                         <span>{totalInCart} {totalInCart === 1 ? 'unit' : 'units'} · {allItems.length} {allItems.length === 1 ? 'line' : 'lines'}</span>
                         {!confirmClear && allItems.length > 0 && (

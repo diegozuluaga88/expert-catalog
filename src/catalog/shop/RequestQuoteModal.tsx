@@ -1,5 +1,6 @@
 import { X, Star } from 'lucide-react'
 import type { Product } from '../types'
+import { formatPrice } from '../data/catalogues'
 
 // Etapa 8.4 — Modal Request Quote (Figma · Request Quote 1348:9022).
 // Form de cotización; mock (sin backend). DS-compliant (tokens; lima solo en CTA).
@@ -57,7 +58,7 @@ export default function RequestQuoteModal({ products, onClose }: RequestQuoteMod
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-sm font-bold text-foreground">${lead.price?.toLocaleString()}</span>
+                <span className="text-sm font-bold text-foreground">{formatPrice(lead.price, lead.currencyId)}</span>
                 {extra > 0 && <span className="block text-[11px] text-muted-foreground">+{extra} more</span>}
               </div>
             </div>
