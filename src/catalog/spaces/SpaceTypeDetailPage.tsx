@@ -6,6 +6,7 @@ import type { SpaceType, SpaceTypeSetting } from '../types'
 import SpaceBundleCard from './SpaceBundleCard'
 import ProductIcon from './ProductIcon'
 import { useQuote } from '../../quote/QuoteContext'
+import { formatPrice } from '../data/catalogues'
 
 interface Props {
     spaceType: SpaceType
@@ -262,7 +263,7 @@ export default function SpaceTypeDetailPage({
                                                 <div className="flex items-baseline justify-between pt-1 border-t border-border">
                                                     <span className="text-[10px] text-muted-foreground">from</span>
                                                     <span className="text-xs font-bold text-foreground">
-                                                        ${priceMid.toLocaleString()}
+                                                        {formatPrice(priceMid, stub.currencyId)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -288,7 +289,7 @@ export default function SpaceTypeDetailPage({
                                                                     <p className="text-foreground/80 truncate">{v.name}</p>
                                                                 </div>
                                                                 <span className="text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
-                                                                    ${vPrice.toLocaleString()}
+                                                                    {formatPrice(vPrice, v.currencyId)}
                                                                 </span>
                                                             </div>
                                                         )

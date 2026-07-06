@@ -6,6 +6,7 @@ import { resolveInternalSku, resolveManufacturerSku } from '../browse/catalogSku
 import { getProductVariants } from '../data/productVariants'
 import { computeLineItemTotals } from '../../quote/helpers'
 import { useQuote } from '../../quote/QuoteContext'
+import { formatPrice } from '../data/catalogues'
 
 // Etapa 8.4 — Modal Compare Products (Figma · Compare 1329:27352).
 // Tabla comparativa. Campos no presentes en el mock se muestran como "—" (sin inventar datos).
@@ -110,7 +111,7 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
       title: 'Pricing & Availability',
       rows: [
         { label: 'Lead Time', render: (p) => p.leadTime ?? dash },
-        { label: 'Price', render: (p) => <span className="font-bold text-foreground">${p.price?.toLocaleString()}</span> },
+        { label: 'Price', render: (p) => <span className="font-bold text-foreground">{formatPrice(p.price, p.currencyId)}</span> },
       ],
     },
   ]

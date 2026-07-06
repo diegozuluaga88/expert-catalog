@@ -24,6 +24,7 @@ import { getRelatedProducts, type RelatedBucket } from '../related'
 import ComparePickerModal from './ComparePickerModal'
 import CompareModal from '../shop/CompareModal'
 import { inferProductGroupCode } from '../data/productGroups'
+import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
@@ -484,8 +485,8 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                 {product.listPrice && product.price && (
                     <div className="text-right">
                         <div className="text-[11px] uppercase tracking-wide text-muted-foreground">List price</div>
-                        <div className="text-sm font-medium text-muted-foreground line-through">${product.listPrice.toLocaleString()}</div>
-                        <div className="text-lg font-bold text-foreground">${product.price.toLocaleString()}<span className="ml-1 text-xs font-medium text-muted-foreground">/ unit (base)</span></div>
+                        <div className="text-sm font-medium text-muted-foreground line-through">{formatPrice(product.listPrice, product.currencyId)}</div>
+                        <div className="text-lg font-bold text-foreground">{formatPrice(product.price, product.currencyId)}<span className="ml-1 text-xs font-medium text-muted-foreground">/ unit (base)</span></div>
                     </div>
                 )}
             </div>
@@ -527,7 +528,7 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                 <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
                     <Stat label="Total units" value={`${totalUnits}`} />
                     <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
-                    <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={`$${totalPrice.toLocaleString()}`} highlight />
+                    <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={formatPrice(totalPrice, product.currencyId)} highlight />
                 </div>
                 <button
                     type="button"
@@ -702,11 +703,11 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 <div className="flex flex-wrap items-baseline gap-4 text-right">
                     <div>
                         <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Unit</div>
-                        <div className="text-sm font-semibold text-foreground">${totals.unitPrice.toLocaleString()}</div>
+                        <div className="text-sm font-semibold text-foreground">{formatPrice(totals.unitPrice, product.currencyId)}</div>
                     </div>
                     <div>
                         <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Line total</div>
-                        <div className="text-lg font-bold text-foreground">${totals.totalPrice.toLocaleString()}</div>
+                        <div className="text-lg font-bold text-foreground">{formatPrice(totals.totalPrice, product.currencyId)}</div>
                     </div>
                     <div>
                         <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Ships in</div>
@@ -717,7 +718,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
             {totals.nextVolumeTier && (
                 <p className="mt-2 text-xs text-foreground">
                     💡 Add <span className="font-bold">{totals.nextVolumeTier.qtyNeeded}</span> more to save{' '}
-                    <span className="font-bold">${totals.nextVolumeTier.savings.toLocaleString()}</span> on this line
+                    <span className="font-bold">{formatPrice(totals.nextVolumeTier.savings, product.currencyId)}</span> on this line
                 </p>
             )}
         </div>
@@ -1080,7 +1081,7 @@ function RelatedBucketRow({ bucket, ownPrice, onAdd }: { bucket: RelatedBucket; 
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="text-sm font-bold text-foreground">${p.price?.toLocaleString() ?? '—'}</div>
+                                <div className="text-sm font-bold text-foreground">{formatPrice(p.price, p.currencyId)}</div>
                                 {priceDiff !== 0 && (
                                     <div className={`text-[10px] font-semibold ${priceDiff < 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                                         {priceDiff < 0 ? `${priceDiff}% vs this` : `+${priceDiff}% vs this`}

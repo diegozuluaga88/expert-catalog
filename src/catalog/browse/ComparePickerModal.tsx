@@ -14,6 +14,7 @@ import type { Product } from '../types'
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 import { getRelatedProducts } from '../related'
 import { resolveInternalSku } from './catalogSku'
+import { formatPrice } from '../data/catalogues'
 
 const MAX_COMPARE = 3
 
@@ -222,7 +223,7 @@ function PickerRow({ product, checked, disabled, onToggle }: PickerRowProps) {
                     <div className="truncate text-sm font-semibold text-foreground">{product.name}</div>
                 </div>
                 <div className="text-right text-xs">
-                    <div className="font-bold text-foreground">${product.price?.toLocaleString() ?? '—'}</div>
+                    <div className="font-bold text-foreground">{formatPrice(product.price, product.currencyId)}</div>
                     {product.leadTime && <div className="text-muted-foreground">{product.leadTime}</div>}
                 </div>
             </button>

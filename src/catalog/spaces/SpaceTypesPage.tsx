@@ -6,6 +6,7 @@ import {
     getBrandsInSpaceType, spaceTypeMatchesSearch,
 } from '../data/spaceTypes'
 import type { SpaceType } from '../types'
+import { formatPrice } from '../data/catalogues'
 
 export type SpacesSortKey = 'alpha' | 'cost-asc' | 'cost-desc' | 'settings-count'
 
@@ -177,7 +178,7 @@ export default function SpaceTypesPage({
                                             </span>
                                         </div>
                                         <div className="text-muted-foreground">
-                                            From <span className="font-semibold text-foreground">${costMin.toLocaleString()}</span>
+                                            From <span className="font-semibold text-foreground">{formatPrice(costMin)}</span>
                                         </div>
                                     </div>
                                 </div>
