@@ -21,7 +21,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 |---|---|---|---|---|
 | **P0.1** | Renames semánticos low-risk (linked*, Category alias, Catalog.status) | 🟢 | `6fb5096` | 2026-07-06 |
 | **P1.1** | Catalogue layer (nueva entidad separada de Manufacturer) | 🟢 | `3aee52c` | 2026-07-06 |
-| **P1.2** | Currency entity + currencyId multi-level | ⚪ | — | — |
+| **P1.2** | Currency entity + currencyId multi-level | 🟢 | `TBD` | 2026-07-06 |
 | **P1.3** | Options normalizado 2 niveles (OptionMaster + OptionGroupValue) | ⚪ | — | — |
 | **P1.4** | Finishes normalizado 3 niveles (FinishMaster + FinishOption + FinishValue) | ⚪ | — | — |
 | **P2.1** | Multi-tenant per-entity (catalogueTenantId, optionMasterTenantId, finishMasterTenantId) | ⚪ | — | — |
@@ -102,17 +102,49 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 
 ---
 
-## Fase P1.2 · Currency multi-level
+## Fase P1.2 · Currency multi-level · 🟢 COMPLETADA
 
-_Pendiente arranque tras P1.1._
+**Time estimate**: ~2-3 días (real: ~20 min)
+**Risk**: bajo (real: bajo · aditivo, cero breaking)
+**Commit**: `TBD`
 
-**Time estimate**: ~2-3 días
-**Risk**: bajo (depende de P1.1)
+### Scope ejecutado
 
-### Scope
-- `interface Currency { id, code, name, type }`
-- `Catalogue.currencyId`, `Product.currencyId` (opt), `FinishValue.currencyId` (P1.4)
-- Deprecar `SpaceBundle.currency` como derivable del Catalogue
+- ✅ `interface Currency` ya introducido en P1.1 (`types.ts`)
+- ✅ `Product.currencyId?` opcional (types.ts:152)
+- ✅ `ProductStub.currencyId?` opcional (productGroups.ts:305)
+- ✅ `SpaceBundle.currency` marcado `@deprecated` + `SpaceBundle.currencyId?` nuevo (types.ts:445-455)
+- ✅ Helpers `formatPrice(amount, currencyId)` y `formatPriceRange(min, max, currencyId)` en catalogues.ts
+- ✅ Symbols: `$` USD, `€` EUR, `£` GBP, `C$` CAD (fallback `$`)
+- ✅ Consumers migrados de ejemplo:
+  - `ProductCatalogCard.tsx` price + listPrice usan `formatPrice(product.price, product.currencyId)`
+  - `SpaceBundleCard.tsx` estimated cost + Add all footer usan `formatPriceRange(min, max, currencyId)`
+
+### Files touched
+
+- `src/catalog/types.ts` · Product.currencyId + SpaceBundle deprecation
+- `src/catalog/data/productGroups.ts` · ProductStub.currencyId opcional
+- `src/catalog/data/catalogues.ts` · formatPrice + formatPriceRange + CURRENCY_SYMBOLS
+- `src/catalog/shop/ProductCatalogCard.tsx` · 4 usos migrados
+- `src/catalog/spaces/SpaceBundleCard.tsx` · 2 usos migrados
+
+### Verification
+
+1. `npx tsc --noEmit` · 0 errors
+2. `localhost:8086` · UI intact · precios se ven idénticos porque todos los seed products asumen USD (fallback)
+3. En consola: `formatPrice(1234.5, 'EUR')` → `"€1,234.50"`, `formatPrice(1234, 'GBP')` → `"£1,234"`, `formatPrice(null)` → `"—"`
+4. Consumers restantes que aún hardcodean `$` (deuda para migración incremental):
+   - QuotesPage line items totals
+   - MiniCartDrawer subtotal
+   - ProductDetailPanel QuoteTab / VariantsTab
+   - CompareModal price row
+   - etc · docs/data-inventory.md tiene lista completa
+
+### Cross-refs siguientes fases
+
+- P1.3 (Options): `OptionGroupValue` no tiene priceModifier con currencyId · fabricoption.priceModifier hereda del Product.currencyId.
+- P1.4 (Finishes): `FinishValue.currencyId` será field explícito en el silver schema. Ya preparado el pattern con formatPrice.
+- **Cleanup.1**: swap masivo de `.toLocaleString()` hardcoded a `formatPrice()` en todos los consumers restantes (~15-20 archivos).
 
 ---
 

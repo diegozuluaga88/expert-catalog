@@ -5,6 +5,7 @@ import { useCatalogs } from '../data/catalogs'
 import { useQuote } from '../../quote/QuoteContext'
 import { inferProductGroupCode } from '../data/productGroups'
 import { settingsUsingProductGroup } from '../data/spaceTypes'
+import { formatPrice } from '../data/catalogues'
 
 // Etapa 8.2 — Card de producto del "Product Catalog" (Figma Dashboard 1285:10432).
 // DS-compliant: tokens semánticos; lima solo en el CTA. Swatches usan el hex del dato.
@@ -209,13 +210,16 @@ export default function ProductCatalogCard({
         {/* Price + CTA · listPrice strikethrough + savings tooltip explica origen */}
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="leading-tight">
+            {/* Fase P1.2 · formatPrice resuelve el símbolo desde product.currencyId
+                (fallback USD). Prepara la UI para catalogues multi-currency sin
+                hardcode del "$". */}
             {product.listPrice && product.price && product.listPrice > product.price && (
               <span
                 className="flex items-baseline gap-1.5"
-                title={`Manufacturer list price $${product.listPrice.toLocaleString()} · your dealer discount applied`}
+                title={`Manufacturer list price ${formatPrice(product.listPrice, product.currencyId)} · your dealer discount applied`}
               >
                 <span className="text-xs text-muted-foreground line-through">
-                  ${product.listPrice.toLocaleString()}
+                  {formatPrice(product.listPrice, product.currencyId)}
                 </span>
                 <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                   Save {Math.round(((product.listPrice - product.price) / product.listPrice) * 100)}%
@@ -223,11 +227,11 @@ export default function ProductCatalogCard({
               </span>
             )}
             <span className="text-base font-bold text-foreground">
-              ${product.price?.toLocaleString()}
+              {formatPrice(product.price, product.currencyId)}
             </span>
             {product.listPrice && product.price && product.listPrice > product.price && (
               <span className="block text-[10px] text-muted-foreground">
-                Dealer price · list ${product.listPrice.toLocaleString()}
+                Dealer price · list {formatPrice(product.listPrice, product.currencyId)}
               </span>
             )}
           </div>

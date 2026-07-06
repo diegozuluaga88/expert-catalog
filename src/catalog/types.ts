@@ -149,6 +149,9 @@ export interface Product {
   productItemCode?: string     // "CH15.1" (código del ProductItem específico)
   productGroupId?: string      // referencia a ProductGroup.id
   spaceProfile?: Array<'CCO' | 'GW' | 'CI'>  // Contact Center / General Workspace / Client Interact
+  /** Fase P1.2 · Currency per productItem · alineado con silver `productItemCurrencyId`.
+   *  Undefined → resolvable via Catalogue del ProductGroup, o fallback USD. */
+  currencyId?: string
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
@@ -437,8 +440,19 @@ export interface SpaceBundle {
     /** Label opcional visible en el rendering ("1", "2", "3", etc). */
     label?: string
   }>
-  estimatedCostMin: number              // USD
-  estimatedCostMax: number              // USD
+  estimatedCostMin: number
+  estimatedCostMax: number
+  /**
+   * @deprecated Fase P1.2 · usa `currencyId` en su lugar. Este campo se mantiene
+   * como legacy para compat de código no migrado; será removido en Cleanup.1.
+   *
+   * En producción, la currency debe derivarse del `Catalogue.currencyId` del
+   * ProductGroup padre (via Section → Catalogue chain) o del `productItemCurrencyId`
+   * del ProductItem primario del bundle.
+   */
   currency: 'USD'
+  /** Fase P1.2 · Currency del bundle · alineado con silver. Undefined → USD default.
+   *  En producción esto puede derivarse del Catalogue del setting o hardcoded a demanda. */
+  currencyId?: string
 }
 

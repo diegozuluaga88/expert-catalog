@@ -119,3 +119,54 @@ export function currencyCodeForCatalogue(catalogueId: string): string {
     const currency = findCurrencyById(catalogue.currencyId)
     return currency?.code ?? 'USD'
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Fase P1.2 · Currency formatting helper
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** Symbol por currency code · fallback a "$" si no reconoce. */
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    CAD: 'C$',
+}
+
+/**
+ * Fase P1.2 · formato de precio con símbolo + locale-appropriate grouping.
+ * Reemplaza el pattern hardcoded `$${amount.toLocaleString()}` distribuido en
+ * el UI. Preserva backward compat cuando currencyId es undefined (assume USD).
+ *
+ * @param amount · número decimal · en producción viene de silver como numeric(18,2)
+ * @param currencyId · FK a Currency.id · undefined → USD default
+ *
+ * @example
+ *   formatPrice(1234.5, 'USD')  // "$1,234.50"
+ *   formatPrice(1234.5, 'EUR')  // "€1,234.50"
+ *   formatPrice(1234, 'GBP')    // "£1,234.00"
+ *   formatPrice(0.99, undefined) // "$0.99" (fallback USD)
+ */
+export function formatPrice(amount: number | undefined | null, currencyId?: string): string {
+    if (amount == null) return '—'
+    const id = currencyId ?? 'USD'
+    const symbol = CURRENCY_SYMBOLS[id] ?? '$'
+    // Locale-aware grouping · Intl.NumberFormat es preferible cuando hay
+    // decimales fraccionarios; para amounts enteros mantenemos toLocaleString
+    // por consistencia con el look previo del UI.
+    const hasFraction = amount % 1 !== 0
+    if (hasFraction) {
+        return `${symbol}${amount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`
+    }
+    return `${symbol}${amount.toLocaleString('en-US')}`
+}
+
+/**
+ * Fase P1.2 · rango de precios · útil para bundles y estimates.
+ * `formatPriceRange(1500, 1800, 'USD')` → `"$1,500 – $1,800"`
+ */
+export function formatPriceRange(min: number, max: number, currencyId?: string): string {
+    return `${formatPrice(min, currencyId)} – ${formatPrice(max, currencyId)}`
+}

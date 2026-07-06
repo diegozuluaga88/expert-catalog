@@ -3,6 +3,7 @@ import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import type { SpaceType, SpaceTypeSetting } from '../types'
 import { findProductStub } from '../data/productGroups'
+import { formatPrice, formatPriceRange } from '../data/catalogues'
 import SpaceRendering from './SpaceRendering'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -28,8 +29,10 @@ interface Props {
 export default function SpaceBundleCard({ setting, spaceType, onAddToSelection }: Props) {
     const { code, name, description, notes, bundle } = setting
     const totalItems = bundle.items.reduce((sum, i) => sum + i.qty, 0)
-    const costMin = bundle.estimatedCostMin.toLocaleString()
-    const costMax = bundle.estimatedCostMax.toLocaleString()
+    // Fase P1.2 · Currency resolvable via bundle.currencyId (nuevo) o bundle.currency
+    // (legacy 'USD'). formatPrice/Range agregan símbolo apropiado.
+    const currencyId = bundle.currencyId ?? bundle.currency
+    const costRangeText = formatPriceRange(bundle.estimatedCostMin, bundle.estimatedCostMax, currencyId)
 
     return (
         <article className={cn('flex flex-col rounded-xl border border-border bg-card overflow-hidden hover:border-primary/50 transition-colors')}>
@@ -100,7 +103,7 @@ export default function SpaceBundleCard({ setting, spaceType, onAddToSelection }
                             Estimated Cost
                         </span>
                         <span className="text-base font-bold text-foreground">
-                            ${costMin} – ${costMax}
+                            {costRangeText}
                         </span>
                     </div>
                 </div>
@@ -129,7 +132,7 @@ export default function SpaceBundleCard({ setting, spaceType, onAddToSelection }
                 >
                     <Plus className="h-3.5 w-3.5" />
                     Add all {totalItems} items to Selection
-                    <span className="ml-auto opacity-90">${costMin}–${costMax}</span>
+                    <span className="ml-auto opacity-90">{costRangeText}</span>
                 </button>
             </div>
         </article>

@@ -299,6 +299,9 @@ export interface ProductStub {
     notes?: string[]
     imageUrl?: string
     isStub: true
+    /** Fase P1.2 · Currency del stub · alineado con silver `productItemCurrencyId`.
+     *  Undefined → USD default. Todos los stubs actuales asumen USD. */
+    currencyId?: string
 }
 
 export const PRODUCT_STUBS: ProductStub[] = [
