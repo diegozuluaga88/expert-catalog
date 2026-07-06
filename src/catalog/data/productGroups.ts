@@ -654,8 +654,20 @@ export function findProductGroupByCode(code: string): ProductGroup | undefined {
     return PRODUCT_GROUPS.find(g => g.code === code)
 }
 
+/** Fase 3.1 · path a la foto del ProductGroup (una por code, reusada entre
+ *  variantes). Convención: /public/images/products/{code-lowercase}.jpg. */
+export function productImageUrl(productGroupCode: string): string {
+    return `/images/products/${productGroupCode.toLowerCase()}.jpg`
+}
+
 export function findProductStub(itemId: string): ProductStub | undefined {
-    return PRODUCT_STUBS.find(s => s.id === itemId)
+    const stub = PRODUCT_STUBS.find(s => s.id === itemId)
+    if (!stub) return undefined
+    // Inyecta imageUrl derivada del productGroupCode si no viene populada
+    // (evita 27 edits manuales · las variantes del mismo group comparten foto).
+    return stub.imageUrl
+        ? stub
+        : { ...stub, imageUrl: productImageUrl(stub.productGroupCode) }
 }
 
 export function productGroupsInSection(sectionId: string): ProductGroup[] {

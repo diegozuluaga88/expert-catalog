@@ -161,8 +161,21 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                             <li key={item.id} className={`flex items-center gap-3 px-4 py-2.5 ${
                                 isJustAdded ? 'bg-primary/5' : ''
                             }`}>
-                                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                                    <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
+                                {/* Fase 3.1 · thumbnail con fallback · si productImage falta o carga rota,
+                                    esconde la img via onError · el bg-muted queda como placeholder. */}
+                                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                                    {item.productImage ? (
+                                        <img
+                                            src={item.productImage}
+                                            alt={item.productName}
+                                            className="h-full w-full object-cover"
+                                            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                                        />
+                                    ) : (
+                                        <span className="text-[9px] font-bold text-muted-foreground">
+                                            {item.productName.slice(0, 2).toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5">
