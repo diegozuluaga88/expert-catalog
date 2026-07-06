@@ -56,10 +56,34 @@ export default function CreateEditSpaceModal({ open, onClose, editing, onSubmit 
     const [description, setDescription] = useState('')
     const [notesText, setNotesText] = useState('') // separado con \n
     const [draftItems, setDraftItems] = useState<DraftItem[]>([])
+    // Fase 5.1 · flags para saber si el user editó cada campo · si no lo hizo,
+    // auto-repopulamos cuando cambia el parent SpaceType (better first-run UX).
+    const [codeTouched, setCodeTouched] = useState(false)
+    const [nameTouched, setNameTouched] = useState(false)
+    const [descTouched, setDescTouched] = useState(false)
+    const [notesTouched, setNotesTouched] = useState(false)
 
     // Picker state
     const [search, setSearch] = useState('')
     const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set())
+
+    // Fase 5.1 · defaults comunes usados en create mode
+    const DEFAULT_NOTES = 'Rendering is for reference only\nProducts can be swapped at quote time'
+    // Deriva un code sugerido desde el parent SpaceType (Focus Room → "F-CUSTOM")
+    const codeForType = (type: SpaceType | undefined): string => {
+        if (!type) return 'CUSTOM'
+        // Primera letra de cada palabra en mayúscula + '-CUSTOM' · ej. "Focus Room" → "FR-CUSTOM"
+        const initials = type.name.split(/\s+/).map(w => w[0] ?? '').join('').toUpperCase() || type.code.toUpperCase()
+        return `${initials}-CUSTOM`
+    }
+    const nameForType = (type: SpaceType | undefined): string => {
+        if (!type) return 'Custom setting'
+        return `${type.name} · Custom`
+    }
+    const descriptionForType = (type: SpaceType | undefined): string => {
+        if (!type) return ''
+        return `Custom ${type.name.toLowerCase()} configuration curated by the dealer for this project.`
+    }
 
     // Reset o pre-populate al abrir el modal
     useEffect(() => {
@@ -70,13 +94,13 @@ export default function CreateEditSpaceModal({ open, onClose, editing, onSubmit 
             setName(editing.name)
             setDescription(editing.description)
             setNotesText((editing.notes ?? []).join('\n'))
+            setCodeTouched(true); setNameTouched(true); setDescTouched(true); setNotesTouched(true)
             // Hidratar drafts desde bundle.items · mapea a Products del showroom por itemId
             const drafts: DraftItem[] = editing.bundle.items.map(bi => {
                 const product = UNIFIED_PRODUCTS.find(p => p.id === bi.itemId)
                 if (product) {
                     return { ...makeDraftFromProduct(product), qty: bi.qty }
                 }
-                // Fallback · el itemId no matchea un product real (custom stub o legacy)
                 return {
                     productId: bi.itemId,
                     productName: bi.label ?? bi.productGroupCode,
@@ -89,17 +113,32 @@ export default function CreateEditSpaceModal({ open, onClose, editing, onSubmit 
             })
             setDraftItems(drafts)
         } else {
-            setSpaceTypeId(SPACE_TYPES[0].id)
-            setCode('')
-            setName('')
-            setDescription('')
-            setNotesText('')
+            // Fase 5.1 · Prefill sensato para nueva creación · el user solo confirma
+            const firstType = SPACE_TYPES[0]
+            setSpaceTypeId(firstType.id)
+            setCode(codeForType(firstType))
+            setName(nameForType(firstType))
+            setDescription(descriptionForType(firstType))
+            setNotesText(DEFAULT_NOTES)
             setDraftItems([])
+            setCodeTouched(false); setNameTouched(false); setDescTouched(false); setNotesTouched(false)
         }
         setStep(1)
         setSearch('')
         setSelectedBrands(new Set())
     }, [open, editing])
+
+    // Fase 5.1 · re-populate campos NO tocados cuando cambia el parent SpaceType
+    // (solo en create mode · en edit los campos están locked como touched).
+    useEffect(() => {
+        if (editing) return
+        const type = SPACE_TYPES.find(t => t.id === spaceTypeId)
+        if (!type) return
+        if (!codeTouched) setCode(codeForType(type))
+        if (!nameTouched) setName(nameForType(type))
+        if (!descTouched) setDescription(descriptionForType(type))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [spaceTypeId, editing])
 
     // Filtered product list para el picker
     const brands = useMemo(
@@ -179,11 +218,11 @@ export default function CreateEditSpaceModal({ open, onClose, editing, onSubmit 
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
                 </Transition.Child>
 
-                <div className="fixed inset-0 flex items-center justify-center p-4">
+                <div className="fixed inset-0 flex items-center justify-center p-3">
                     <Transition.Child as={Fragment}
                         enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
                         leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                        <Dialog.Panel className="relative flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+                        <Dialog.Panel className="relative flex h-[94vh] w-[96vw] max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
                             {/* Header */}
                             <div className="flex items-center justify-between border-b border-border px-5 py-3">
                                 <div className="flex items-center gap-3">
@@ -219,13 +258,13 @@ export default function CreateEditSpaceModal({ open, onClose, editing, onSubmit 
                                         spaceTypeId={spaceTypeId}
                                         setSpaceTypeId={setSpaceTypeId}
                                         code={code}
-                                        setCode={setCode}
+                                        setCode={(v) => { setCode(v); setCodeTouched(true) }}
                                         name={name}
-                                        setName={setName}
+                                        setName={(v) => { setName(v); setNameTouched(true) }}
                                         description={description}
-                                        setDescription={setDescription}
+                                        setDescription={(v) => { setDescription(v); setDescTouched(true) }}
                                         notesText={notesText}
-                                        setNotesText={setNotesText}
+                                        setNotesText={(v) => { setNotesText(v); setNotesTouched(true) }}
                                         parentType={parentType}
                                     />
                                 ) : (
@@ -301,26 +340,39 @@ function BasicInfoStep(props: {
 }) {
     const { spaceTypeId, setSpaceTypeId, code, setCode, name, setName, description, setDescription, notesText, setNotesText, parentType } = props
     return (
-        <div className="p-5 space-y-5 max-w-2xl">
-            {/* Parent SpaceType picker · como tabs de tarjetas visuales */}
+        <div className="p-5 space-y-5">
+            {/* Parent SpaceType picker · grid 4-col responsive con thumbnail + icon */}
             <div>
                 <label className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2 block">
                     Parent space type <span className="text-destructive">*</span>
+                    <span className="ml-1 font-normal normal-case text-muted-foreground">({SPACE_TYPES.length} options)</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {SPACE_TYPES.map(t => {
                         const active = t.id === spaceTypeId
                         return (
                             <button key={t.id} type="button" onClick={() => setSpaceTypeId(t.id)}
-                                className={`flex items-center gap-2 rounded-lg border p-2.5 text-left transition-colors ${active ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-muted'}`}>
-                                <span className="text-xl" aria-hidden="true">{t.icon}</span>
-                                <span className="text-xs font-semibold text-foreground truncate">{t.name}</span>
+                                className={`group relative overflow-hidden rounded-lg border text-left transition-colors ${active ? 'border-primary ring-2 ring-primary/40' : 'border-border hover:border-primary/50'}`}>
+                                <div className="relative aspect-video bg-muted overflow-hidden">
+                                    <img src={t.imageUrl} alt={t.name} loading="lazy"
+                                        className={`absolute inset-0 h-full w-full object-cover transition-all ${active ? 'brightness-90' : 'group-hover:brightness-95'}`} />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                                    <span className="absolute bottom-1 left-1.5 text-lg drop-shadow-md" aria-hidden="true">{t.icon}</span>
+                                    {active && (
+                                        <div className="absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                            <Check className="h-3 w-3" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="px-2 py-1.5 bg-card">
+                                    <div className="text-[11px] font-semibold text-foreground truncate">{t.name}</div>
+                                </div>
                             </button>
                         )
                     })}
                 </div>
                 {parentType && (
-                    <p className="text-[11px] text-muted-foreground mt-1.5 italic">{parentType.description}</p>
+                    <p className="text-[11px] text-muted-foreground mt-2 italic">{parentType.description}</p>
                 )}
             </div>
 

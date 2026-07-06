@@ -72,6 +72,53 @@ export const SPACE_TYPES: SpaceType[] = [
         description: 'Client-facing entry area · lounge seating, side tables, coffee tables for waiting visitors.',
         spaceProfile: ['CI'],
     },
+    // Fase 5 · SpaceTypes adicionales agregados para ampliar el catálogo
+    // (Diego ask · custom spaces necesitan más categorías parent).
+    {
+        id: 'sp-cafeteria',
+        name: 'Cafeteria',
+        code: 'cafeteria',
+        icon: '🍽️',
+        imageUrl: '/images/spaces/cafeteria.jpg',
+        description: 'Dining space with long tables, communal seating and food service · daily meals and social gatherings.',
+        spaceProfile: ['GW', 'CCO'],
+    },
+    {
+        id: 'sp-training-room',
+        name: 'Training Room',
+        code: 'training-room',
+        icon: '📚',
+        imageUrl: '/images/spaces/training-room.jpg',
+        description: 'Classroom-style room for workshops, onboarding sessions and product demos with rows of seating and A/V.',
+        spaceProfile: ['GW', 'CCO', 'CI'],
+    },
+    {
+        id: 'sp-phone-booth',
+        name: 'Phone Booth',
+        code: 'phone-booth',
+        icon: '📞',
+        imageUrl: '/images/spaces/phone-booth.jpg',
+        description: 'Small enclosed pod for individual calls and video conferences · privacy in open floor plans.',
+        spaceProfile: ['CCO', 'GW'],
+    },
+    {
+        id: 'sp-wellness-room',
+        name: 'Wellness Room',
+        code: 'wellness-room',
+        icon: '🧘',
+        imageUrl: '/images/spaces/wellness-room.jpg',
+        description: 'Quiet space for relaxation, meditation, nursing mothers or mental health breaks.',
+        spaceProfile: ['GW'],
+    },
+    {
+        id: 'sp-other',
+        name: 'Other',
+        code: 'other',
+        icon: '✨',
+        imageUrl: '/images/spaces/other.jpg',
+        description: 'Generic category for space types that don’t fit the standard tipologies · fully customizable.',
+        spaceProfile: ['GW', 'CCO', 'CI'],
+    },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════
