@@ -140,6 +140,15 @@ export interface Product {
   fabricOptions?: FabricOption[]
   volumePricing?: VolumeTier[]
   materialTiers?: MaterialTier[]
+
+  /* ── Fase 1 refactor · alineación con silver schema de Notion (2026-07-06) ──
+     Codes Steelcase-style visibles en UI · el catálogo real de manufacturero
+     estructura los productos por ProductGroup (CH15) → ProductItem (CH15.1).
+     Todos opcionales · productos existentes sin estos campos siguen rendering. */
+  productGroupCode?: string    // "CH15" (código del ProductGroup padre)
+  productItemCode?: string     // "CH15.1" (código del ProductItem específico)
+  productGroupId?: string      // referencia a ProductGroup.id
+  spaceProfile?: Array<'CCO' | 'GW' | 'CI'>  // Contact Center / General Workspace / Client Interact
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
@@ -205,3 +214,107 @@ export interface Catalog {
 
 /** Modo del módulo de Catálogo en expert-hub. */
 export type CatalogMode = 'browse' | 'manage'
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Fase 1 refactor · alineación con silver schema de Notion (Product Data
+   Management) + concepto de Space Type Setting inspirado en los PDFs de
+   Steelcase Playbook y MillerKnoll Catalog Q3 2023.
+
+   Jerarquía del silver schema:
+   Catalogue → Section → ProductGroup (con Options + Finishes linked) →
+   ProductItem
+
+   Overlay adicional (fuera del silver schema · nuestro):
+   SpaceType → SpaceTypeSetting → SpaceBundle (items[] + cost range)
+
+   Ver plan · C:\Users\User\.claude\plans\cuddly-greeting-meadow.md
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Section · un "capítulo" del catálogo (Ancillary / Casegoods / Seating / etc). */
+export interface Section {
+  id: string
+  name: string
+  slug: string
+  order: number
+}
+
+/** ProductType · label simple que clasifica ProductGroups ("Chair", "Table", "Lamp"). */
+export interface ProductType {
+  id: string
+  name: string
+}
+
+/**
+ * ProductGroup · nivel intermedio entre Section y ProductItem.
+ * Ejemplo · "CH15 Stool Casual" que contiene CH15.1 Enea Lotus, CH15.2 Enea
+ * Altzo, CH15.3 Shortcut X-Base. Todos los items del grupo comparten las
+ * mismas opciones (linkedOptionGroupCodes) y finishes (linkedFinishMasterCodes).
+ */
+export interface ProductGroup {
+  id: string
+  code: string                          // "CH15", "TB05", "AL02"
+  name: string                          // "Stool, Casual"
+  description?: string
+  sectionId: string                     // ref → Section.id
+  productTypeId: string                 // ref → ProductType.id
+  /** Codes de OptionGroup linked (ej. ["Armrests", "Base"]). Mapea a jsonb en silver. */
+  linkedOptionGroupCodes?: string[]
+  /** Codes de FinishMaster linked (ej. ["Frame", "Fabric"]). Mapea a jsonb en silver. */
+  linkedFinishMasterCodes?: string[]
+  /** IDs de Product.id que pertenecen a este grupo. */
+  itemIds: string[]
+}
+
+/**
+ * SpaceType · tipología de espacio (Focus Room, Work Cafe, Huddle, Meeting Room, etc).
+ * Los PDFs de Steelcase organizan el catálogo también por Space Type para
+ * mostrar "para qué escenario sirve este producto".
+ */
+export interface SpaceType {
+  id: string
+  name: string                          // "Focus Room", "Work Cafe"
+  code: string                          // "focus-room", "work-cafe"
+  icon?: string                         // emoji o slug de icono
+  description: string
+  /** Space Profiles de Steelcase · Contact Center / General Workspace / Client Interact */
+  spaceProfile: Array<'CCO' | 'GW' | 'CI'>
+}
+
+/**
+ * SpaceTypeSetting · configuración específica dentro de un SpaceType.
+ * Ejemplo · dentro de "Focus Room" hay F1 (individual work), F2 (mid focus),
+ * F3 (dual focus). Cada setting tiene un bundle de productos pre-armado con
+ * estimated cost range · esto es lo que sale en los PDFs con el número al lado
+ * ("F1 · $1,500-$1,800").
+ */
+export interface SpaceTypeSetting {
+  id: string
+  code: string                          // "F1", "WC1", "H1", "SM1"
+  name: string                          // "Focus Room · Individual work"
+  spaceTypeId: string                   // ref → SpaceType.id
+  imageUrl?: string                     // render del setting
+  description: string
+  /** Notas del PDF ("The rendering is for example only", etc). */
+  notes?: string[]
+  bundle: SpaceBundle
+}
+
+/**
+ * SpaceBundle · lista de items de un setting con estimated cost range.
+ * En los PDFs esto aparece como "F1 · CH01 + TB15 + CH17 + AL13 · $1,500-$1,800".
+ */
+export interface SpaceBundle {
+  id: string
+  settingId: string
+  items: Array<{
+    productGroupCode: string            // "CH01" (código del grupo)
+    itemId: string                      // ref → Product.id específico
+    qty: number
+    /** Label opcional visible en el rendering ("1", "2", "3", etc). */
+    label?: string
+  }>
+  estimatedCostMin: number              // USD
+  estimatedCostMax: number              // USD
+  currency: 'USD'
+}
+
