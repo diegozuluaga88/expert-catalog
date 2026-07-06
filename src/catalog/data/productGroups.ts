@@ -661,18 +661,41 @@ export function productImageUrl(productGroupCode: string): string {
 }
 
 /** Fase 3 · matching heurístico Product → ProductGroup para el badge
- *  "Used in N settings". Como el seed histórico de Allermuir/Allsteel/AIS no
- *  populó productGroupCode, se infiere del category/name con regex ordered
- *  de más específico a más genérico. Retorna undefined si nada matchea.
- *  El caller decide si mostrar el badge (undefined → no) · el badge nunca
- *  miente (si aparece, hay N >= 1 settings reales usando ese group).
+ *  "Used in N settings". Como el seed histórico de Allermuir/Allsteel/AIS
+ *  usa nombres de collection (Axyl, Bastille, Acuity, Kite) en vez de
+ *  descripciones tipo "Task Chair", combinamos:
+ *    1. NAME_OVERRIDES · dict directo product.name → group code
+ *    2. Regex sobre category + name + description + specs.APPLICATION
+ *  Retorna undefined si nada matchea · el caller decide si mostrar badge.
  */
+
+// Overrides directos por nombre de collection · los names más comunes del
+// seed real (Allermuir/Allsteel/AIS). Mapean a un ProductGroup razonable
+// para dar la sensación de conexión con el catálogo Steelcase/MillerKnoll
+// de los bundles. Amplío según se agregan collections al seed.
+const NAME_OVERRIDES: Record<string, string> = {
+    // Allermuir · seating
+    'Axyl': 'CH15',           // arm chair + stool (según descripción)
+    'Bastille': 'CH06',       // shell chair, dining/cafe
+    'Famiglia': 'CH06',       // dining chair
+    'Kite Sofa': 'CH08',      // sofa modular → lounge chair más cercano
+    'Kite': 'CH08',
+    'Hive Ottoman': 'CH09',   // ottoman exacto
+    'Hive': 'CH09',
+    // Allsteel · seating & storage
+    'Acuity': 'CH01',         // task chair (ergonomic)
+    'Essence Storage': 'AL04',// storage / display system
+    'Essence': 'AL04',
+    // AIS · casegoods
+    'Calibrate': 'CH03',      // meeting chair (según la Fase 2 seed screenshot)
+}
+
 const INFER_RULES: Array<[RegExp, string]> = [
     // Seating · más específico primero (evita colisiones con 'chair')
     [/task\s*chair|desk\s*chair|ergonomic\s*chair/i, 'CH01'],
     [/meeting\s*chair|conference\s*chair/i, 'CH03'],
     [/dining\s*chair|cafe\s*chair/i, 'CH06'],
-    [/lounge\s*chair|casual\s*(work\s*posture|chair)/i, 'CH08'],
+    [/lounge\s*chair|casual\s*(work\s*posture|chair)|arm\s*chair/i, 'CH08'],
     [/ottoman/i, 'CH09'],
     [/bench/i, 'CH10'],
     [/perfect\s*pitch|lounge\s*(low|arm)/i, 'CH12'],
@@ -688,16 +711,30 @@ const INFER_RULES: Array<[RegExp, string]> = [
     [/dining\s*table|cafe\s*table/i, 'TB20'],
     // Ancillary
     [/floor\s*lamp|lamp\b/i, 'AL13'],
-    [/shelving|display\s*system|bookcase/i, 'AL04'],
+    [/shelving|display\s*system|bookcase|storage/i, 'AL04'],
+    // Fallback muy genérico · si es "chair" cualquiera, asumimos meeting
+    // (más común en los settings). Solo se usa si nada más matcheó.
+    [/\bchair\b|seating|sofa/i, 'CH03'],
+    [/\btable\b/i, 'TB01'],
 ]
 
-export function inferProductGroupCode(product: {
+interface InferProductLike {
     productGroupCode?: string
     category?: string
     name?: string
-}): string | undefined {
+    description?: string
+    specs?: Record<string, string>
+}
+
+export function inferProductGroupCode(product: InferProductLike): string | undefined {
     if (product.productGroupCode) return product.productGroupCode
-    const text = `${product.category ?? ''} ${product.name ?? ''}`
+    // 1. Overrides directos por name (más rápido, más determinístico)
+    if (product.name && NAME_OVERRIDES[product.name]) {
+        return NAME_OVERRIDES[product.name]
+    }
+    // 2. Regex sobre todo el texto disponible
+    const application = product.specs?.['APPLICATION'] ?? ''
+    const text = `${product.category ?? ''} ${product.name ?? ''} ${product.description ?? ''} ${application}`
     for (const [rx, code] of INFER_RULES) {
         if (rx.test(text)) return code
     }
