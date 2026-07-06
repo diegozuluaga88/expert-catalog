@@ -1,314 +1,440 @@
 # Silver Schema Gap Analysis · expert-catalog vs Notion
 
-Última actualización · 2026-07-06 · Diagnóstico basado en Notion doc 1 (Plain-Language Schema Guide).
+Última actualización · 2026-07-06 · **Versión final** con validaciones del silver schema técnico completo.
 
-**Source**: [Product+ Options — Plain-Language Schema Guide (for the Product Team)](https://app.notion.com/p/agenticdream/Product-Options-Plain-Language-Schema-Guide-for-the-Product-Team-389acc211ff1814a8a8bca3946f58f15)
+## Sources
 
-**Pendiente**: doc 2 técnico (silver schema completo, TypeORM entities). Los items marcados `[inferred]` esperan validación cuando Diego pegue el contenido del doc 2.
+- **Doc 1** · [Product+ Options — Plain-Language Schema Guide (for the Product Team)](https://app.notion.com/p/agenticdream/Product-Options-Plain-Language-Schema-Guide-for-the-Product-Team-389acc211ff1814a8a8bca3946f58f15)
+- **Doc 2** · [Strata — Product Data Management (silver schema)](https://app.notion.com/p/agenticdream/Strata-Product-Data-Management-silver-schema-388acc211ff181299249d5192d3f7820) · PDF con TypeORM entity `ProductDataManagementTargetEntity` (recibido en el chat 2026-07-06)
 
 ---
 
 ## Ejecutivo
 
-El proyecto `expert-catalog` está **alineado ~55% con el silver schema** (13 campos verificados 1:1 o cercanos), tiene **6 gaps críticos** (campos Notion no modelados) y **1 divergencia estructural mayor** (Options/Finishes flat inline vs Notion normalizado 2-3 niveles).
+El **silver schema** es una **tabla denormalizada one-big-table** en PostgreSQL (`product_data_management` en `targetSchema`), grano = 1 `productItem` por fila con todo el contexto denormalizado (catalogue, section, group, options, finishes, currency, status, jerarquía). Origen: se construye desde `record_additional_fields` (bronze) vía el processor `product-data-management`.
 
-Los **renames semánticos low-risk** (Category → Section, Product → ProductItem) son ejecutables sin refactor de UI. Los **gaps de Catalogue layer** (catalogueNumber, dates, currency) requieren nueva entidad separada de Manufacturer. La **normalización de Options/Finishes** es el ítem con mayor impacto (P1, refactor cross-cutting).
+El proyecto `expert-catalog` (prototype front) está diseñado como **modelo normalizado en TypeScript** (interfaces separadas para Product, Catalog, Section, ProductGroup, Finish, etc). Esto es una **diferencia arquitectural fundamental**: silver aplana para queries eficientes; expert-catalog normaliza para UI mantenible. Ambos son válidos y complementarios · el mapping producción bronze→silver→UI vive en `product-data-management-mapping.ts` (backend).
 
-**Overlay Spaces** (SpaceType/SpaceTypeSetting/SpaceBundle) queda **fuera del silver schema** por diseño · es capa de "space planning" propia del expert-catalog, no del catálogo manufacturero. Debe documentarse como tabla auxiliar (`space_type_settings`) en la migración a producción.
+**Alineación a nivel campo · ~65% verified** (subió de 55% después de doc 2). Los gaps son estructurales, no de intención:
+
+1. **Options/Finishes**: silver tiene 3 tables jerárquicos con position (`OptionMaster→OptionGroupValue`, `FinishMaster→FinishOption→FinishValue`). Expert-catalog aplasta en 1 array flat por Product. Refactor P1.
+2. **Multi-tenancy per-entity**: silver tiene tenantId en cada Master (catalogueTenantId, optionMasterTenantId, finishMasterTenantId). Expert-catalog no modela tenancy en catalog data. Refactor P2.
+3. **Status per-entity**: silver tiene status independiente en cada nivel (catalogueStatus, optionMasterStatus, optionGroupValueStatus, finishMasterStatus, finishOptionStatus, finishValueStatus, statusId/productItemStatusValue). Expert-catalog solo tiene `Product.itemStatus`. Refactor P2.
+4. **Currency multi-level**: silver puede tener currency diferente por Catalogue, ProductItem y FinishValue (catalogueCurrencyId, productItemCurrencyId, finishValueCurrencyId). Expert-catalog solo tiene `SpaceBundle.currency: 'USD'`. Refactor P1.
+5. **Jerarquía universal**: silver tiene `level`/`isProject`/`parentId`/`parentRecordNumber`/`parentRecordTypeName` como pattern común a todas las entities silver (soporta árboles). Expert-catalog no modela árbol. Overlay concept.
+6. **Record header pattern**: silver usa `id: bigint` PK + `recordNumber: text` + `recordCreatedAt: timestamp` + `tenantId: bigint` con relación ManyToOne a Tenant. Expert-catalog usa strings como IDs. Refactor P2.
+
+**Overlay Spaces + Quote system** siguen siendo capa nuestra fuera del silver schema · debe documentarse como tablas auxiliares en la migration.
+
+---
+
+## Estructura del silver schema (doc 2)
+
+**Tabla destino**: `product_data_management` (schema `targetSchema`).
+
+**Grano**: un `productItem` por fila, con contexto de catalogue/product group/product type/status denormalizado.
+
+**Origen**: `record_additional_fields` (bronze) → processor `product-data-management` → mapping `product-data-management-mapping.ts` → target.
+
+**Convenciones** (heredadas de `msa-data-target.entity.ts`):
+- `id: bigint` PK (= `record_header.id`)
+- `recordNumber: text`
+- `recordCreatedAt: timestamp`
+- `tenantId: bigint` + ManyToOne a `TenantTargetEntity`
+- Jerarquía común: `level`, `isProject`, `parentId`, `parentRecordNumber`, `parentRecordTypeName`
+
+**Grupos de campos** (11 grupos + 2 comunes):
+
+| Grupo | Campos (columnas) | Purpose |
+|---|---|---|
+| Record header | id, recordNumber, recordCreatedAt, tenantId | Común a todas las entities silver |
+| Currency (row-level) | currencyId, currencyName, currencyCode, currencyType | Moneda del item/catálogo |
+| ProductItemStatus | productItemStatusId, productItemStatusValue | Estado del product item |
+| Catalogue | catalogueId, catalogueNumber, catalogueName, catalogueActiveDate, catalogueExpirationDate, catalogueStatus, catalogueCurrencyId, catalogueTenantId | Catálogo padre |
+| OptionMaster | optionMasterId, optionGroupCode, optionGroupNotes, optionMasterStatus, optionMasterTenantId | Master de opciones (categoría · ej. "Armrests") |
+| OptionGroupValue | optionGroupValueId, optionGroupValuePosition, optionValue, optionDescription, optionGroupValueStatus, optionMasterIdRef | Valor específico dentro del master (ej. "Adjustable") |
+| FinishMaster | finishMasterId, masterFinishName, finishMasterStatus, finishMasterTenantId | Categoría de finish (ej. "Frame Finish") |
+| FinishOption | finishOptionId, finishOptionName, finishOptionStatus, finishMasterIdRef | Sub-grupo (ej. "Powder Coat") |
+| FinishValue | finishValueId, finishValuePosition, finishValueName, finishValueDescription, finishValueStatus, finishValuePrice, finishValueCurrencyId, finishOptionIdRef | Valor final con precio (ej. "Matte Black", +$0) |
+| Section | sectionId, sectionName, sectionCatalogueId | Sección del catálogo (chapter) |
+| ProductType | productTypeId, productTypeName | Tipo (Chair, Table, etc) |
+| ProductGroup | productGroupId, productGroupCode, productGroupDescription, sectionIdRef, productTypeIdRef, linkedOptionGroup, linkedFinishMaster | Grupo · linked* son `jsonb` arrays |
+| ProductItem (grano) | productItemId, productItemCode, productItemDescription, drawingName2D, drawingName3D, productItemPrice, productItemCurrencyId, productGroupIdRef, statusId | Grano de la fila |
+| Jerarquía | level, isProject, parentId, parentRecordNumber, parentRecordTypeName | Común a todas las entities silver |
+
+**Reglas de tipado**:
+- `string` → `text`
+- Precios (`finishValuePrice`, `productItemPrice`) → `numeric(18,2)`
+- Posiciones (`optionGroupValuePosition`, `finishValuePosition`) → `int`
+- Fechas (`catalogueActiveDate`, `catalogueExpirationDate`) → `timestamp`
+- Arrays (`linkedOptionGroup`, `linkedFinishMaster`) → `jsonb`
+
+**Estructura de los jsonb arrays**:
+```ts
+linkedOptionGroup:  Array<{ optionGroupId?: string; optionGroupPosition?: number }>
+linkedFinishMaster: Array<{ masterFinishId?: string; masterFinishPosition?: number }>
+```
 
 ---
 
 ## Leyenda de estados
 
-- ✅ `verified: doc1` · alineado 1:1 según el doc plain-language
+- ✅ `verified` · alineado 1:1 confirmado por doc 1 + doc 2
 - ⚠️ `partial` · semántica cercana, requiere rename o pequeño ajuste
-- 🔀 `structural` · estructura fundamentalmente diferente (flat vs normalized)
-- ❌ `gap` · el campo Notion no existe en expert-catalog
-- 🌀 `overlay` · el campo/entidad de expert-catalog no aparece en Notion (decisión intencional)
-- ❓ `inferred` · deducido del doc 1 sin validación del doc 2
+- 🔀 `structural` · estructura fundamentalmente diferente (flat vs normalized, string vs bigint, etc)
+- ❌ `gap` · el campo silver no existe en expert-catalog
+- 🌀 `overlay` · el campo/entidad de expert-catalog no aparece en silver (decisión intencional)
 
 ---
 
 ## Tabla comparativa · field-by-field
 
-### Catalogue level
+### Record header (común a todas las silver entities)
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `catalogueName` | `Catalog.name` (types.ts:203) | ✅ verified | 1:1 |
-| `catalogueNumber` | ❌ | ❌ gap | No hay ID/código separado del name. `Catalog.id: number` es interno, no matchea "SC-2025-SEAT" |
-| `catalogueActiveDate` | ❌ | ❌ gap | No modelado. `Catalog.lastSync: string` no cubre esto |
-| `catalogueExpirationDate` | ❌ | ❌ gap | No modelado |
-| `catalogueStatus` | `Catalog.status` (types.ts:211) | ⚠️ partial | Enums diferentes · expert-catalog `'Active' \| 'Update Avail.' \| 'Archived'` vs Notion "Active/Retired" |
-| `currencyCode` | `SpaceBundle.currency: 'USD'` (types.ts:334) | ❌ gap | Existe solo en overlay Bundle. Debe estar a nivel Catalogue (Notion location: junto a currency & status) |
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `id` | `bigint` PK | Product.id / Catalog.id · varía (string vs number) | 🔀 structural | expert-catalog usa string IDs en la mayoría; Catalog.id: number. Producción: bigint con relación al record_header |
+| `recordNumber` | `text` | ❌ | ❌ gap | No hay recordNumber concept en expert-catalog |
+| `recordCreatedAt` | `timestamp` | Product/Catalog no lo tienen; QuoteDraft.createdAt sí (ISO string) | ⚠️ partial | Formato diferente (ISO vs Date TypeORM) |
+| `tenantId` | `bigint` + ManyToOne Tenant | ❌ | ❌ gap | expert-catalog usa `tenantSlug: string` en QuoteContext localStorage, no en catalog data |
 
-**Hallazgo #1 · Catalogue layer**: expert-catalog usa `Manufacturer` como proxy débil del Catalogue de Notion. Los conceptos son diferentes: un Manufacturer puede publicar N Catalogues (Steelcase 2024 Seating, Steelcase 2025 Seating). La entidad `Catalog` existe pero cubre solo name/status. Producción debe agregar `Catalogue` como entidad separada con FKs a Manufacturer.
+**Hallazgo #1 · Record header pattern ausente en catalog data**: el silver aplica el pattern (id/recordNumber/recordCreatedAt/tenantId) a TODAS las entities. expert-catalog solo aplica timestamps a QuoteDraft y CustomSpaces. Refactor P2 · agregar este pattern a Product/Catalog/etc como base para la migración.
 
-### Section level
+### Currency (row-level)
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `sectionName` | `Section.name` (types.ts:243) | ✅ verified | 1:1 |
-| Section.slug | ❓ inferred | ⚠️ partial | expert-catalog agrega `slug` y `order` (`Section.slug`, `.order`) · no está en doc 1 pero es útil |
-| Section.order | ❓ inferred | ⚠️ partial | idem |
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `currencyId` | `text` | ❌ | ❌ gap | Silver denormaliza currency del catalogue en cada row · expert-catalog no lo tiene |
+| `currencyName` | `text` | ❌ | ❌ gap | idem |
+| `currencyCode` | `text` | `SpaceBundle.currency: 'USD'` (types.ts:334) | ⚠️ partial | Solo en overlay Bundle, no en catalog |
+| `currencyType` | `text` | ❌ | ❌ gap | No modelado (fiat/crypto?) |
 
-**Hallazgo #2 · Section rename**: expert-catalog aún usa `Category` en algunos lugares (`Product.category: string`, `selectedCategories` state). La migración `Category → Section` está parcialmente hecha (seed usa Section IDs pero Product mantiene category legacy). Rename semántico low-risk.
+### ProductItemStatus
 
-### Product Type level
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `productItemStatusId` | `text` | ❌ | ❌ gap | Silver tiene FK explícita a status table (id) |
+| `productItemStatusValue` | `text` | `Product.itemStatus` (types.ts:43) | ✅ verified | 1:1 semantic. Silver es texto legible, expert-catalog enum |
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `productTypeName` | `ProductType.name` (types.ts:250) | ✅ verified | 1:1 |
+### Catalogue
 
-### Product Group level
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `catalogueId` | `text` | `Catalog.id: number` (types.ts:204) | 🔀 structural | Silver es text (UUID/slug?), expert-catalog es number |
+| `catalogueNumber` | `text` | ❌ | ❌ gap | ID code separado del name · "SC-2025-SEAT" · no existe |
+| `catalogueName` | `text` | `Catalog.name` (types.ts:205) | ✅ verified | 1:1 |
+| `catalogueActiveDate` | `timestamp` | ❌ | ❌ gap | No modelado. `Catalog.lastSync: string` no cubre esto |
+| `catalogueExpirationDate` | `timestamp` | ❌ | ❌ gap | No modelado |
+| `catalogueStatus` | `text` | `Catalog.status` (types.ts:212) | ⚠️ partial | Enums diferentes · expert-catalog `'Active'/'Update Avail.'/'Archived'` vs silver es text libre |
+| `catalogueCurrencyId` | `text` | ❌ | ❌ gap | FK a currency table · no existe |
+| `catalogueTenantId` | `text` | ❌ | ❌ gap | Multi-tenant per catalog · no modelado |
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `productGroupCode` | `ProductGroup.code` (types.ts:262) | ✅ verified | 1:1 (CH15, TB04, AL13 style) |
-| `productGroupDescription` | `ProductGroup.description` (types.ts:264) | ✅ verified | 1:1 |
-| `productGroupName` | `ProductGroup.name` (types.ts:263) | ⚠️ partial | expert-catalog splitea code+name · Notion parece tener solo code+description. Rename opcional |
-| `linkedOptionGroup` | `ProductGroup.linkedOptionGroupCodes[]` (types.ts:265) | ⚠️ partial | Rename semántico pending (drop 'Codes' suffix). Type match: array de strings |
-| `linkedFinishMaster` | `ProductGroup.linkedFinishMasterCodes[]` (types.ts:266) | ⚠️ partial | Idem rename |
-| ProductGroup.sectionId FK | `ProductGroup.sectionId` (types.ts:267) | ❓ inferred | Notion doc 1 dice "one group belongs to one section" · sugiere FK. expert-catalog lo tiene |
-| ProductGroup.productTypeId FK | `ProductGroup.productTypeId` (types.ts:268) | ❓ inferred | Idem |
-| ProductGroup.itemIds[] | `ProductGroup.itemIds[]` (types.ts:269) | ❓ inferred | Notion doc 1 dice "one Product Group holds many Product Items" · sugiere relación 1-a-N. expert-catalog lo modela como array de FKs (potencialmente debería ser reverse: ProductItem.productGroupId FK) |
+**Hallazgo #2 · Catalogue layer con multi-tenant + dates + currency**: doc 2 confirma que Catalogue tiene su propio tenantId (catálogos custom per-tenant), su propio currencyId (Steelcase 2025 USD Seating vs 2025 EUR Seating), y date range (active/expiration). expert-catalog cubre solo name/status. **P1 refactor**.
 
-**Hallazgo #3 · Rename linkedOptionGroup / linkedFinishMaster**: expert-catalog tiene `linkedOptionGroupCodes` y `linkedFinishMasterCodes`. Notion usa `linkedOptionGroup` y `linkedFinishMaster`. Es rename cosmético · el shape es idéntico (string arrays de referencias a nombres de option groups / finish masters).
+### OptionMaster (categoría de opciones)
 
-**Hallazgo #4 · Reverse relation ProductItem.productGroupId**: Notion doc 1 parece sugerir "one Product Group holds many Product Items" implementado como FK en ProductItem (ProductItem.productGroupId → ProductGroup.id). expert-catalog lo tiene como array en el group (`ProductGroup.itemIds[]`). Ambos approaches funcionan pero la FK en el child es más DB-friendly.
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `optionMasterId` | `text` | ❌ | ❌ gap | Silver tiene tabla OptionMaster (ej. { id: "om-armrests", name: "Armrests" }) · expert-catalog no |
+| `optionGroupCode` | `text` | (indirecto via `ProductGroup.linkedOptionGroupCodes[]`) | 🔀 structural | Solo aparece como string en el array del ProductGroup, sin entity separada |
+| `optionGroupNotes` | `text` | ❌ | ❌ gap | Notas de la categoría · no modelado |
+| `optionMasterStatus` | `text` | ❌ | ❌ gap | Status per option master · no modelado |
+| `optionMasterTenantId` | `text` | ❌ | ❌ gap | Multi-tenant per master · no modelado |
 
-### Product Item level
+### OptionGroupValue (valor específico dentro del master)
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `productItemCode` | `ProductStub.productItemCode` (productGroups.ts:295) · también `Product.productItemCode?` (types.ts:139) | ✅ verified | Existe en 2 lugares · en ProductStub required, en Product opcional (backwards compat) |
-| `productItemDescription` | `ProductStub.name` + `Product.description` | ⚠️ partial | Split entre `name` (short) y `description` (long). Notion parece tener 1 solo campo. Refactor opcional |
-| `productItemPrice` | `Product.price: number` (types.ts:112) · `ProductStub.priceEstimateMin/Max` | ⚠️ partial | Notion tiene 1 price base ($420). expert-catalog tiene: Product.price (dealer price actual) + ProductStub.priceEstimateMin/Max (range). Divergencia: Notion 1 valor vs expert-catalog range |
-| `drawingName2D` | `Product.symbols[]` (partial) | 🔀 structural | expert-catalog tiene `symbols: SymbolFolder[]` con `name: 'AutoCAD (DWG)'/'Revit'/'SketchUp'/'3DS Max'` y `files: N`. No distingue 2D vs 3D explícito. Notion es 1 campo string, expert-catalog es array de folders |
-| `drawingName3D` | `Product.symbols[]` (partial) | 🔀 structural | Idem |
-| `statusId` | `Product.itemStatus` (types.ts:43) | ⚠️ partial | expert-catalog enum: 'active'/'discontinued'/'discrepancy' vs Notion FK a status table |
-| `productItemStatusValue` | `Product.itemStatus` (idem) | ✅ verified | 1:1 semantic con statusId · Notion parece tener 2 campos (statusId FK + productItemStatusValue string legible), expert-catalog fusiona en 1 enum |
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `optionGroupValueId` | `text` | `FabricOption.id` (types.ts:59) | ⚠️ partial | Semantic close, expert-catalog usa `FabricOption` |
+| `optionGroupValuePosition` | `int` | ❌ | ❌ gap | Display order · no modelado (orden del array literal) |
+| `optionValue` | `text` | `FabricOption.name` (types.ts:60) | ✅ verified | 1:1 |
+| `optionDescription` | `text` | ❌ | ❌ gap | Description del valor · no existe |
+| `optionGroupValueStatus` | `text` | ❌ | ❌ gap | Status per value · no modelado |
+| `optionMasterIdRef` | `text` | ❌ | ❌ gap | FK al OptionMaster · no existe (values no están agrupados) |
 
-**Hallazgo #5 · Price single value vs range**: Notion `productItemPrice = 420` (número scalar). expert-catalog Product.price es scalar también, PERO ProductStub tiene `priceEstimateMin/Max` (range para estimación de bundles). Producción: alinear Product a scalar exacto; conservar range solo en ProductStub como "estimate" no autoritativo.
+**Hallazgo #3 · Options normalizado 2 niveles vs flat**: silver tiene `OptionMaster` (Armrests) + `OptionGroupValue` (Adjustable) con FK reverse. expert-catalog aplasta todo en `Product.fabricOptions[]` sin agrupación por master. **P1 refactor cross-cutting** (afecta ProductDetailPanel.QuoteTab + VariantsTab + computeLineItemTotals).
 
-**Hallazgo #6 · Drawings 2D/3D**: Notion tiene 2 campos separados (`drawingName2D`, `drawingName3D`). expert-catalog agrupa todos los formatos en `symbols[]` sin distinguir dimensión. Refactor: agregar `dimension: '2D' | '3D'` al `SymbolFolder` o splittear en 2 arrays.
+### FinishMaster (categoría de finishes)
 
-### Options level (2 niveles Notion)
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `finishMasterId` | `text` | ❌ | ❌ gap | Silver tiene tabla FinishMaster (ej. { id: "fm-frame", name: "Frame Finish" }) · expert-catalog no |
+| `masterFinishName` | `text` | ❌ | ❌ gap | El nombre de la categoría (Frame Finish, Fabric Finish, etc) |
+| `finishMasterStatus` | `text` | ❌ | ❌ gap | Status per master · no modelado |
+| `finishMasterTenantId` | `text` | ❌ | ❌ gap | Multi-tenant per master |
 
-**Notion structure**:
-```
-Options (option group)
-├── optionGroupCode: "Armrests"
-└── option values[]
-    ├── optionValue: "Adjustable"
-    ├── optionDescription: "..."
-    └── optionGroupValuePosition: 3
-```
+### FinishOption (sub-grupo)
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `optionGroupCode` | (indirect via `Product.fabricOptions[]`) | 🔀 structural | expert-catalog no tiene concept de "option group" separado · `fabricOptions[]` es flat en Product |
-| `optionValue` | `FabricOption.name` (types.ts:60) | ⚠️ partial | Semantic close · 1 valor por row |
-| `optionDescription` | ❌ | ❌ gap | No hay description en FabricOption |
-| `optionGroupValuePosition` | ❌ | ❌ gap | No hay display order en FabricOption[] · orden es del array literal |
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `finishOptionId` | `text` | ❌ | ❌ gap | Sub-grupo (ej. { id: "fo-powder-coat", name: "Powder Coat" }) · no existe |
+| `finishOptionName` | `text` | ❌ | ❌ gap | Nombre del sub-grupo |
+| `finishOptionStatus` | `text` | ❌ | ❌ gap | Status per option · no modelado |
+| `finishMasterIdRef` | `text` | ❌ | ❌ gap | FK al FinishMaster · no existe |
 
-**Hallazgo #7 · Options structural gap**: expert-catalog no modela `optionGroupCode → optionValues[]`. Los `Product.fabricOptions[]` mezclan "Armrests: Adjustable" y "Base: Swivel" como items planos sin agrupación por option group. Producción debe:
-- Crear `OptionGroup { id, code, name }` (ej. { code: "Armrests" })
-- Crear `OptionValue { id, optionGroupId, value, description, position }` (ej. { optionGroupId: "Armrests", value: "Adjustable", position: 3 })
-- Product referencia `optionValueIds[]` en vez de flat FabricOption[]
+### FinishValue (valor final con precio)
 
-### Finishes level (3 niveles Notion)
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `finishValueId` | `text` | `Finish.id` (types.ts:48) | ⚠️ partial | Semantic close |
+| `finishValuePosition` | `int` | ❌ | ❌ gap | Display order · no modelado |
+| `finishValueName` | `text` | `Finish.name` (types.ts:49) | ⚠️ partial | Existe pero flat (3 niveles silver → 1 expert-catalog) |
+| `finishValueDescription` | `text` | ❌ | ❌ gap | Description del valor · no existe |
+| `finishValueStatus` | `text` | ❌ | ❌ gap | Status per value · no modelado |
+| `finishValuePrice` | `numeric(18,2)` | `Finish.priceModifier: number` (types.ts:52) | ✅ verified | 1:1 semantic. Silver es decimal(18,2), expert-catalog es JS number |
+| `finishValueCurrencyId` | `text` | ❌ | ❌ gap | Currency per finish value · no modelado |
+| `finishOptionIdRef` | `text` | ❌ | ❌ gap | FK a FinishOption · no existe |
 
-**Notion structure**:
-```
-Finish master (category)
-├── masterFinishName: "Frame Finish"
-└── Finish option (sub-group)
-    ├── finishOptionName: "Powder Coat"
-    └── Finish value (actual)
-        ├── finishValueName: "Matte Black"
-        └── finishValuePrice: 0 (or 45 for "Polished")
-```
+**Hallazgo #4 · Finishes normalizado 3 niveles vs flat** (severity: MAX): silver tiene 3 tables (`FinishMaster → FinishOption → FinishValue`) con FKs reversas + position + currency per value. expert-catalog aplasta todo en `Product.finishes[]` (1 nivel). **P1 refactor de mayor impacto** · afecta 15+ archivos.
 
-| Notion field | expert-catalog · location | Estado | Nota |
-|---|---|---|---|
-| `masterFinishName` | ❌ | ❌ gap | Nivel superior de finishes (Frame Finish/Fabric Finish/etc) no modelado |
-| `finishOptionName` | ❌ | ❌ gap | Sub-nivel (Powder Coat/Paint/etc) no modelado |
-| `finishValueName` | `Finish.name` (types.ts:49) | ⚠️ partial | Existe pero flat · sin herencia del master + option |
-| `finishValuePrice` | `Finish.priceModifier` (types.ts:52) | ✅ verified | 1:1 |
-| Finish.swatch | ❓ inferred | 🌀 overlay | expert-catalog tiene `Finish.swatch: string` (hex). Notion doc 1 no menciona swatch color · útil para UI pero puede no estar en el silver schema |
-| Finish.leadTimeAdjust | ❓ inferred | 🌀 overlay | expert-catalog agrega lead time adjust por finish · útil para B2B, puede ser gap en Notion o inferido |
+### Section
 
-**Hallazgo #8 · Finishes structural gap** (severity: HIGH): expert-catalog aplasta 3 niveles de Notion en 1 flat array `Product.finishes[]`. Un `Finish` de expert-catalog corresponde solo al `finishValueName` de Notion. Producción debe:
-- Crear `MasterFinish { id, name }` (ej. { name: "Frame Finish" })
-- Crear `FinishOption { id, masterFinishId, name }` (ej. { masterFinishId: "Frame Finish", name: "Powder Coat" })
-- Crear `FinishValue { id, finishOptionId, name, price, swatch? }` (ej. { finishOptionId: "Powder Coat", name: "Matte Black", price: 0 })
-- Product referencia `availableFinishValueIds[]` filtrado por linked masters
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `sectionId` | `text` | `Section.id` (types.ts:244) | ✅ verified | 1:1 |
+| `sectionName` | `text` | `Section.name` (types.ts:245) | ✅ verified | 1:1 |
+| `sectionCatalogueId` | `text` | ❌ | ❌ gap | FK explícita del Section al Catalogue · en expert-catalog Section es global |
 
-Este es el refactor de mayor impacto · cross-cutting sobre ProductDetailPanel QuoteTab, VariantsTab, computeLineItemTotals helpers.
+**Hallazgo #5 · Section pertenece a un Catalogue**: silver modela `sectionCatalogueId` como FK explícita · una Section vive dentro de UN Catalogue específico. expert-catalog tiene Sections como global (mismas Sections para todos los Catalogs). Refactor: agregar catalogueId a Section, y seed data por catalogue.
+
+### ProductType
+
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `productTypeId` | `text` | `ProductType.id` (types.ts:251) | ✅ verified | 1:1 |
+| `productTypeName` | `text` | `ProductType.name` (types.ts:252) | ✅ verified | 1:1 |
+
+### ProductGroup
+
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `productGroupId` | `text` | `ProductGroup.id` (types.ts:261) | ✅ verified | 1:1 |
+| `productGroupCode` | `text` | `ProductGroup.code` (types.ts:262) | ✅ verified | 1:1 (CH15, TB04, AL13 style) |
+| `productGroupDescription` | `text` | `ProductGroup.description` (types.ts:264) | ✅ verified | 1:1 |
+| `sectionIdRef` | `text` | `ProductGroup.sectionId` (types.ts:267) | ✅ verified | 1:1 FK. Silver usa "IdRef" suffix, expert-catalog no. Rename opcional |
+| `productTypeIdRef` | `text` | `ProductGroup.productTypeId` (types.ts:268) | ✅ verified | 1:1 FK |
+| `linkedOptionGroup` | `jsonb` `Array<{ optionGroupId?, optionGroupPosition? }>` | `ProductGroup.linkedOptionGroupCodes: string[]` (types.ts:269) | 🔀 structural | Silver es jsonb de objetos con ID + position; expert-catalog es array de strings. **Refactor P1** |
+| `linkedFinishMaster` | `jsonb` `Array<{ masterFinishId?, masterFinishPosition? }>` | `ProductGroup.linkedFinishMasterCodes: string[]` (types.ts:270) | 🔀 structural | Idem |
+
+**Hallazgo #6 · linked* con position embebida**: silver tiene el ORDEN embedido en cada elemento del jsonb array (`optionGroupPosition`, `masterFinishPosition`). expert-catalog solo tiene arrays sin position. Refactor P1 · agregar position al type + seed data.
+
+**Hallazgo #7 · Referencias jsonb vs strings**: silver referencia por `optionGroupId` (FK al OptionMaster.id), expert-catalog referencia por `linkedOptionGroupCodes: string[]` (nombres literales "Armrests"). Refactor cuando se creen las tables OptionMaster y FinishMaster.
+
+### ProductItem (grano de la fila)
+
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `productItemId` | `text` | `Product.id: string` (types.ts:84) · `ProductStub.id` (productGroups.ts) | ✅ verified | 1:1 |
+| `productItemCode` | `text` | `ProductStub.productItemCode` (productGroups.ts:295) · `Product.productItemCode?` (types.ts:139) | ✅ verified | Existe en 2 lugares |
+| `productItemDescription` | `text` | `ProductStub.name` + `Product.description` | ⚠️ partial | Silver 1 campo, expert-catalog split entre name (short) + description (long) |
+| `drawingName2D` | `text` | `Product.symbols[]` (partial) | 🔀 structural | Silver es text simple (1 URL/nombre). expert-catalog es array de folders (`SymbolFolder`) con { name, files } sin distinguir 2D/3D |
+| `drawingName3D` | `text` | `Product.symbols[]` (partial) | 🔀 structural | idem |
+| `productItemPrice` | `numeric(18,2)` | `Product.price: number` (types.ts:112) · `ProductStub.priceEstimateMin/Max` | ⚠️ partial | Silver es decimal(18,2); expert-catalog es JS number. ProductStub tiene rango vs silver 1 valor |
+| `productItemCurrencyId` | `text` | ❌ | ❌ gap | Currency per productItem · no modelado en expert-catalog |
+| `productGroupIdRef` | `text` | `Product.productGroupId?` (types.ts:141) | ⚠️ partial | expert-catalog lo tiene opcional (backwards compat con seeds sin él). Silver es required |
+| `statusId` | `text` | `Product.itemStatus` (types.ts:99) | ⚠️ partial | Silver FK a status table; expert-catalog enum inline |
+
+**Hallazgo #8 · Drawings 2D/3D separados en silver**: silver tiene 2 campos discretos `drawingName2D` y `drawingName3D` (probablemente URLs a assets). expert-catalog los agrupa en `symbols: SymbolFolder[]` sin distinguir. Refactor P2 · agregar `dimension: '2D' | '3D'` a SymbolFolder + campos discretos para el primary drawing 2D/3D.
+
+**Hallazgo #9 · Currency per productItem**: silver permite currency diferente por productItem (`productItemCurrencyId`). Escenario: un Steelcase item se vende en USD, otro en EUR. Expert-catalog asume USD global. Refactor cuando se agregue Catalogue con currency.
+
+### Jerarquía (común a todas las silver entities)
+
+| Silver field | Type | expert-catalog · location | Estado | Nota |
+|---|---|---|---|---|
+| `level` | `int` NOT NULL default 0 | ❌ | ❌ gap | Silver soporta árboles con nivel de profundidad · expert-catalog no |
+| `isProject` | `boolean` NOT NULL default false | ❌ | ❌ gap | Discriminator project vs catalog data · no modelado |
+| `parentId` | `bigint` | ❌ | ❌ gap | FK al parent record · no existe |
+| `parentRecordNumber` | `text` | ❌ | ❌ gap | Human-readable parent ref |
+| `parentRecordTypeName` | `text` | ❌ | ❌ gap | Ej. "Catalogue", "Section" · discriminator del type padre |
+
+**Hallazgo #10 · Jerarquía universal (level/isProject/parent*)**: silver aplica pattern de árbol a TODAS las entities. Permite modelar árbol jerárquico: Catalogue → Section → ProductGroup → ProductItem donde cada nivel tiene un parent. expert-catalog usa FKs directas (sectionId, productTypeId) sin este pattern universal. **Overlay concept** · producción puede derivar level/parent automáticamente en el mapping, no requiere refactor UI.
 
 ---
 
 ## Elementos overlay del expert-catalog (fuera del silver schema)
 
-Los siguientes elementos existen en expert-catalog **por diseño** y NO tienen contraparte en Notion doc 1. En producción deben modelarse como tablas auxiliares fuera del schema del catálogo manufacturero:
+Confirmados con doc 2 · siguen siendo capa auxiliar. Producción debe modelarlos como tablas separadas fuera de `product_data_management`:
 
-| Entidad expert-catalog | Location | Justificación |
+| Entidad expert-catalog | Location | Tabla producción sugerida |
 |---|---|---|
-| `SpaceType` (11 tipologías) | types.ts:281 + spaceTypes.ts | Capa de "space planning" propia · agrupa productos por escenario de uso (Focus Room, Work Cafe) |
-| `SpaceTypeSetting` (15 seed + custom) | types.ts:301 + spaceTypes.ts | Configuraciones concretas por SpaceType · F1, WC1, etc |
-| `SpaceBundle` | types.ts:324 | Lista de productos + estimated cost por Setting |
-| Custom Spaces per-tenant | useCustomSpaces.ts + localStorage | Space Settings creados por el dealer · persist per-tenant |
-| `QuoteDraft` + `QuoteLineItem` | QuoteContext.tsx | Cart/quote system · downstream del catálogo |
-| `BuyerInfo` (tenant + user metadata) | tenantData.ts + userProfile.ts | Auto-fill del quote · no es catálogo manufacturero |
-| `Manufacturer.contacts[]` | types.ts:191 | Sales + A&D specialists · útil para dealer UI, no necesariamente en Notion catalog schema |
-| `Manufacturer.brandResources[]` | types.ts:190 | Website + PDFs de la marca |
-| `Product.documents[]` | types.ts:132 | PDFs específicos del producto (guarantees, brochures) |
-| `Product.tags[]` | types.ts:120 | Features arbitrarias · útil para búsqueda |
-| `Product.dealerRating` | types.ts:114 | Rating por dealer · downstream data, no del catálogo maker |
-| `Product.leadTime` | types.ts:115 | Dealer-specific · Notion tiene finishValuePrice pero no lead time |
-| `Product.itemStatus: 'discrepancy'` | types.ts:43 | Enum extra beyond Notion active/retired · útil para sync management |
-| `Colorway` (hex swatch) | types.ts:8 | UI color rendering · Notion Finishes puede tener swatch pero doc 1 no lo menciona explícitamente |
-
-**Recomendación**: documentar en la migration doc que estos elementos viven en tablas auxiliares:
-- `space_type_settings` (con FK a `product_groups`)
-- `quote_drafts` + `quote_line_items`
-- `tenant_metadata`
-- `user_profiles`
-- `manufacturer_contacts`
-- `product_documents`
-- `product_tags`
-- `dealer_ratings`
-- Etc.
+| `SpaceType` (11 tipologías) | types.ts:281 | `space_types` (con FK a tenant si se quiere per-tenant) |
+| `SpaceTypeSetting` (15 seed + custom) | types.ts:301 | `space_type_settings` (FK a `space_types` + `product_groups` en items[]) |
+| `SpaceBundle` | types.ts:324 | `space_bundles` con items jsonb + estimatedCostMin/Max + currencyId |
+| Custom Spaces per-tenant | useCustomSpaces.ts | `space_type_settings.isCustom + tenantId` (mismo model, discriminator) |
+| `QuoteDraft` + `QuoteLineItem` | QuoteContext.tsx | `quote_drafts` + `quote_line_items` (downstream, no catálogo) |
+| `BuyerInfo` (tenant + user) | tenantData.ts + userProfile.ts | Ya modelado en `TenantTargetEntity` (silver) + user table |
+| `Manufacturer.contacts[]` | types.ts:191 | `manufacturer_contacts` |
+| `Manufacturer.brandResources[]` | types.ts:190 | `brand_resources` |
+| `Product.documents[]` | types.ts:132 | `product_documents` (o merger con `drawingName2D/3D` de silver) |
+| `Product.tags[]` | types.ts:120 | `product_tags` (junction table) |
+| `Product.dealerRating` | types.ts:114 | `dealer_ratings` (downstream) |
+| `Product.leadTime` | types.ts:115 | `dealer_lead_times` (downstream, dealer-specific) |
+| `Product.itemStatus: 'discrepancy'` | types.ts:43 | En silver es 'discontinued' o custom · el 'discrepancy' es UI-only (out of sync flag) |
+| `Colorway` (hex swatch) | types.ts:8 | En silver, cada FinishValue puede tener un swatch color. Colorway es semantic subset |
+| `MaterialTier` | types.ts:76 | Semantic close a un OptionMaster llamado "MaterialTier" con OptionGroupValues (Standard/Premium/Special-order) |
+| `VolumeTier` | types.ts:67 | `volume_tiers` per productItem (pricing tiered) · no en silver, downstream |
 
 ---
 
-## Roadmap de adaptación (recomendaciones priorizadas)
+## Roadmap de adaptación priorizado
 
 ### P0 · Renames semánticos low-risk (~1-2 días)
 
-Sin refactor de UI. Solo find+replace + type aliases.
-
-- [ ] `Category` (types.ts:196 + usages) → conservar como legacy alias · `Section` es el nombre canónico
-- [ ] `ProductGroup.linkedOptionGroupCodes` → `linkedOptionGroup`
+- [ ] `ProductGroup.linkedOptionGroupCodes` → `linkedOptionGroup` (dropear "Codes" suffix)
 - [ ] `ProductGroup.linkedFinishMasterCodes` → `linkedFinishMaster`
-- [ ] Documentar que `Product` es equivalente a `ProductItem` (rename opcional en fase 2)
-- [ ] Alinear `Catalog.status` enums con Notion ('Active' | 'Retired')
+- [ ] Documentar `Category` (types.ts:196) como alias legacy · `Section` es canónico
+- [ ] Alinear `Catalog.status` enum con silver text (opciones libres vs closed enum)
+- [ ] `Product.itemStatus: 'discrepancy'` → mover a UI-only flag (no en silver)
 
-**Files touched**: `types.ts`, `manufacturers.ts` (rename catalog.status values si aplica).
-**Riesgo**: bajo · aliases mantienen backward compat.
+**Files touched**: `types.ts`, `manufacturers.ts`.
+**Riesgo**: bajo.
 
-### P1 · Catalogue layer (~3-5 días)
+### P1 · Catalogue layer + Currency multi-level (~5-7 días)
 
 Nueva entidad `Catalogue` separada de `Manufacturer`.
 
-- [ ] Crear `interface Catalogue { id, manufacturerId, catalogueNumber, name, activeDate, expirationDate, status, currency }`
-- [ ] Migrar seed · convertir cada `Manufacturer` seed en 1 `Manufacturer` + 1 `Catalogue`
-- [ ] Actualizar `Catalog` (el mock reactivo) para consumir Catalogue
-- [ ] Currency: mover de `SpaceBundle.currency` a `Catalogue.currency` (Bundle derivable)
+- [ ] `interface Catalogue { id, catalogueNumber, name, activeDate, expirationDate, status, currencyId, tenantId }`
+- [ ] Currency entity: `interface Currency { id, code, name, type }`
+- [ ] Migrar seed · convertir cada `Manufacturer` en 1 `Manufacturer` + N `Catalogue`s (mock)
+- [ ] `Catalog` (mock reactivo) consume Catalogue
+- [ ] `SpaceBundle.currency` derivable del Catalogue del ProductGroup
 
-**Files touched**: `types.ts`, `manufacturers.ts`, `catalogs.ts`, `ShowroomCatalogsBar.tsx` (badge status), `ProductDetailPanel.tsx` (Currency display).
-**Riesgo**: medio · nueva capa afecta joins.
+**Files touched**: `types.ts`, `manufacturers.ts`, `catalogs.ts`, `ShowroomCatalogsBar.tsx`, `ProductDetailPanel.tsx` (Currency display).
+**Riesgo**: medio.
 
-### P1 · Currency ascendente (~1 día)
+### P1 · Options normalizado 2 niveles (~5-7 días)
 
-- [ ] Remover `currency` de `SpaceBundle` (queda derivable de Catalogue)
-- [ ] Agregar `currency: string` a `Catalogue`
-- [ ] Todos los precios display resuelven currency desde el Catalogue del ProductGroup
-
-**Files touched**: `types.ts` (SpaceBundle + Catalogue), `spaceTypes.ts` (drop currency del bundle), UI display (ProductDetailPanel, SpaceBundleCard).
-
-### P1 · Options normalizado (~5-7 días)
-
-Refactor cross-cutting.
-
-- [ ] Crear `OptionGroup { id, code, name }` + `OptionValue { id, optionGroupId, value, description, position }`
-- [ ] Seed data · migrar `Product.fabricOptions[]` a `optionValueIds[]` referencias
-- [ ] UI `VariantsTab` agrupar values por optionGroup
-- [ ] UI `QuoteTab` linear picker → grouped picker
+- [ ] `interface OptionMaster { id, optionGroupCode, name, notes, status, tenantId }`
+- [ ] `interface OptionGroupValue { id, optionMasterId, position, value, description, status }`
+- [ ] Seed data · migrar `Product.fabricOptions[]` (~50 items) a `OptionMaster[]` + `OptionGroupValue[]`
+- [ ] `ProductGroup.linkedOptionGroup: { optionMasterId, position }[]` reemplaza `linkedOptionGroupCodes: string[]`
+- [ ] UI VariantsTab: agrupar values por master
+- [ ] UI QuoteTab: selector grouped
 - [ ] `computeLineItemTotals` sumar priceModifiers desde optionValues
 
-**Files touched**: `types.ts`, `productVariants.ts`, `ProductDetailPanel.tsx` (Quote + Variants tabs), `helpers.ts`.
-**Riesgo**: alto · cambia el shape del Product y de QuoteLineItem.finishId/fabricId/materialTierId.
+**Files touched**: `types.ts`, `productVariants.ts`, `ProductDetailPanel.tsx`, `EditQuoteItemPanel.tsx`, `helpers.ts`.
+**Riesgo**: alto · cambia shape de `QuoteLineItem.fabricId/finishId/materialTierId`.
 
-### P1 · Finishes normalizado 3 niveles (~7-10 días)
+### P1 · Finishes normalizado 3 niveles (~7-10 días · el más grande)
 
-**El más grande de todos**. Refactor cross-cutting.
-
-- [ ] Crear `MasterFinish { id, name }` + `FinishOption { id, masterFinishId, name }` + `FinishValue { id, finishOptionId, name, price, swatch? }`
-- [ ] Seed data · migrar `Product.finishes[]` (~50-100 finishes actuales) al modelo 3-niveles
-- [ ] `ProductGroup.linkedFinishMaster` referencia a MasterFinish.id · define qué masters aplican
+- [ ] `interface FinishMaster { id, masterFinishName, status, tenantId }`
+- [ ] `interface FinishOption { id, finishMasterId, name, status }`
+- [ ] `interface FinishValue { id, finishOptionId, position, name, description, status, price, currencyId, swatch? }`
+- [ ] Seed data · migrar `Product.finishes[]` (~50-100 items) al modelo 3-niveles
+- [ ] `ProductGroup.linkedFinishMaster: { masterFinishId, position }[]`
 - [ ] Product resuelve availableFinishValues via linkedFinishMaster + linked options
 - [ ] UI VariantsTab: dropdown 2-level (master → option → value)
-- [ ] UI QuoteTab: selector jerárquico
+- [ ] UI QuoteTab: selector jerárquico + priceModifier calculado desde FinishValue
+- [ ] Colorway como caso especial de FinishValue?
 
-**Files touched**: `types.ts`, `productVariants.ts`, `productGroups.ts` (seeds nuevas), `ProductDetailPanel.tsx`, `EditQuoteItemPanel.tsx`, `helpers.ts`.
-**Riesgo**: muy alto · afecta ~15 archivos y cambia shape de QuoteLineItem.finishId a finishValueId con jerarquía.
+**Files touched**: `types.ts`, `productVariants.ts`, `productGroups.ts`, `ProductDetailPanel.tsx`, `EditQuoteItemPanel.tsx`, `helpers.ts`, `QuoteContext.tsx` (finishId type change).
+**Riesgo**: muy alto.
+
+### P2 · Multi-tenant per-entity (~3-5 días)
+
+- [ ] Agregar `tenantId?: string` a Catalog, OptionMaster, FinishMaster
+- [ ] Filter data por tenant en las queries de UI (Showroom sidebar)
+- [ ] Seed data: marcar seed defaults como `tenantId: null` (global)
+
+**Files touched**: `types.ts`, seed files, `useCatalogs`, `ShowroomPage.tsx` (filter).
+**Riesgo**: medio.
+
+### P2 · Status per-entity (~2-3 días)
+
+- [ ] Agregar `status?: string` a Catalogue, OptionMaster, OptionGroupValue, FinishMaster, FinishOption, FinishValue
+- [ ] UI: filtrar por status = 'active' en dropdowns (excluir discontinued)
+- [ ] Mapping legacy: `Product.itemStatus` → `productItem.statusId + productItem.productItemStatusValue`
+
+**Files touched**: `types.ts`, seed files, filter logic.
+**Riesgo**: bajo.
+
+### P2 · Record header pattern (~3-5 días)
+
+- [ ] Agregar `id: number` (bigint en producción), `recordNumber: string`, `recordCreatedAt: string`, `tenantId?: number` a las entities catalog
+- [ ] Mapping bronze→silver debe generar estos en el processor
+- [ ] Front prototype no necesita rehacerse · el pattern es del silver layer
+
+**Files touched**: solo `docs/` (documentation) + backend migration.
+**Riesgo**: bajo (front) / alto (backend).
 
 ### P2 · Drawings 2D/3D discriminados (~1-2 días)
 
-- [ ] Extender `SymbolFolder` con `dimension: '2D' | '3D' | 'other'`
+- [ ] Agregar `dimension: '2D' | '3D' | 'other'` a `SymbolFolder`
+- [ ] Agregar `drawingName2D?: string` y `drawingName3D?: string` a Product (primary drawing por dimensión)
 - [ ] Seed data: reclasificar (AutoCAD/DWG = 2D, Revit/SketchUp/3DS Max = 3D)
 - [ ] UI ResourcesTab: agrupar por dimensión
 
 **Files touched**: `types.ts`, `manufacturers.ts`, `ProductDetailPanel.tsx` ResourcesTab.
 **Riesgo**: bajo.
 
-### P3 · Overlay documentado en migration doc
+### P3 · Jerarquía universal (level/isProject/parent*) (~documentation only)
 
-Sin código · solo documentación.
+- [ ] Documentar en `docs/silver-schema-mapping.md` que level/parentId son derivados en el processor bronze→silver
+- [ ] Front prototype no requiere cambio (la jerarquía se computa del sectionId/productGroupId FK)
 
-- [ ] Sección "Auxiliary tables" en `docs/silver-schema-alignment.md` (o merge con este file)
-- [ ] Listar 15+ entidades overlay con motivación
+**Files touched**: docs.
+**Riesgo**: cero.
+
+### P3 · Overlay documentado (docs only)
+
+- [ ] Extender `docs/data-inventory.md` con seccion "Auxiliary tables recommended for production"
+- [ ] Listar 15+ entidades overlay con motivación y target table name
 - [ ] Diagrama FK entre silver schema y overlay tables
-- [ ] Recomendar naming convention para las auxiliary tables
 
-### P4 · Cuando llegue el doc 2 (silver schema técnico)
-
-- [ ] Validar todos los items marcados `[inferred]` en esta tabla
-- [ ] Extender la tabla con field types específicos (string, number, date, jsonb)
-- [ ] Documentar FK constraints (ON DELETE CASCADE vs SET NULL)
-- [ ] Ajustar los renames si el silver schema usa nombres distintos al plain-language doc
-- [ ] Confirmar el status enum (Active/Retired vs Draft/Active/Archived/Discontinued)
+**Files touched**: docs.
+**Riesgo**: cero.
 
 ---
 
-## Anexo · Correspondencia file:line ↔ Notion field
+## Correspondencia file:line ↔ Silver field (referencia rápida)
 
-Para navegación rápida.
-
-| Notion field | expert-catalog file:line |
+| Silver field | expert-catalog file:line |
 |---|---|
-| catalogueName | `src/catalog/types.ts:203` (Catalog.name) |
-| catalogueStatus | `src/catalog/types.ts:211` (Catalog.status) |
-| sectionName | `src/catalog/types.ts:243` (Section.name) |
-| productTypeName | `src/catalog/types.ts:250` (ProductType.name) |
-| productGroupCode | `src/catalog/types.ts:262` (ProductGroup.code) |
-| productGroupDescription | `src/catalog/types.ts:264` (ProductGroup.description) |
-| linkedOptionGroup | `src/catalog/types.ts:265` (ProductGroup.linkedOptionGroupCodes) |
-| linkedFinishMaster | `src/catalog/types.ts:266` (ProductGroup.linkedFinishMasterCodes) |
-| productItemCode | `src/catalog/data/productGroups.ts:295` (ProductStub) · `src/catalog/types.ts:139` (Product) |
-| productItemDescription | `src/catalog/types.ts:85` (Product.description) |
-| productItemPrice | `src/catalog/types.ts:112` (Product.price) · `productGroups.ts:298` (ProductStub.priceEstimateMin) |
-| drawingName2D | `src/catalog/types.ts:133` (Product.symbols) |
-| drawingName3D | `src/catalog/types.ts:133` (Product.symbols) |
-| statusId / productItemStatusValue | `src/catalog/types.ts:43` (ItemStatus enum) · `types.ts:99` (Product.itemStatus) |
-| optionGroupCode | `src/catalog/types.ts:127` (Product.fabricOptions · flat) |
-| optionValue | `src/catalog/types.ts:60` (FabricOption.name) |
+| catalogueName | `types.ts:205` (Catalog.name) |
+| catalogueStatus | `types.ts:212` (Catalog.status) |
+| sectionName | `types.ts:245` (Section.name) |
+| sectionCatalogueId | ❌ no existe |
+| productTypeName | `types.ts:252` (ProductType.name) |
+| productGroupCode | `types.ts:262` (ProductGroup.code) |
+| productGroupDescription | `types.ts:264` (ProductGroup.description) |
+| sectionIdRef | `types.ts:267` (ProductGroup.sectionId) |
+| productTypeIdRef | `types.ts:268` (ProductGroup.productTypeId) |
+| linkedOptionGroup (jsonb) | `types.ts:269` (linkedOptionGroupCodes: string[]) |
+| linkedFinishMaster (jsonb) | `types.ts:270` (linkedFinishMasterCodes: string[]) |
+| productItemCode | `productGroups.ts:295` (ProductStub) · `types.ts:139` (Product) |
+| productItemDescription | `types.ts:85` (Product.description) + `ProductStub.name` |
+| productItemPrice | `types.ts:112` (Product.price) · `productGroups.ts:298` (ProductStub.priceEstimateMin) |
+| productItemCurrencyId | ❌ no existe |
+| productGroupIdRef | `types.ts:141` (Product.productGroupId?) |
+| drawingName2D | `types.ts:133` (Product.symbols[] · sin dimensión) |
+| drawingName3D | `types.ts:133` (Product.symbols[] · sin dimensión) |
+| statusId / productItemStatusValue | `types.ts:43` (ItemStatus enum) + `types.ts:99` (Product.itemStatus) |
+| optionMasterId | ❌ no existe (solo códigos en linkedOptionGroupCodes) |
+| optionGroupCode | (indirect) `types.ts:269` array de codes |
+| optionGroupValueId | `types.ts:59` (FabricOption.id) |
+| optionValue | `types.ts:60` (FabricOption.name) |
+| optionMasterIdRef | ❌ no existe |
+| finishMasterId | ❌ no existe |
 | masterFinishName | ❌ no existe |
+| finishOptionId | ❌ no existe |
 | finishOptionName | ❌ no existe |
-| finishValueName | `src/catalog/types.ts:49` (Finish.name) |
-| finishValuePrice | `src/catalog/types.ts:52` (Finish.priceModifier) |
-| currencyCode | `src/catalog/types.ts:334` (SpaceBundle.currency · overlay only) |
+| finishValueId | `types.ts:48` (Finish.id) |
+| finishValueName | `types.ts:49` (Finish.name) |
+| finishValuePrice | `types.ts:52` (Finish.priceModifier) |
+| finishValueCurrencyId | ❌ no existe |
+| finishOptionIdRef | ❌ no existe |
+| currencyCode | `types.ts:334` (SpaceBundle.currency · overlay only) |
+| level / isProject / parentId | ❌ no existen (silver derivables en processor) |
 
 ---
 
 ## Referencias
 
-- Data inventory completo · [docs/data-inventory.md](./data-inventory.md)
-- Silver schema Notion doc 1 (Plain-Language) · pegado en el chat de la sesión 2026-07-06
-- Silver schema Notion doc 2 (Technical) · **pendiente** de que Diego pegue el contenido en el chat o adjunte el PDF
-- Alignment histórico Fase 3.1 · [docs/silver-schema-alignment.md](./silver-schema-alignment.md) (será superseded)
+- Data inventory · [docs/data-inventory.md](./data-inventory.md)
+- Silver schema Notion doc 1 (Plain-Language) · pegado 2026-07-06
+- Silver schema Notion doc 2 (Technical/TypeORM entity) · PDF pegado 2026-07-06
+- Alignment histórico Fase 3.1 · [docs/silver-schema-alignment.md](./silver-schema-alignment.md) (superseded)
 
 ---
 
@@ -316,4 +442,5 @@ Para navegación rápida.
 
 | Fecha | Cambio |
 |---|---|
-| 2026-07-06 | Versión inicial. Basada solo en doc 1 plain-language. Marcados `[inferred]` los campos que requieren validación del doc 2 técnico. |
+| 2026-07-06 | Versión inicial (solo doc 1 plain-language) |
+| 2026-07-06 | **Versión final** con validaciones del doc 2 técnico (PDF con TypeORM entity). Todos los `[inferred]` resueltos a `verified` o `gap`. 10 hallazgos con severity. Roadmap detallado P0-P3 con time estimate. |
