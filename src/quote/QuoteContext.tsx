@@ -18,6 +18,10 @@ import { useAuth } from '../context/AuthContext'
 import { useTenant } from '../TenantContext'
 import { getTenantMetadata, type TenantMetadata } from './tenantData'
 import { getUserCompanyProfile, type UserCompanyProfile } from './userProfile'
+// Fase 2 hotfix (2026-07-06) · import estático de findProductStub · el
+// require() previo rompía en Vite/ESM (require is not defined) · silent-skip
+// dejaba lineInputs vacío y por eso los bundles no se agregaban al Selection.
+import { findProductStub } from '../catalog/data/productGroups'
 
 export interface QuoteLineItem {
     id: string
@@ -347,9 +351,6 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
        min/max del stub) y delega en addItems. Si un itemId no matchea
        ningún stub, se salta (defensive). */
     const addBundle = useCallback((setting: import('../catalog/types').SpaceTypeSetting, draftId?: string | null): string => {
-        // Import perezoso · evita circular dependency con catalog/data
-        const { findProductStub } = require('../catalog/data/productGroups') as typeof import('../catalog/data/productGroups')
-
         const lineInputs: Omit<QuoteLineItem, 'id' | 'addedAt'>[] = []
         for (const bundleItem of setting.bundle.items) {
             const stub = findProductStub(bundleItem.itemId)
