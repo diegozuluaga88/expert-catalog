@@ -20,7 +20,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | Fase | Descripción | Estado | Commits | Fecha |
 |---|---|---|---|---|
 | **P0.1** | Renames semánticos low-risk (linked*, Category alias, Catalog.status) | 🟢 | `6fb5096` | 2026-07-06 |
-| **P1.1** | Catalogue layer (nueva entidad separada de Manufacturer) | ⚪ | — | — |
+| **P1.1** | Catalogue layer (nueva entidad separada de Manufacturer) | 🟢 | `TBD` | 2026-07-06 |
 | **P1.2** | Currency entity + currencyId multi-level | ⚪ | — | — |
 | **P1.3** | Options normalizado 2 niveles (OptionMaster + OptionGroupValue) | ⚪ | — | — |
 | **P1.4** | Finishes normalizado 3 niveles (FinishMaster + FinishOption + FinishValue) | ⚪ | — | — |
@@ -66,19 +66,39 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 
 ---
 
-## Fase P1.1 · Catalogue layer
+## Fase P1.1 · Catalogue layer · 🟢 COMPLETADA
 
-_Pendiente arranque tras P0.1._
+**Time estimate**: ~3-5 días (real: ~30 min)
+**Risk**: medio (real: bajo · backward compat sólido)
+**Commit**: `TBD`
 
-**Time estimate**: ~3-5 días
-**Risk**: medio
+### Scope ejecutado
 
-### Scope
-- Nueva `interface Catalogue { id, catalogueNumber, name, activeDate, expirationDate, status, currencyId, tenantId }`
-- `Catalog` (mock reactivo) consume Catalogue como sub-tipo (backward compat)
-- Seed data · 1 Catalogue mock por Manufacturer para probar la layer
+- ✅ Nueva `interface Catalogue { id, catalogueNumber, name, activeDate, expirationDate, status, currencyId, tenantId?, manufacturerId? }` en types.ts
+- ✅ Nueva `interface Currency { id, code, name, type }` (Currency row-level del silver)
+- ✅ `Catalog.catalogueId?: string` opcional para linkear al Catalogue nuevo (backward compat)
+- ✅ Seed: 5 Catalogues mock (3 activos por Manufacturer + 1 archived Allermuir 2025 + 1 draft Allermuir EUR)
+- ✅ Seed: 4 Currencies (USD/EUR/CAD/GBP)
+- ✅ 5 helpers exported: findCatalogueById, findCatalogueByNumber, cataloguesForManufacturer, cataloguesForTenant, currencyCodeForCatalogue, findCurrencyById
 
-_[Detalles se completan al arrancar]_
+### Files touched
+
+- `src/catalog/types.ts` (Catalogue + Currency interfaces + Catalog.catalogueId opcional)
+- `src/catalog/data/catalogues.ts` (nuevo · seed CATALOGUES + CURRENCIES + 5 helpers)
+- `src/catalog/data/catalogs.ts` (link cada Catalog mock al catalogueId correspondiente)
+
+### Verification
+
+1. `npx tsc --noEmit` · 0 errors
+2. Grep test: `findCatalogueById('cat-allsteel-2026')` retorna objeto con currencyId='USD', status='Active', dates 2026-01-01 / 2026-12-31.
+3. Zero cambios visibles en UI · Catalog cards del ManageCatalogs siguen renderizándose idénticas.
+4. `cataloguesForTenant(null)` retorna los 5 seed (todos globales, ninguno per-tenant en el seed inicial).
+
+### Cross-refs siguientes fases
+
+- P1.2 (Currency multi-level): usa `Currency` interface + integra `catalogueCurrencyId` en pricing display.
+- P1.3 (Options): agregar OptionMaster con `tenantId?` similar a Catalogue.
+- P2.1 (Multi-tenant): Catalogue ya soporta `tenantId?` · faltaría propagar a OptionMaster + FinishMaster.
 
 ---
 

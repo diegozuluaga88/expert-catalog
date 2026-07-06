@@ -15,6 +15,10 @@ import type { Catalog } from '../types'
 // (Allermuir / Allsteel / AIS) · esto permite que la chips merge funcione como filter.
 // Allermuir mantiene el narrative de needs-sync (Phase 1 Fix #2/#3) · 14 days + Update Avail.
 
+// Fase P1.1 · cada Catalog mock ahora linkea al Catalogue del silver schema
+// via `catalogueId?`. Preserva backward compat (el UI existente sigue usando
+// name/version/lastSync/status del mock). El Catalogue permite resolver dates,
+// currency y status "canonical" cuando UI lo requiera.
 const INITIAL_CATALOGS: Catalog[] = [
   {
     id: 1,
@@ -26,6 +30,7 @@ const INITIAL_CATALOGS: Catalog[] = [
     status: 'Update Avail.',
     owner: 'John Doe',
     image: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?auto=format&fit=crop&q=80&w=800',
+    catalogueId: 'cat-allermuir-2025-archived',
   },
   {
     id: 2,
@@ -37,6 +42,7 @@ const INITIAL_CATALOGS: Catalog[] = [
     status: 'Active',
     owner: 'John Doe',
     image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=800',
+    catalogueId: 'cat-allsteel-2026',
   },
   {
     id: 3,
@@ -48,6 +54,7 @@ const INITIAL_CATALOGS: Catalog[] = [
     status: 'Active',
     owner: 'Sarah Smith',
     image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800',
+    catalogueId: 'cat-ais-2026',
   },
 ]
 

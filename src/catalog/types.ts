@@ -226,6 +226,72 @@ export type ViewMode = 'shelf' | 'grid'
  */
 export type CatalogStatus = 'Active' | 'Update Avail.' | 'Archived'
 
+/**
+ * Fase P1.1 · Currency · alineado con silver schema (grupo Currency row-level).
+ * En producción es una tabla separada de currencies · aquí es un diccionario
+ * mock referenced por catalogueCurrencyId / productItemCurrencyId /
+ * finishValueCurrencyId.
+ *
+ * Mapea a las columnas silver: currencyId, currencyName, currencyCode, currencyType.
+ */
+export interface Currency {
+  id: string           // "USD", "EUR" · usado como ID interno + FK
+  code: string         // "USD", "EUR" · ISO 4217
+  name: string         // "US Dollar", "Euro"
+  type: string         // "fiat" · en silver es text libre (podría ser crypto, etc)
+}
+
+/**
+ * Fase P1.1 · Catalogue · nueva entidad separada de `Manufacturer` alineada
+ * con el silver schema (grupo Catalogue). Cada Catalogue es un "product book"
+ * de un manufacturer para un período específico con una moneda y estado.
+ *
+ * Un Manufacturer puede publicar N Catalogues (Steelcase 2024 Seating,
+ * Steelcase 2025 Seating, Steelcase 2025 EUR, etc). Cada Section pertenece
+ * a UN Catalogue específico (via `Section.catalogueId?`, futuro).
+ *
+ * Mapea a las columnas silver: catalogueId, catalogueNumber, catalogueName,
+ * catalogueActiveDate, catalogueExpirationDate, catalogueStatus,
+ * catalogueCurrencyId, catalogueTenantId.
+ *
+ * @see Catalog (UI mock reactivo) · sub-tipo compatible que agrega
+ * `catalogueId?` opcional para linkear al Catalogue.
+ */
+export interface Catalogue {
+  id: string
+  /** ID code humano · "SC-2025-SEAT", "AL-2026-COL". Aparece en silver como `catalogueNumber`. */
+  catalogueNumber: string
+  name: string
+  /** ISO date · en silver es `timestamp`. */
+  activeDate: string
+  /** ISO date · en silver es `timestamp`. */
+  expirationDate: string
+  /** En silver es `text` libre. Aquí en mock usamos union para tipar el UI. */
+  status: 'Active' | 'Draft' | 'Discontinued' | 'Archived'
+  /** FK → Currency.id · en silver `catalogueCurrencyId`. */
+  currencyId: string
+  /** FK → Tenant.id · en silver `catalogueTenantId`. Multi-tenant support (custom catalogues
+   *  per dealer). `null` o `undefined` = catalogue global (seed). */
+  tenantId?: string
+  /** Link al Manufacturer que publica este catalogue · útil para browse UI.
+   *  En silver esto sería derivable via sectionCatalogueId → productGroupIdRef → items[] → manufacturer. */
+  manufacturerId?: string
+}
+
+/**
+ * Catalog (mock reactivo UI) · representa el estado de sync de un catálogo
+ * importado por el dealer. Distinto (semánticamente) del `Catalogue` del
+ * silver schema:
+ *
+ * - `Catalog` = record del catálogo IMPORTADO por el dealer, con sync
+ *   status, lastSync, cover image, owner (dealer/manufacturer del import),
+ *   ID numérico interno del mock.
+ * - `Catalogue` = record del CATÁLOGO PUBLICADO por el manufacturer con
+ *   catalogueNumber, dates, currency, tenantId. Silver schema.
+ *
+ * Fase P1.1 · `Catalog.catalogueId` opcional para linkear a un `Catalogue`
+ * cuando el import viene con un catalogueNumber conocido. Backward compat.
+ */
 export interface Catalog {
   id: number
   name: string
@@ -237,6 +303,10 @@ export interface Catalog {
   status: CatalogStatus
   owner: string
   image: string
+  /** Fase P1.1 · link opcional al Catalogue del silver schema · permite resolver
+   *  catalogueNumber, activeDate, expirationDate, currencyId sin duplicar campos
+   *  en el mock del import. */
+  catalogueId?: string
 }
 
 /** Modo del módulo de Catálogo en expert-hub. */
