@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { ChevronLeft, CheckCircle2 } from 'lucide-react'
 import { settingsForSpaceType } from '../data/spaceTypes'
+import { findProductStub } from '../data/productGroups'
 import type { SpaceType, SpaceTypeSetting } from '../types'
 import SpaceBundleCard from './SpaceBundleCard'
+import ProductIcon from './ProductIcon'
 import { useQuote } from '../../quote/QuoteContext'
 
 interface Props {
@@ -11,14 +13,14 @@ interface Props {
     onViewSelection: () => void
 }
 
-// Detail page de un Space Type · muestra los settings (F1-F4, WC1-WC2, etc)
-// como grid de cards. Cada card tiene botón "Add all to Selection" que llama
-// a QuoteContext.addBundle(setting).
+// Fase 3 · Detail page redesigned · para cada setting muestra:
+//   1. SpaceBundleCard (rendering + config numerada + notes + Add all)
+//   2. Grid "Bundle products" con ProductIcon + code + name + price range
+//      (replicando la sección de product cards del widget MillerKnoll).
 export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection }: Props) {
     const settings = settingsForSpaceType(spaceType.id)
     const { addBundle } = useQuote()
 
-    // Toast confirmación · usa el pattern del modal existente
     const [toast, setToast] = useState<{ code: string; itemCount: number } | null>(null)
 
     const handleAdd = (setting: SpaceTypeSetting) => {
@@ -29,7 +31,7 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
     }
 
     return (
-        <div className="space-y-6 relative">
+        <div className="space-y-8 relative">
             {/* Breadcrumb + back */}
             <div>
                 <button
@@ -63,14 +65,64 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
                 </div>
             </div>
 
-            {/* Grid de settings · 2 columnas en desktop */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Por cada setting: card grande + grid de bundle products */}
+            <div className="space-y-10">
                 {settings.map(setting => (
-                    <SpaceBundleCard
-                        key={setting.id}
-                        setting={setting}
-                        onAddToSelection={handleAdd}
-                    />
+                    <section key={setting.id} className="space-y-4">
+                        <SpaceBundleCard
+                            setting={setting}
+                            spaceType={spaceType}
+                            onAddToSelection={handleAdd}
+                        />
+
+                        {/* Bundle products grid · mini cards por item del bundle */}
+                        <div>
+                            <div className="flex items-baseline justify-between mb-3 px-1">
+                                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                    {setting.code} · Bundle products
+                                </h3>
+                                <span className="text-[10px] text-muted-foreground">
+                                    {setting.bundle.items.length} {setting.bundle.items.length === 1 ? 'item' : 'items'}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {setting.bundle.items.map((bi, idx) => {
+                                    const stub = findProductStub(bi.itemId)
+                                    if (!stub) return null
+                                    const priceMid = Math.round((stub.priceEstimateMin + stub.priceEstimateMax) / 2)
+                                    return (
+                                        <div
+                                            key={`${setting.id}-${idx}`}
+                                            className="rounded-lg border border-border bg-card overflow-hidden hover:border-primary/40 transition-colors"
+                                        >
+                                            <ProductIcon productGroupCode={bi.productGroupCode} size="md" />
+                                            <div className="p-2.5 space-y-1.5">
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="text-[10px] font-bold text-foreground">
+                                                        {stub.productItemCode}
+                                                    </span>
+                                                    {stub.manufacturerHint && (
+                                                        <span className="text-[9px] text-muted-foreground truncate">
+                                                            {stub.manufacturerHint}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h4 className="text-xs font-semibold text-foreground leading-snug line-clamp-2">
+                                                    {stub.name}
+                                                </h4>
+                                                <div className="flex items-baseline justify-between pt-1 border-t border-border">
+                                                    <span className="text-[10px] text-muted-foreground">from</span>
+                                                    <span className="text-xs font-bold text-foreground">
+                                                        ${priceMid.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </section>
                 ))}
             </div>
 
