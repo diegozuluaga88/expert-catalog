@@ -114,6 +114,9 @@ interface QuoteContextValue {
     deleteDraft: (draftId: string) => void
     /** Add lines · si draftId es null/undefined, usa el activeDraft (o crea uno manual). */
     addItems: (items: Omit<QuoteLineItem, 'id' | 'addedAt'>[], draftId?: string | null) => string
+    /** Fase 2 · Add all items de un Space Type Setting bundle a la selection ·
+     *  resuelve stubs, arma QuoteLineItems y delega en addItems. */
+    addBundle: (setting: import('../catalog/types').SpaceTypeSetting, draftId?: string | null) => string
     updateItem: (draftId: string, itemId: string, patch: Partial<QuoteLineItem>) => void
     removeItem: (draftId: string, itemId: string) => void
     /** Vaciar todos los items del draft sin eliminar el draft (Diego polish) */
@@ -338,6 +341,34 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
 
     const clearLastAdded = useCallback(() => setLastAdded(null), [])
 
+    /* ── Fase 2 refactor · addBundle (2026-07-06) ────────────────────────
+       Recibe un SpaceTypeSetting completo · resuelve cada bundle item via
+       PRODUCT_STUBS · arma QuoteLineItems con precio estimado (promedio de
+       min/max del stub) y delega en addItems. Si un itemId no matchea
+       ningún stub, se salta (defensive). */
+    const addBundle = useCallback((setting: import('../catalog/types').SpaceTypeSetting, draftId?: string | null): string => {
+        // Import perezoso · evita circular dependency con catalog/data
+        const { findProductStub } = require('../catalog/data/productGroups') as typeof import('../catalog/data/productGroups')
+
+        const lineInputs: Omit<QuoteLineItem, 'id' | 'addedAt'>[] = []
+        for (const bundleItem of setting.bundle.items) {
+            const stub = findProductStub(bundleItem.itemId)
+            if (!stub) continue // silent skip · defensive
+            const avgPrice = Math.round((stub.priceEstimateMin + stub.priceEstimateMax) / 2)
+            lineInputs.push({
+                productId: stub.id,
+                productName: `${stub.productItemCode} · ${stub.name}`,
+                productBrand: stub.manufacturerHint,
+                productImage: stub.imageUrl ?? '',
+                qty: bundleItem.qty,
+                unitPrice: avgPrice,
+                totalPrice: avgPrice * bundleItem.qty,
+                leadTimeDays: 30, // default estimado
+            })
+        }
+        return addItems(lineInputs, draftId)
+    }, [addItems])
+
     const startEditingItem = useCallback((draftId: string, item: QuoteLineItem) => {
         setEditingItem({ draftId, item })
     }, [])
@@ -443,6 +474,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             createDraft,
             deleteDraft,
             addItems,
+            addBundle,
             updateItem,
             removeItem,
             clearDraftItems,
