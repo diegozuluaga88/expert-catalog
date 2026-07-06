@@ -50,9 +50,10 @@ export default function SpaceBundleCard({ setting, spaceType, onAddToSelection }
 
             {/* Cuerpo · 2-col: rendering + configuration */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                {/* Left · rendering isométrico con hotspots */}
+                {/* Left · foto real del SpaceType + hotspots numerados overlay */}
                 <SpaceRendering
-                    spaceIcon={spaceType.icon ?? '🏢'}
+                    imageUrl={spaceType.imageUrl}
+                    fallbackIcon={spaceType.icon ?? '🏢'}
                     itemCount={bundle.items.length}
                     label={`${name} · ${bundle.items.length}-item configuration rendering`}
                 />

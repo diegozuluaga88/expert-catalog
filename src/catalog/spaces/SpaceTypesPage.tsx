@@ -41,25 +41,36 @@ export default function SpaceTypesPage({ onSelectSpaceType }: Props) {
                             onClick={() => onSelectSpaceType(type)}
                             className="group text-left rounded-xl border border-border bg-card hover:border-primary/50 hover:shadow-sm transition-all overflow-hidden"
                         >
-                            <div className="p-5">
-                                <div className="flex items-start justify-between gap-3 mb-3">
-                                    <div className="text-3xl">{type.icon}</div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {type.spaceProfile.map(sp => (
-                                            <span
-                                                key={sp}
-                                                className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
-                                                title={
-                                                    sp === 'CCO' ? 'Contact Center / Operations'
-                                                        : sp === 'GW' ? 'General Workspace'
-                                                            : 'Client Interact'
-                                                }
-                                            >
-                                                {sp}
-                                            </span>
-                                        ))}
-                                    </div>
+                            {/* Fase 3.1 · thumbnail arriba con emoji sobre-impuesto bottom-left */}
+                            <div className="relative aspect-video overflow-hidden bg-muted">
+                                <img
+                                    src={type.imageUrl}
+                                    alt={type.name}
+                                    loading="lazy"
+                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                />
+                                {/* Overlay sutil bottom → mejora contrast del profile chips que quedan sobre la img en algunas fotos */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+                                <span className="absolute bottom-2 left-2 text-2xl drop-shadow-md" role="img" aria-hidden="true">
+                                    {type.icon}
+                                </span>
+                                <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end">
+                                    {type.spaceProfile.map(sp => (
+                                        <span
+                                            key={sp}
+                                            className="inline-flex items-center rounded-full bg-card/85 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-foreground border border-border/60"
+                                            title={
+                                                sp === 'CCO' ? 'Contact Center / Operations'
+                                                    : sp === 'GW' ? 'General Workspace'
+                                                        : 'Client Interact'
+                                            }
+                                        >
+                                            {sp}
+                                        </span>
+                                    ))}
                                 </div>
+                            </div>
+                            <div className="p-5">
                                 <h3 className="text-base font-bold text-foreground mb-1">{type.name}</h3>
                                 <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-3">
                                     {type.description}

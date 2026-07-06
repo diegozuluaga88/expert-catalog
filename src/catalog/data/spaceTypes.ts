@@ -14,12 +14,15 @@ import type { SpaceType, SpaceTypeSetting, SpaceBundle } from '../types'
    Space Types · 6 tipologías principales
    ═══════════════════════════════════════════════════════════════════════ */
 
+// Fase 3.1 · imageUrl agregado a cada SpaceType · foto en /public/images/spaces/
+// (licencia libre, Unsplash CDN preservado en assets locales).
 export const SPACE_TYPES: SpaceType[] = [
     {
         id: 'sp-focus-room',
         name: 'Focus Room',
         code: 'focus-room',
         icon: '🎯',
+        imageUrl: '/images/spaces/focus-room.jpg',
         description: 'Individual workspace for concentrated work · phone calls, video meetings, deep focus tasks.',
         spaceProfile: ['CCO', 'GW', 'CI'],
     },
@@ -28,6 +31,7 @@ export const SPACE_TYPES: SpaceType[] = [
         name: 'Work Cafe',
         code: 'work-cafe',
         icon: '☕',
+        imageUrl: '/images/spaces/work-cafe.jpg',
         description: 'Casual gathering area with dining and lounge seating · informal collaboration and social interaction.',
         spaceProfile: ['CCO', 'GW', 'CI'],
     },
@@ -36,6 +40,7 @@ export const SPACE_TYPES: SpaceType[] = [
         name: 'Huddle Room',
         code: 'huddle-room',
         icon: '👥',
+        imageUrl: '/images/spaces/huddle-room.jpg',
         description: 'Small collaboration space for 2-4 people · quick meetings, video conferencing, ad-hoc discussions.',
         spaceProfile: ['CCO', 'GW', 'CI'],
     },
@@ -44,6 +49,7 @@ export const SPACE_TYPES: SpaceType[] = [
         name: 'Meeting Room',
         code: 'meeting-room',
         icon: '🗓️',
+        imageUrl: '/images/spaces/meeting-room.jpg',
         description: 'Formal meeting space in small / medium / large / extra-large configurations · scheduled team meetings.',
         spaceProfile: ['CCO', 'GW', 'CI'],
     },
@@ -52,6 +58,7 @@ export const SPACE_TYPES: SpaceType[] = [
         name: 'Front Porch',
         code: 'front-porch',
         icon: '🏛️',
+        imageUrl: '/images/spaces/front-porch.jpg',
         description: 'Welcoming transition zone at the entrance of a neighborhood · casual seating and display shelving.',
         spaceProfile: ['GW'],
     },
@@ -60,6 +67,7 @@ export const SPACE_TYPES: SpaceType[] = [
         name: 'Reception',
         code: 'reception',
         icon: '🎫',
+        imageUrl: '/images/spaces/reception.jpg',
         description: 'Client-facing entry area · lounge seating, side tables, coffee tables for waiting visitors.',
         spaceProfile: ['CI'],
     },

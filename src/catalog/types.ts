@@ -274,7 +274,10 @@ export interface SpaceType {
   id: string
   name: string                          // "Focus Room", "Work Cafe"
   code: string                          // "focus-room", "work-cafe"
-  icon?: string                         // emoji o slug de icono
+  icon?: string                         // emoji o slug de icono (fallback si imageUrl falla)
+  /** Fase 3.1 · foto real del espacio · path relativo servido por Vite/Vercel
+   *  desde /public/images/spaces/{code}.jpg */
+  imageUrl: string
   description: string
   /** Space Profiles de Steelcase · Contact Center / General Workspace / Client Interact */
   spaceProfile: Array<'CCO' | 'GW' | 'CI'>
