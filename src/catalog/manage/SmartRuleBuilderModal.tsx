@@ -4,6 +4,7 @@ import { Switch } from '@headlessui/react';
 import { AlertTriangle, BarChart3, CheckCircle2, RefreshCw, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatPrice } from '../data/catalogues';
 
 // Helper for classes
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -90,7 +91,7 @@ export default function SmartRuleBuilderModal({ isOpen, onClose, onSaveRule, cur
             }
 
             setRuleName(`Custom: ${prompt.substring(0, 20)}...`);
-            setRuleDesc(`Applies ${type === 'percentage' ? val + '%' : '$' + val} discount for baskets over $${thresh.toLocaleString()}`);
+            setRuleDesc(`Applies ${type === 'percentage' ? val + '%' : formatPrice(val)} discount for baskets over ${formatPrice(thresh)}`);
             setRuleType(type);
             setRuleValue(val);
             setRuleThreshold(thresh);

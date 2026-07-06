@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Calculator, DollarSign, Info, List, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { Switch } from '@headlessui/react';
 import SmartRuleBuilderModal, { type CustomRule } from './SmartRuleBuilderModal';
+import { formatPrice } from '../data/catalogues';
 
 const MOCK_CLIENTS = [
     { id: '1', name: 'Wells Fargo', contractId: 'WF-2024-QX' },
@@ -275,7 +276,7 @@ export default function ClientPolicyManager() {
                                         </div>
                                         <div className="text-xs text-ai/70 dark:text-ai/70 mt-0.5">{rule.description}</div>
                                         {!conditionMet && (
-                                            <div className="text-[10px] uppercase text-ai/70 font-semibold mt-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3" />Condition not met (Net &lt; ${rule.conditionThreshold.toLocaleString()})</div>
+                                            <div className="text-[10px] uppercase text-ai/70 font-semibold mt-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3" />Condition not met (Net &lt; {formatPrice(rule.conditionThreshold)})</div>
                                         )}
                                     </div>
                                     <Switch

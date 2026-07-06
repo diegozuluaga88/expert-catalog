@@ -17,6 +17,7 @@ import Navbar from './components/Navbar'
 import Breadcrumbs from './components/Breadcrumbs'
 import TransactionVerifyPill from './components/TransactionVerifyPill'
 import { POInputsTab } from './components/InputsTab'
+import { formatPrice } from './catalog/data/catalogues'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -611,8 +612,8 @@ export default function OrderDetail({ onBack, onLogout, onNavigateToWorkspace, o
                                                             )}
                                                         </td>
                                                         <td className="px-4 py-2 text-foreground text-right">{item.qty}</td>
-                                                        <td className="px-4 py-2 text-foreground text-right">${item.price.toLocaleString()}</td>
-                                                        <td className="px-4 py-2 text-foreground text-right font-bold">${(item.qty * item.price).toLocaleString()}</td>
+                                                        <td className="px-4 py-2 text-foreground text-right">{formatPrice(item.price)}</td>
+                                                        <td className="px-4 py-2 text-foreground text-right font-bold">{formatPrice(item.qty * item.price)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -1048,11 +1049,11 @@ export default function OrderDetail({ onBack, onLogout, onNavigateToWorkspace, o
                                                                 )}
                                                             </TableCell>
                                                             <TableCell className="px-3 py-3 whitespace-nowrap text-right">
-                                                                <div className="text-sm text-foreground">${(item.netPrice ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                                                                <div className="text-sm text-foreground">{formatPrice(item.netPrice ?? 0)}</div>
                                                                 {item.discPct && <div className="text-[10px] text-muted-foreground">-{item.discPct}%</div>}
                                                             </TableCell>
                                                             <TableCell className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium text-foreground">
-                                                                ${(item.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                {formatPrice(item.amount ?? 0)}
                                                             </TableCell>
                                                             <TableCell className="px-6 py-4 whitespace-nowrap">
                                                                 <Badge
@@ -1298,13 +1299,13 @@ export default function OrderDetail({ onBack, onLogout, onNavigateToWorkspace, o
                                                                 {selectedItem.netPrice != null && (
                                                                     <div className="flex justify-between text-xs">
                                                                         <span className="text-muted-foreground">Net Price</span>
-                                                                        <span className="font-medium text-foreground">${selectedItem.netPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                        <span className="font-medium text-foreground">{formatPrice(selectedItem.netPrice)}</span>
                                                                     </div>
                                                                 )}
                                                                 {selectedItem.amount != null && (
                                                                     <div className="flex justify-between text-xs">
                                                                         <span className="text-muted-foreground">Amount</span>
-                                                                        <span className="font-bold text-foreground">${selectedItem.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                        <span className="font-bold text-foreground">{formatPrice(selectedItem.amount)}</span>
                                                                     </div>
                                                                 )}
                                                             </div>

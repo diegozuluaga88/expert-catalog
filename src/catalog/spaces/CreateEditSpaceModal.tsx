@@ -13,6 +13,7 @@ import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 import { inferProductGroupCode } from '../data/productGroups'
 import type { Product, SpaceType, SpaceTypeSetting } from '../types'
 import type { CreateCustomSpaceInput } from './useCustomSpaces'
+import { formatPrice } from '../data/catalogues'
 
 interface Props {
     open: boolean
@@ -290,7 +291,7 @@ export default function CreateEditSpaceModal({ open, onClose, editing, onSubmit 
                                         <span>
                                             <span className="font-bold text-foreground">{draftItems.length}</span> items ·{' '}
                                             <span className="font-bold text-foreground">{totalUnits}</span> units ·{' '}
-                                            <span className="font-bold text-foreground">${totalEstimate.toLocaleString()}</span> estimated
+                                            <span className="font-bold text-foreground">{formatPrice(totalEstimate)}</span> estimated
                                         </span>
                                     )}
                                 </div>
@@ -482,7 +483,7 @@ function ProductPickerStep(props: {
                                 <div className="p-2">
                                     <div className="text-[10px] text-muted-foreground truncate">{p.brand}</div>
                                     <div className="text-xs font-semibold text-foreground truncate">{p.name}</div>
-                                    <div className="text-[11px] font-bold text-foreground mt-0.5">${(p.price ?? 0).toLocaleString()}</div>
+                                    <div className="text-[11px] font-bold text-foreground mt-0.5">{formatPrice(p.price, p.currencyId)}</div>
                                 </div>
                             </button>
                         )
@@ -521,7 +522,7 @@ function ProductPickerStep(props: {
                                         <div className="text-[10px] text-muted-foreground truncate">{d.productBrand}</div>
                                         <div className="text-xs font-semibold text-foreground truncate">{d.productName}</div>
                                         <div className="text-[10px] text-muted-foreground">
-                                            ${(d.estimatedPrice * d.qty).toLocaleString()}
+                                            {formatPrice(d.estimatedPrice * d.qty)}
                                         </div>
                                     </div>
                                     <button type="button" onClick={() => onRemove(d.productId)}
