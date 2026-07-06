@@ -184,12 +184,22 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                                             <span className="inline-flex items-center rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary-foreground">New</span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap">
                                         {item.colorwayHex && (
                                             <span className="inline-block h-2.5 w-2.5 rounded-sm border border-border" style={{ backgroundColor: item.colorwayHex }} />
                                         )}
                                         <span>{item.colorwayName ?? '—'}</span>
                                         {item.fabricIsPremium && <span className="rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
+                                        {/* Fase 3 · si el item vino de un bundle-add, marca settingCode
+                                            como pill · da contexto de "de dónde vino" en el drawer. */}
+                                        {item.settingCode && (
+                                            <span
+                                                className="inline-flex items-center rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-foreground"
+                                                title={`Added from ${item.settingName ?? item.settingCode}`}
+                                            >
+                                                {item.settingCode}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="text-[10px] font-semibold text-foreground">${item.totalPrice.toLocaleString()}</div>
                                 </div>

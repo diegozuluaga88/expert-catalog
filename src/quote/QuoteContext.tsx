@@ -46,6 +46,14 @@ export interface QuoteLineItem {
     addedAt: string
     /** Phase 5 · si el item vino de un doc ingest, referencia al doc fuente */
     sourceDocRef?: string
+    /** Fase 3 · si el item vino de un bundle-add (addBundle), marca a qué
+     *  Space Type Setting pertenece. Alimenta el grouping "By Space" del
+     *  MiniCartDrawer y QuotesPage. Items agregados uno a uno (addItem sin
+     *  bundle context) tienen estos campos undefined y quedan en el grupo
+     *  "Individual selections". */
+    settingCode?: string        // "F1", "WC1", "H2"
+    settingName?: string        // "Focus Room · Individual work"
+    spaceTypeId?: string        // ref → SpaceType.id
 }
 
 export interface BuyerInfo {
@@ -365,6 +373,10 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
                 unitPrice: avgPrice,
                 totalPrice: avgPrice * bundleItem.qty,
                 leadTimeDays: 30, // default estimado
+                // Fase 3 · marca de origen para el grouping "By Space" del cart.
+                settingCode: setting.code,
+                settingName: setting.name,
+                spaceTypeId: setting.spaceTypeId,
             })
         }
         return addItems(lineInputs, draftId)

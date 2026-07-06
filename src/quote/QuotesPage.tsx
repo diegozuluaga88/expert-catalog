@@ -5,13 +5,14 @@
 // Layout · 2-col 30/70 desktop · sidebar list de drafts left, detail right.
 // Tabs en sidebar: Drafts (active) / Submitted / Activity log (defer Phase 5).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-    ArrowLeft, CheckCircle2, FileText, History, Pencil, Plus, Sparkles, Trash2, X,
-    ChevronRight,
+    ArrowLeft, CheckCircle2, FileText, History, Layers, ListFilter, MapPin, Pencil, Plus,
+    Sparkles, Trash2, X, ChevronDown, ChevronRight,
 } from 'lucide-react'
 import { useQuote, type QuoteDraft, type QuoteLineItem, type QuotedHistoryEntry } from './QuoteContext'
 import { formatLeadTime } from './helpers'
+import { findSpaceTypeById } from '../catalog/data/spaceTypes'
 
 type QuoteSection = 'drafts' | 'submitted'
 
@@ -231,11 +232,78 @@ interface DraftDetailProps {
     onEditItem: (item: QuoteLineItem) => void
 }
 
+/** Fase 3 · view mode del listing · persist localStorage por session (no per-draft). */
+type ViewMode = 'flat' | 'byspace'
+const VIEW_MODE_KEY = 'expert-hub-quotes-view-mode'
+
+/** Fase 3 · agrupa items por settingCode. Los items sin settingCode caen a
+ *  "individual" · aparecen en un grupo aparte al final. */
+function groupItemsBySpace(items: QuoteLineItem[]): Array<{
+    key: string
+    settingCode?: string
+    settingName?: string
+    spaceTypeId?: string
+    items: QuoteLineItem[]
+}> {
+    const groups = new Map<string, {
+        key: string
+        settingCode?: string
+        settingName?: string
+        spaceTypeId?: string
+        items: QuoteLineItem[]
+    }>()
+    for (const item of items) {
+        const key = item.settingCode ?? '__individual__'
+        if (!groups.has(key)) {
+            groups.set(key, {
+                key,
+                settingCode: item.settingCode,
+                settingName: item.settingName,
+                spaceTypeId: item.spaceTypeId,
+                items: [],
+            })
+        }
+        groups.get(key)!.items.push(item)
+    }
+    // Individual va al final
+    const arr = Array.from(groups.values())
+    arr.sort((a, b) => {
+        if (a.key === '__individual__') return 1
+        if (b.key === '__individual__') return -1
+        return (a.settingCode ?? '').localeCompare(b.settingCode ?? '')
+    })
+    return arr
+}
+
 function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem, onRemoveItem, onEditItem }: DraftDetailProps) {
     const total = draft.items.reduce((s, it) => s + it.totalPrice, 0)
     const totalUnits = draft.items.reduce((s, it) => s + it.qty, 0)
     const maxLead = Math.max(0, ...draft.items.map(it => it.leadTimeDays))
     const { buyerInfo } = draft
+
+    // Fase 3 · view mode con persist localStorage
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        if (typeof window === 'undefined') return 'flat'
+        return (window.localStorage.getItem(VIEW_MODE_KEY) as ViewMode) || 'flat'
+    })
+    useEffect(() => {
+        try { window.localStorage.setItem(VIEW_MODE_KEY, viewMode) } catch { /* noop */ }
+    }, [viewMode])
+
+    // Fase 3 · collapse state por grupo (byspace mode)
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+    const toggleGroup = (key: string) => {
+        setCollapsedGroups(prev => {
+            const next = new Set(prev)
+            next.has(key) ? next.delete(key) : next.add(key)
+            return next
+        })
+    }
+
+    // Fase 3 · determinar si el toggle "By Space" tiene sentido · solo si hay items
+    // con settingCode (bundle-added). Si todos los items son individual, ocultar toggle.
+    const hasBundleItems = draft.items.some(it => it.settingCode)
+    const groups = viewMode === 'byspace' ? groupItemsBySpace(draft.items) : []
 
     return (
         <div className="space-y-4">
@@ -264,13 +332,101 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                 </div>
             </div>
 
-            {/* Items list */}
+            {/* Items list · Fase 3 · toggle "By Space / Flat list" */}
             <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="border-b border-border bg-muted/30 px-4 py-2">
+                <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
                     <h2 className="text-xs font-bold uppercase tracking-wide text-foreground">Line items ({draft.items.length})</h2>
+                    {hasBundleItems && (
+                        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('flat')}
+                                className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${
+                                    viewMode === 'flat' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                                title="Flat list · all items chronological"
+                            >
+                                <ListFilter className="h-3 w-3" />
+                                Flat list
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('byspace')}
+                                className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${
+                                    viewMode === 'byspace' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                                title="Group by Space Type Setting"
+                            >
+                                <Layers className="h-3 w-3" />
+                                By Space
+                            </button>
+                        </div>
+                    )}
                 </div>
                 {draft.items.length === 0 ? (
                     <p className="p-6 text-center text-sm text-muted-foreground">This draft is empty · add products from the showroom.</p>
+                ) : viewMode === 'byspace' ? (
+                    /* Grouped view · headers por Space Setting + collapse/expand */
+                    <div>
+                        {groups.map(group => {
+                            const groupSubtotal = group.items.reduce((s, it) => s + it.totalPrice, 0)
+                            const groupUnits = group.items.reduce((s, it) => s + it.qty, 0)
+                            const isCollapsed = collapsedGroups.has(group.key)
+                            const isIndividual = group.key === '__individual__'
+                            const spaceType = group.spaceTypeId ? findSpaceTypeById(group.spaceTypeId) : undefined
+                            return (
+                                <div key={group.key} className="border-b border-border last:border-b-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleGroup(group.key)}
+                                        className="flex w-full items-center gap-3 bg-muted/20 px-4 py-2.5 hover:bg-muted/40 transition-colors text-left"
+                                    >
+                                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                                        {isIndividual ? (
+                                            <div className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-muted text-xs">•</div>
+                                        ) : (
+                                            <div className="text-lg leading-none" aria-hidden="true">{spaceType?.icon ?? '🏢'}</div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-baseline gap-1.5">
+                                                {!isIndividual && group.settingCode && (
+                                                    <span className="inline-flex items-center rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-foreground">
+                                                        {group.settingCode}
+                                                    </span>
+                                                )}
+                                                <span className="text-sm font-bold text-foreground truncate">
+                                                    {isIndividual ? 'Individual selections' : group.settingName ?? group.settingCode}
+                                                </span>
+                                            </div>
+                                            <div className="text-[11px] text-muted-foreground">
+                                                {group.items.length} {group.items.length === 1 ? 'line' : 'lines'} · {groupUnits} units
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-foreground">${groupSubtotal.toLocaleString()}</div>
+                                            <div className="text-[10px] text-muted-foreground">subtotal</div>
+                                        </div>
+                                    </button>
+                                    {!isCollapsed && (
+                                        <ul className="divide-y divide-border">
+                                            {group.items.map(item => (
+                                                <ItemRow
+                                                    key={item.id}
+                                                    item={item}
+                                                    draft={draft}
+                                                    quotedHistory={quotedHistory}
+                                                    isSubmitted={isSubmitted}
+                                                    onUpdateItem={onUpdateItem}
+                                                    onRemoveItem={onRemoveItem}
+                                                    onEditItem={onEditItem}
+                                                />
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
                 ) : (
                     <ul className="divide-y divide-border">
                         {draft.items.map(item => (
@@ -398,6 +554,107 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
             <div className={`mt-0.5 text-lg font-bold text-foreground ${highlight ? '' : ''}`}>{value}</div>
         </div>
+    )
+}
+
+/** Fase 3 · sub-componente item row usado por el byspace view (para no
+ *  duplicar el markup del flat view). Es funcionalmente equivalente al
+ *  <li> del map de flat, solo cambia el wrapper (li directo, sin refactor
+ *  del flat). */
+function ItemRow({
+    item, draft, quotedHistory, isSubmitted, onUpdateItem, onRemoveItem, onEditItem,
+}: {
+    item: QuoteLineItem
+    draft: QuoteDraft
+    quotedHistory: Map<string, QuotedHistoryEntry>
+    isSubmitted: boolean
+    onUpdateItem: (itemId: string, patch: Partial<QuoteLineItem>) => void
+    onRemoveItem: (itemId: string) => void
+    onEditItem: (item: QuoteLineItem) => void
+}) {
+    const entry = quotedHistory.get(item.productId)
+    const linesInThisDraft = draft.items.filter(it => it.productId === item.productId).length
+    const otherDraftLines = entry ? entry.occurrences - linesInThisDraft : 0
+    return (
+        <li className="grid grid-cols-[64px_1fr_auto] items-center gap-3 p-3 bg-background">
+            <div className="h-16 w-16 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                {item.productImage ? (
+                    <img
+                        src={item.productImage}
+                        alt={item.productName}
+                        className="h-full w-full object-cover"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                    />
+                ) : (
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                        {item.productName.slice(0, 2).toUpperCase()}
+                    </span>
+                )}
+            </div>
+            <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{item.productBrand}</span>
+                    {otherDraftLines > 0 && (
+                        <span
+                            className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-foreground"
+                            title={`Selected ${otherDraftLines} ${otherDraftLines === 1 ? 'time' : 'times'} in other drafts`}
+                        >
+                            <History className="h-2.5 w-2.5" />
+                            Previously selected
+                        </span>
+                    )}
+                </div>
+                <div className="truncate text-sm font-bold text-foreground">{item.productName}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                    {item.colorwayHex && <span className="inline-block h-3 w-3 rounded-sm border border-border" style={{ backgroundColor: item.colorwayHex }} />}
+                    {item.colorwayName && <span>{item.colorwayName}</span>}
+                    {item.finishName && <span>· {item.finishName}</span>}
+                    {item.fabricName && <span>· {item.fabricName}</span>}
+                    {item.fabricIsPremium && <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
+                    {item.materialTierName && item.materialTierName !== 'Standard' && <span>· {item.materialTierName}</span>}
+                </div>
+                <div className="mt-1 text-[10px] text-muted-foreground">Ships in {formatLeadTime(item.leadTimeDays)}</div>
+            </div>
+            <div className="flex items-start gap-2">
+                <div className="text-right">
+                    {!isSubmitted ? (
+                        <input
+                            type="number"
+                            value={item.qty}
+                            min={1}
+                            onChange={(e) => onUpdateItem(item.id, { qty: Math.max(1, parseInt(e.target.value, 10) || 1), totalPrice: item.unitPrice * Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                            className="h-8 w-16 rounded border border-input bg-background text-center text-sm font-semibold text-foreground focus:border-ring focus:outline-none"
+                        />
+                    ) : (
+                        <span className="text-sm font-semibold text-foreground">×{item.qty}</span>
+                    )}
+                    <div className="mt-1 text-xs text-muted-foreground">@ ${item.unitPrice.toLocaleString()}</div>
+                    <div className="text-base font-bold text-foreground">${item.totalPrice.toLocaleString()}</div>
+                </div>
+                {!isSubmitted && (
+                    <div className="flex flex-col gap-1">
+                        <button
+                            type="button"
+                            onClick={() => onEditItem(item)}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+                            aria-label="Edit variants"
+                            title="Edit variants (color, finish, fabric…)"
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onRemoveItem(item.id)}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            aria-label="Remove"
+                            title="Remove line"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                )}
+            </div>
+        </li>
     )
 }
 
