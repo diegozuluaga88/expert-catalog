@@ -19,7 +19,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 
 | Fase | Descripción | Estado | Commits | Fecha |
 |---|---|---|---|---|
-| **P0.1** | Renames semánticos low-risk (linked*, Category alias, Catalog.status) | 🟢 | `TBD` | 2026-07-06 |
+| **P0.1** | Renames semánticos low-risk (linked*, Category alias, Catalog.status) | 🟢 | `6fb5096` | 2026-07-06 |
 | **P1.1** | Catalogue layer (nueva entidad separada de Manufacturer) | ⚪ | — | — |
 | **P1.2** | Currency entity + currencyId multi-level | ⚪ | — | — |
 | **P1.3** | Options normalizado 2 niveles (OptionMaster + OptionGroupValue) | ⚪ | — | — |
