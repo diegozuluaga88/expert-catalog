@@ -239,13 +239,51 @@ Sin código · solo docs.
 
 ---
 
-## Cleanup phases (post-implementación)
+## Cleanup phases
 
-### Cleanup.1 · Remove legacy aliases
+### Cleanup.1a · Swap masivo `.toLocaleString()` → `formatPrice()` · 🟢 COMPLETADA
 
-Después de que TODA la codebase use los nuevos nombres, eliminar los aliases `@deprecated` introducidos en P0.
+**Commits**: `9f034c4` (batch 1) · `958b473` (batch 2) · `76b9582` (batch 3)
 
-### Cleanup.2 · Remove overlay backwards compat
+15 files migrados en 3 commits auditables:
+
+**Batch 1 · Quote flow** (4 files):
+- MiniCartDrawer.tsx · line item + drawer footer subtotal
+- QuotesPage.tsx · line item + unitPrice + group subtotal + Selection total
+- IngestQuoteModal.tsx · sample docs estimated total
+- RequestQuoteModal.tsx · lead pricing
+
+**Batch 2 · Browse flow** (5 files):
+- ProductDetailPanel.tsx · 7 usos (sticky identity + QuoteTab totals + line editor + savings + related products)
+- ComparePickerModal.tsx · picker card price
+- CompareModal.tsx · Price row del table
+- SpaceTypesPage.tsx · card "From $X" cost badge
+- SpaceTypeDetailPage.tsx · Bundle product price + variant expander price
+
+**Batch 3 · Otros** (4 files):
+- ClientPolicyManager.tsx · condition threshold
+- SmartRuleBuilderModal.tsx · rule description
+- CreateEditSpaceModal.tsx · totalEstimate + picker card + draft item subtotal
+- OrderDetail.tsx · 6 usos (items table + line detail netPrice/amount)
+
+**Beneficio**: cero hardcoded `$` en el UI · toda display de precios pasa por formatPrice(x, currencyId?) preparada para catalogues multi-currency.
+
+### Cleanup.1b · ProductGroups seed migration a `linkedOptionGroupRefs` · 🟢 NO-OP
+
+Solo 2 ProductGroups tenían `linkedOptionGroup` (CH01 + CH03) y ambos ya recibieron `linkedOptionGroupRefs` en P1.3.a. CH15 también obtuvo refs. Los demás 19 ProductGroups no tienen `linkedOptionGroup` (tablets/lamps/storage no tienen options configurables) · su estado vacío es correcto.
+
+No hay migración pendiente. El helper `resolveLegacyLinkedOptionGroup` queda disponible para P1.4 (Finishes) donde sí hay 22 groups con `linkedFinishMaster` para migrar.
+
+### Cleanup.2 · Remove legacy aliases (post-implementación total)
+
+Después de que TODA la codebase use los nuevos nombres exclusivamente:
+- Remover `ProductGroup.linkedOptionGroupCodes` (P0.1 alias)
+- Remover `ProductGroup.linkedFinishMasterCodes` (P0.1 alias)
+- Remover `ProductGroup.linkedOptionGroup: string[]` legacy (P1.3.a)
+- Remover `ProductGroup.linkedFinishMaster: string[]` legacy (P1.4 futuro)
+- Remover `SpaceBundle.currency: 'USD'` legacy (P1.2)
+
+### Cleanup.3 · Remove overlay backwards compat
 
 Si en producción se decide adoptar el silver schema completo, eliminar los overlay-only fields de expert-catalog.
 
