@@ -880,7 +880,52 @@ export default function ShowroomPage() {
           </>)}
           {/* /isSpaces sidebar block */}
 
-          {/* Fase 5 · Custom Spaces section · lista de custom del tenant · solo en Spaces mode */}
+          {/* Diego ask · Quick Actions debe quedar pegado a los filtros (arriba
+              del bloque Custom Spaces) · el usuario espera las utilidades
+              globales inmediatamente después de los filtros, sin secciones
+              contextuales de por medio.
+              ═════════════════════════════════════════════════════════════════ */}
+          {/* ───── QUICK ACTIONS · directamente después de los filtros ───── */}
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
+            <div className="space-y-1.5">
+              {/* Fase 5 · Create custom space · SOLO visible en Spaces mode */}
+              {isSpaces && (
+                <button
+                  type="button"
+                  onClick={openCreateCustom}
+                  className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create custom space
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowIngest(true)}
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  isSpaces
+                    ? 'border border-border bg-card text-foreground hover:bg-muted'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                }`}
+              >
+                <Upload className="h-4 w-4" />
+                Upload Quote / PO
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <Settings2 className="h-4 w-4" />
+                Manage Catalogs
+              </button>
+            </div>
+          </div>
+
+          {/* Fase 5 · Custom Spaces section · lista de custom del tenant · solo
+              en Spaces mode. Movida DESPUÉS de Quick Actions (Diego ask ·
+              Quick Actions debe estar pegado a los filtros). */}
           {isSpaces && customSettings.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -922,44 +967,6 @@ export default function ShowroomPage() {
               </ul>
             </div>
           )}
-
-          {/* ───── QUICK ACTIONS · al final del sidebar como utilidades globales ───── */}
-          <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
-            <div className="space-y-1.5">
-              {/* Fase 5 · Create custom space · SOLO visible en Spaces mode */}
-              {isSpaces && (
-                <button
-                  type="button"
-                  onClick={openCreateCustom}
-                  className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create custom space
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowIngest(true)}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                  isSpaces
-                    ? 'border border-border bg-card text-foreground hover:bg-muted'
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                }`}
-              >
-                <Upload className="h-4 w-4" />
-                Upload Quote / PO
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowImport(true)}
-                className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <Settings2 className="h-4 w-4" />
-                Manage Catalogs
-              </button>
-            </div>
-          </div>
 
           </>}
         </aside>
