@@ -55,6 +55,14 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         productTypeId: 'pt-chair',
         linkedOptionGroup: ['Armrests', 'Base', 'Casters'],
         linkedFinishMaster: ['Fabric', 'Frame'],
+        // Fase P1.3.a · showcase de la nueva jsonb-style. Coexiste con
+        // linkedOptionGroup (legacy string[]) para backward compat mientras
+        // se migran los consumers en P1.3.b.
+        linkedOptionGroupRefs: [
+            { optionMasterId: 'om-armrests', optionGroupPosition: 1 },
+            { optionMasterId: 'om-base', optionGroupPosition: 2 },
+            { optionMasterId: 'om-casters', optionGroupPosition: 3 },
+        ],
         itemIds: ['stub-ch01-1'],
     },
     {
@@ -66,6 +74,10 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         productTypeId: 'pt-chair',
         linkedOptionGroup: ['Base', 'Casters'],
         linkedFinishMaster: ['Fabric', 'Frame'],
+        linkedOptionGroupRefs: [
+            { optionMasterId: 'om-base', optionGroupPosition: 1 },
+            { optionMasterId: 'om-casters', optionGroupPosition: 2 },
+        ],
         itemIds: ['stub-ch03-1'],
     },
     {
@@ -126,6 +138,12 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
         linkedFinishMaster: ['Shell', 'Base'],
+        // Fase P1.3.a · showcase con Shell + Base como refs (CH15 no tiene armrests
+        // ni casters porque es stool).
+        linkedOptionGroupRefs: [
+            { optionMasterId: 'om-shell', optionGroupPosition: 1 },
+            { optionMasterId: 'om-base', optionGroupPosition: 2 },
+        ],
         // Fase 3.1 · seed expandido con 3 variantes (Enea Lotus / Enea Altzo / Shortcut).
         itemIds: ['stub-ch15-1', 'stub-ch15-2', 'stub-ch15-3'],
     },

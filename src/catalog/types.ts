@@ -364,22 +364,78 @@ export interface ProductGroup {
   description?: string
   sectionId: string                     // ref → Section.id
   productTypeId: string                 // ref → ProductType.id
-  /** Codes de OptionGroup linked (ej. ["Armrests", "Base"]). Mapea a `linkedOptionGroup jsonb`
-   *  del silver schema · en producción cada elemento será `{ optionGroupId, optionGroupPosition }`.
-   *  Fase P0.1 · nombre alineado con silver. */
+  /** Codes de OptionGroup linked (ej. ["Armrests", "Base"]).
+   *  Fase P0.1 · nombre alineado con silver.
+   *  @deprecated en favor de `linkedOptionGroupRefs` (P1.3.a) · aún soportado
+   *  por backward compat mientras se migra el seed a la nueva shape jsonb. */
   linkedOptionGroup?: string[]
   /** @deprecated Fase P0.1 · usa `linkedOptionGroup` en su lugar. Alias legacy para
    *  código no migrado aún; será removido en Cleanup.1. */
   linkedOptionGroupCodes?: string[]
-  /** Codes de FinishMaster linked (ej. ["Frame", "Fabric"]). Mapea a `linkedFinishMaster jsonb`
-   *  del silver schema · en producción cada elemento será `{ masterFinishId, masterFinishPosition }`.
-   *  Fase P0.1 · nombre alineado con silver. */
+  /** Fase P1.3.a · nueva shape jsonb-style alineada 1:1 con silver
+   *  `linkedOptionGroup: Array<{ optionGroupId, optionGroupPosition }>`.
+   *  Cada elemento referencia un OptionMaster.id + su display order. */
+  linkedOptionGroupRefs?: Array<{ optionMasterId: string; optionGroupPosition: number }>
+  /** Codes de FinishMaster linked (ej. ["Frame", "Fabric"]).
+   *  Fase P0.1 · nombre alineado con silver.
+   *  @deprecated en favor de `linkedFinishMasterRefs` (P1.4) · aún soportado
+   *  por backward compat. */
   linkedFinishMaster?: string[]
   /** @deprecated Fase P0.1 · usa `linkedFinishMaster` en su lugar. Alias legacy para
    *  código no migrado aún; será removido en Cleanup.1. */
   linkedFinishMasterCodes?: string[]
+  /** Fase P1.3.a · placeholder para la migración P1.4 · nueva shape jsonb-style. */
+  linkedFinishMasterRefs?: Array<{ masterFinishId: string; masterFinishPosition: number }>
   /** IDs de Product.id que pertenecen a este grupo. */
   itemIds: string[]
+}
+
+/**
+ * Fase P1.3.a · OptionMaster · categoría de opciones configurables.
+ * Ejemplo: "Armrests", "Base", "Casters".
+ *
+ * Alineado con silver schema grupo `OptionMaster`:
+ *   optionMasterId, optionGroupCode, optionGroupNotes, optionMasterStatus,
+ *   optionMasterTenantId.
+ *
+ * Un OptionMaster contiene N `OptionGroupValue` (los valores concretos que el
+ * usuario puede elegir). Un `ProductGroup` referencia N OptionMasters via
+ * `linkedOptionGroupRefs`.
+ */
+export interface OptionMaster {
+  id: string
+  /** Code humano · en silver `optionGroupCode`. Ej. "Armrests", "Base". */
+  optionGroupCode: string
+  /** Nombre display · derivable del code o campo explícito. */
+  name: string
+  /** Notas del master · silver `optionGroupNotes`. */
+  notes?: string
+  /** En silver `text` libre. Aquí unión conservadora. */
+  status: 'Active' | 'Draft' | 'Discontinued'
+  /** FK opcional al tenant · silver `optionMasterTenantId`. Null = global. */
+  tenantId?: string
+}
+
+/**
+ * Fase P1.3.a · OptionGroupValue · valor concreto dentro de un OptionMaster.
+ * Ejemplo: dentro de "Armrests" → "None", "Fixed", "Adjustable".
+ *
+ * Alineado con silver schema grupo `OptionGroupValue`:
+ *   optionGroupValueId, optionGroupValuePosition, optionValue, optionDescription,
+ *   optionGroupValueStatus, optionMasterIdRef.
+ */
+export interface OptionGroupValue {
+  id: string
+  /** FK → OptionMaster.id · silver `optionMasterIdRef`. */
+  optionMasterId: string
+  /** Display order · silver `optionGroupValuePosition` (int). */
+  position: number
+  /** Nombre del valor · silver `optionValue`. Ej. "Adjustable". */
+  value: string
+  /** Descripción larga · silver `optionDescription`. */
+  description?: string
+  /** En silver `text` libre. */
+  status: 'Active' | 'Draft' | 'Discontinued'
 }
 
 /**

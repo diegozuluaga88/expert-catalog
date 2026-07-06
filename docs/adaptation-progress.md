@@ -22,7 +22,8 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P0.1** | Renames semánticos low-risk (linked*, Category alias, Catalog.status) | 🟢 | `6fb5096` | 2026-07-06 |
 | **P1.1** | Catalogue layer (nueva entidad separada de Manufacturer) | 🟢 | `3aee52c` | 2026-07-06 |
 | **P1.2** | Currency entity + currencyId multi-level | 🟢 | `4659bff` | 2026-07-06 |
-| **P1.3** | Options normalizado 2 niveles (OptionMaster + OptionGroupValue) | ⚪ | — | — |
+| **P1.3.a** | Options normalizado · data model + seed (sin UI) | 🟢 | `TBD` | 2026-07-06 |
+| **P1.3.b** | Options normalizado · UI migration (VariantsTab + QuoteTab) | ⚪ | — | — |
 | **P1.4** | Finishes normalizado 3 niveles (FinishMaster + FinishOption + FinishValue) | ⚪ | — | — |
 | **P2.1** | Multi-tenant per-entity (catalogueTenantId, optionMasterTenantId, finishMasterTenantId) | ⚪ | — | — |
 | **P2.2** | Status per-entity (6 nuevos status independientes) | ⚪ | — | — |
@@ -148,23 +149,55 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 
 ---
 
-## Fase P1.3 · Options normalizado 2 niveles
+## Fase P1.3.a · Options normalizado · data model + seed · 🟢 COMPLETADA
 
-_Pendiente arranque tras P1.1._
+**Time estimate**: ~2 días (real: ~15 min)
+**Risk**: bajo (real: bajo · aditivo)
+**Commit**: `TBD`
 
-**Time estimate**: ~5-7 días
-**Risk**: alto
+### Scope ejecutado
 
-### Scope
-- `interface OptionMaster { id, optionGroupCode, name, notes, status, tenantId }`
-- `interface OptionGroupValue { id, optionMasterId, position, value, description, status }`
-- Migrar `Product.fabricOptions[]` (~50 items) al modelo 2-niveles
-- `ProductGroup.linkedOptionGroup: { optionMasterId, position }[]` reemplaza el array de strings
-- UI VariantsTab: agrupar values por master
-- UI QuoteTab: selector grouped
+- ✅ `interface OptionMaster { id, optionGroupCode, name, notes, status, tenantId? }` (types.ts)
+- ✅ `interface OptionGroupValue { id, optionMasterId, position, value, description, status }` (types.ts)
+- ✅ `ProductGroup.linkedOptionGroupRefs?: Array<{ optionMasterId, optionGroupPosition }>` nuevo · shape jsonb-style alineada 1:1 con silver
+- ✅ `ProductGroup.linkedFinishMasterRefs?: Array<{ masterFinishId, masterFinishPosition }>` placeholder para P1.4
+- ✅ `linkedOptionGroup: string[]` marcado `@deprecated` (backward compat mientras se migra)
+- ✅ Seed `src/catalog/data/options.ts`:
+  - 6 `OPTION_MASTERS` · Armrests, Base, Casters, Shell, Top, Legs (activos globales)
+  - 20 `OPTION_GROUP_VALUES` · con position ordering:
+    - Armrests: None / Fixed / Adjustable / 4D
+    - Base: 4-star / 5-star / Sled / 4-leg
+    - Casters: Glides / Hard / Soft
+    - Shell: Polypropylene / Upholstered / Mesh
+    - Top: Laminate / Wood veneer / Glass
+    - Legs: 4-leg metal / Pedestal / Y-base
+  - 6 helpers · `findOptionMasterById`, `findOptionMasterByCode`, `findOptionValueById`, `valuesForMaster` (sorted by position), `mastersForTenant`, `resolveLegacyLinkedOptionGroup` (bridge string[]→refs)
+- ✅ Showcase enrichment · 3 ProductGroups del seed con `linkedOptionGroupRefs`:
+  - CH01 · Armrests + Base + Casters (task chair)
+  - CH03 · Base + Casters (meeting chair · no armrests)
+  - CH15 · Shell + Base (stool casual · no armrests ni casters)
 
-### Riesgo
-- Cambia shape de `QuoteLineItem.fabricId` → puede afectar drafts existentes en localStorage. Considerar migration on-load.
+### Files touched
+
+- `src/catalog/types.ts` · OptionMaster + OptionGroupValue + ProductGroup.linkedOptionGroupRefs + linkedFinishMasterRefs
+- `src/catalog/data/options.ts` · nuevo · seed + helpers
+- `src/catalog/data/productGroups.ts` · 3 groups enriquecidos con refs
+
+### Verification
+
+1. `npx tsc --noEmit` · 0 errors
+2. En consola: `valuesForMaster('om-armrests')` retorna 4 values ordenados por position (None → Fixed → Adjustable → 4D)
+3. `resolveLegacyLinkedOptionGroup(['Armrests', 'Base'])` retorna `[{ optionMasterId: 'om-armrests', ... }, { optionMasterId: 'om-base', ... }]` (util para migrar los otros 19 groups del seed sin editar cada uno)
+4. Zero cambios visibles en UI · consumers actuales siguen leyendo `linkedOptionGroup: string[]` legacy
+
+### Cross-refs siguientes fases
+
+- **P1.3.b** (UI migration): consumer del `linkedOptionGroupRefs` en:
+  - ProductDetailPanel VariantsTab · agrupar `Product.fabricOptions[]` por OptionMaster derivable via inference
+  - QuoteTab · selector jerárquico (Armrests → Adjustable en vez de flat Fabric picker)
+  - EditQuoteItemPanel · misma lógica
+- **P1.4** (Finishes 3-niveles): mismo pattern con FinishMaster/FinishOption/FinishValue
+- **Cleanup.1**: usar `resolveLegacyLinkedOptionGroup` para migrar los otros 19 ProductGroups del seed a la nueva shape · después eliminar `linkedOptionGroup: string[]` legacy
 
 ---
 
