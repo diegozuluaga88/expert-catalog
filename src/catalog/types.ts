@@ -166,6 +166,23 @@ export type ProductSortKey =
 /** Formatos del modal Generate Report. */
 export type ReportFormat = 'csv' | 'excel' | 'json' | 'pdf'
 
+/**
+ * Category · legacy alias del concepto **Section** del silver schema.
+ *
+ * En el silver schema de producción, una Section tiene shape:
+ * `{ sectionId, sectionName, sectionCatalogueId }` (ver `Section` interface abajo).
+ *
+ * expert-catalog usa `Category` en el sub-mode Figma (`ProductCatalogPage`) y en
+ * el navigation state del MRL para agrupar Products bajo una Brand. En producción
+ * este concepto colapsa con Section · el `products: Product[]` nested aquí es
+ * conveniencia de UI, no del schema.
+ *
+ * @deprecated Fase P0.1 · en la migración a producción, este concepto se
+ * consolida bajo `Section`. Los usages actuales de `Category` en UI (browse
+ * navigation, filtros del Product Catalog) permanecen como conveniencia local.
+ * NO se remueve la interfaz porque el nested `products[]` es útil para el UI
+ * pattern actual, pero semánticamente equivale a Section.
+ */
 export interface Category {
   id: string
   name: string
@@ -197,6 +214,16 @@ export type ViewMode = 'shelf' | 'grid'
 
 /* ───────────────────────── Manage / admin (CatalogLibrary) ───────────────────────── */
 
+/**
+ * Fase P0.1 · en silver schema `catalogueStatus` es `text` libre (no closed enum).
+ * expert-catalog mantiene el union como validator del UI mock. En producción
+ * el valor será string libre proveniente del bronze/silver processor.
+ *
+ * Mapping tentativo:
+ * - 'Active' → 'Active' (matches silver)
+ * - 'Update Avail.' → UI-only (no en silver · flag derivado del sync state)
+ * - 'Archived' → 'Discontinued' o similar (silver semantic)
+ */
 export type CatalogStatus = 'Active' | 'Update Avail.' | 'Archived'
 
 export interface Catalog {
@@ -264,9 +291,19 @@ export interface ProductGroup {
   description?: string
   sectionId: string                     // ref → Section.id
   productTypeId: string                 // ref → ProductType.id
-  /** Codes de OptionGroup linked (ej. ["Armrests", "Base"]). Mapea a jsonb en silver. */
+  /** Codes de OptionGroup linked (ej. ["Armrests", "Base"]). Mapea a `linkedOptionGroup jsonb`
+   *  del silver schema · en producción cada elemento será `{ optionGroupId, optionGroupPosition }`.
+   *  Fase P0.1 · nombre alineado con silver. */
+  linkedOptionGroup?: string[]
+  /** @deprecated Fase P0.1 · usa `linkedOptionGroup` en su lugar. Alias legacy para
+   *  código no migrado aún; será removido en Cleanup.1. */
   linkedOptionGroupCodes?: string[]
-  /** Codes de FinishMaster linked (ej. ["Frame", "Fabric"]). Mapea a jsonb en silver. */
+  /** Codes de FinishMaster linked (ej. ["Frame", "Fabric"]). Mapea a `linkedFinishMaster jsonb`
+   *  del silver schema · en producción cada elemento será `{ masterFinishId, masterFinishPosition }`.
+   *  Fase P0.1 · nombre alineado con silver. */
+  linkedFinishMaster?: string[]
+  /** @deprecated Fase P0.1 · usa `linkedFinishMaster` en su lugar. Alias legacy para
+   *  código no migrado aún; será removido en Cleanup.1. */
   linkedFinishMasterCodes?: string[]
   /** IDs de Product.id que pertenecen a este grupo. */
   itemIds: string[]

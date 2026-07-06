@@ -53,8 +53,8 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Ergonomic task seating for individual workstations and private offices.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedOptionGroupCodes: ['Armrests', 'Base', 'Casters'],
-        linkedFinishMasterCodes: ['Fabric', 'Frame'],
+        linkedOptionGroup: ['Armrests', 'Base', 'Casters'],
+        linkedFinishMaster: ['Fabric', 'Frame'],
         itemIds: ['stub-ch01-1'],
     },
     {
@@ -64,8 +64,8 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Meeting-room seating with optional pneumatic seat height adjustment.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedOptionGroupCodes: ['Base', 'Casters'],
-        linkedFinishMasterCodes: ['Fabric', 'Frame'],
+        linkedOptionGroup: ['Base', 'Casters'],
+        linkedFinishMaster: ['Fabric', 'Frame'],
         itemIds: ['stub-ch03-1'],
     },
     {
@@ -75,7 +75,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Dining chair for work cafe, break rooms and cafeteria seating.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Shell', 'Base'],
+        linkedFinishMaster: ['Shell', 'Base'],
         itemIds: ['stub-ch06-1'],
     },
     {
@@ -85,7 +85,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Upholstered lounge chairs for focus rooms, front porches and huddle spaces.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Fabric', 'Legs'],
+        linkedFinishMaster: ['Fabric', 'Legs'],
         itemIds: ['stub-ch08-1'],
     },
     {
@@ -95,7 +95,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Companion ottoman for lounge seating.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Fabric', 'Legs'],
+        linkedFinishMaster: ['Fabric', 'Legs'],
         itemIds: ['stub-ch09-1'],
     },
     {
@@ -105,7 +105,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Modular casual bench system for work cafe and cafe-height clusters.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Fabric', 'Frame'],
+        linkedFinishMaster: ['Fabric', 'Frame'],
         itemIds: ['stub-ch10-1'],
     },
     {
@@ -115,7 +115,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Client-facing lounge seating for reception areas.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Fabric', 'Legs'],
+        linkedFinishMaster: ['Fabric', 'Legs'],
         itemIds: ['stub-ch12-1'],
     },
     {
@@ -125,7 +125,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Bar and counter stools for work cafe communal tables.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Shell', 'Base'],
+        linkedFinishMaster: ['Shell', 'Base'],
         // Fase 3.1 · seed expandido con 3 variantes (Enea Lotus / Enea Altzo / Shortcut).
         itemIds: ['stub-ch15-1', 'stub-ch15-2', 'stub-ch15-3'],
     },
@@ -136,7 +136,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Round upholstered pouf for focus rooms and casual clusters.',
         sectionId: 'sec-seating',
         productTypeId: 'pt-chair',
-        linkedFinishMasterCodes: ['Fabric'],
+        linkedFinishMaster: ['Fabric'],
         itemIds: ['stub-ch17-1'],
     },
 
@@ -148,7 +148,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Rectangular meeting table with laminate top and metal Y-base or cabinet base.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Base'],
+        linkedFinishMaster: ['Top', 'Base'],
         itemIds: ['stub-tb01-1'],
     },
     {
@@ -158,7 +158,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Round meeting table for small huddle and focus rooms.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Base'],
+        linkedFinishMaster: ['Top', 'Base'],
         // Fase 3.1 · seed expandido con 3 variantes · demuestra la relación
         // 1-a-N ProductGroup → ProductItem del silver schema de Notion.
         itemIds: ['stub-tb04-1', 'stub-tb04-2', 'stub-tb04-3'],
@@ -170,7 +170,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Long communal table for work cafe and front porch settings.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb12-1'],
     },
     {
@@ -180,7 +180,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Bar-height communal table with power/data integration for work cafe.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb13-1'],
     },
     {
@@ -190,7 +190,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Sit-to-stand adjustable desk for individual workstations and focus rooms.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb15-1'],
     },
     {
@@ -200,7 +200,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Side tables for casual seating clusters.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb17-1'],
     },
     {
@@ -210,7 +210,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'C-leg laptop table that slides over the arm of a lounge chair.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb18-1'],
     },
     {
@@ -220,7 +220,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Round dining table (seated or standing height).',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb20-1'],
     },
     {
@@ -230,7 +230,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Square dining table (seated or standing height).',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Legs'],
+        linkedFinishMaster: ['Top', 'Legs'],
         itemIds: ['stub-tb21-1'],
     },
     {
@@ -240,7 +240,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Client-facing side / coffee table in glass and metal.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Frame'],
+        linkedFinishMaster: ['Top', 'Frame'],
         itemIds: ['stub-tb22-1'],
     },
     {
@@ -250,7 +250,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Console / occasional wood table for reception areas.',
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
-        linkedFinishMasterCodes: ['Top', 'Frame'],
+        linkedFinishMaster: ['Top', 'Frame'],
         itemIds: ['stub-tb23-1'],
     },
 
@@ -262,7 +262,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Modular shelving system used as a neighborhood boundary and display.',
         sectionId: 'sec-ancillary',
         productTypeId: 'pt-accessory',
-        linkedFinishMasterCodes: ['Frame', 'Shelves'],
+        linkedFinishMaster: ['Frame', 'Shelves'],
         itemIds: ['stub-al04-1'],
     },
     {
@@ -272,7 +272,7 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         description: 'Freestanding LED floor lamp with touch dimmer.',
         sectionId: 'sec-ancillary',
         productTypeId: 'pt-lamp',
-        linkedFinishMasterCodes: ['Finish'],
+        linkedFinishMaster: ['Finish'],
         // Fase 3.1 · seed expandido con 2 variantes.
         itemIds: ['stub-al13-1', 'stub-al13-2'],
     },
