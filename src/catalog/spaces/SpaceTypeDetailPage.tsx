@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, CheckCircle2, ChevronDown } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, ChevronDown, Sparkles, Pencil, Copy, Trash2, Plus } from 'lucide-react'
 import { settingsForSpaceType } from '../data/spaceTypes'
 import { findProductStub, PRODUCT_STUBS } from '../data/productGroups'
 import type { SpaceType, SpaceTypeSetting } from '../types'
@@ -11,15 +11,38 @@ interface Props {
     spaceType: SpaceType
     onBack: () => void
     onViewSelection: () => void
+    /** Fase 5 · custom settings del tenant que pertenecen a este SpaceType. Se
+     *  mergean con los seed en el listado. */
+    customSettings?: SpaceTypeSetting[]
+    /** Fase 5 · lookup helper · true si el setting es custom (habilita CRUD inline). */
+    isCustom?: (id: string) => boolean
+    onEditCustom?: (setting: SpaceTypeSetting) => void
+    onDuplicateCustom?: (id: string) => void
+    onDeleteCustom?: (id: string) => void
+    /** Fase 5 · CTA para crear un nuevo custom desde el detail. */
+    onCreateCustom?: () => void
 }
 
 // Fase 3 · Detail page redesigned · para cada setting muestra:
 //   1. SpaceBundleCard (rendering + config numerada + notes + Add all)
 //   2. Grid "Bundle products" con ProductIcon + code + name + price range
 //      (replicando la sección de product cards del widget MillerKnoll).
-export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection }: Props) {
-    const settings = settingsForSpaceType(spaceType.id)
+export default function SpaceTypeDetailPage({
+    spaceType,
+    onBack,
+    onViewSelection,
+    customSettings = [],
+    isCustom,
+    onEditCustom,
+    onDuplicateCustom,
+    onDeleteCustom,
+    onCreateCustom,
+}: Props) {
+    // Fase 5 · merge seed + custom para este SpaceType
+    const settings = [...settingsForSpaceType(spaceType.id), ...customSettings]
     const { addBundle } = useQuote()
+    // Fase 5 · confirm-delete inline
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
     const [toast, setToast] = useState<{ code: string; itemCount: number } | null>(null)
     // Fase 3.1 · state del variant expander en las mini cards de Bundle products.
@@ -76,10 +99,105 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
                 </div>
             </div>
 
+            {/* Fase 5 · CTA para crear custom (top of list, si no hay ninguno) */}
+            {onCreateCustom && customSettings.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 flex items-center justify-between">
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Create your own {spaceType.name} setting
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Add products from the catalog and reuse across quotes.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onCreateCustom}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Create custom
+                    </button>
+                </div>
+            )}
+
             {/* Por cada setting: card grande + grid de bundle products */}
             <div className="space-y-10">
-                {settings.map(setting => (
+                {settings.map(setting => {
+                    const custom = isCustom ? isCustom(setting.id) : !!setting.isCustom
+                    return (
                     <section key={setting.id} className="space-y-4">
+                        {/* Fase 5 · Toolbar sobre la card (visible solo para custom) */}
+                        {custom && (
+                            <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5">
+                                <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                                        <Sparkles className="h-2.5 w-2.5" />
+                                        Custom
+                                    </span>
+                                    <span className="text-[11px] text-muted-foreground">
+                                        Created by you · editable
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-0.5">
+                                    {onEditCustom && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onEditCustom(setting)}
+                                            className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-semibold text-foreground hover:bg-primary/10 transition-colors"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="h-3 w-3" />
+                                            Edit
+                                        </button>
+                                    )}
+                                    {onDuplicateCustom && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onDuplicateCustom(setting.id)}
+                                            className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-semibold text-foreground hover:bg-primary/10 transition-colors"
+                                            title="Duplicate"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Duplicate
+                                        </button>
+                                    )}
+                                    {onDeleteCustom && (
+                                        confirmDeleteId === setting.id ? (
+                                            <div className="inline-flex items-center gap-1 rounded bg-destructive/10 px-2 py-1 text-[11px]">
+                                                <span className="text-destructive font-semibold">Delete?</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { onDeleteCustom(setting.id); setConfirmDeleteId(null) }}
+                                                    className="text-destructive font-bold hover:underline"
+                                                >
+                                                    Yes
+                                                </button>
+                                                <span className="text-muted-foreground">·</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfirmDeleteId(null)}
+                                                    className="text-muted-foreground hover:underline"
+                                                >
+                                                    No
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setConfirmDeleteId(setting.id)}
+                                                className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-semibold text-destructive hover:bg-destructive/10 transition-colors"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                                Delete
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <SpaceBundleCard
                             setting={setting}
                             spaceType={spaceType}
@@ -186,7 +304,8 @@ export default function SpaceTypeDetailPage({ spaceType, onBack, onViewSelection
                             </div>
                         </div>
                     </section>
-                ))}
+                    )
+                })}
             </div>
 
             {settings.length === 0 && (

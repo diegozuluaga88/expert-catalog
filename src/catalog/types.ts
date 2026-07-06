@@ -307,6 +307,13 @@ export interface SpaceTypeSetting {
   /** Notas del PDF ("The rendering is for example only", etc). */
   notes?: string[]
   bundle: SpaceBundle
+  /** Fase 5 · true si el setting fue creado por el dealer (no viene del seed).
+   *  Se persiste en localStorage per-tenant y se mezcla con los seed en el grid.
+   *  Los custom soportan edit/duplicate/delete inline. */
+  isCustom?: boolean
+  /** Fase 5 · timestamps para custom settings (edit history) */
+  createdAt?: string
+  updatedAt?: string
 }
 
 /**

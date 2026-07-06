@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft } from 'lucide-react'
-import type { Category, Product, ProductSortKey, SpaceType } from '../types'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft, Sparkles, Plus, Pencil } from 'lucide-react'
+import type { Category, Product, ProductSortKey, SpaceType, SpaceTypeSetting } from '../types'
 import SpaceTypesPage, { SPACES_COST_BUCKETS, type SpacesFilters, type SpacesSortKey } from '../spaces/SpaceTypesPage'
 import SpaceTypeDetailPage from '../spaces/SpaceTypeDetailPage'
-import { getAllBrandsInSpaces } from '../data/spaceTypes'
+import { getAllBrandsInSpaces, SPACE_TYPES } from '../data/spaceTypes'
+import { useCustomSpaces, type CreateCustomSpaceInput } from '../spaces/useCustomSpaces'
+import CreateEditSpaceModal from '../spaces/CreateEditSpaceModal'
 import {
   UNIFIED_PRODUCTS,
   UNIFIED_PRICE_RANGES,
@@ -171,6 +173,30 @@ export default function ShowroomPage() {
     { key: 'settings-count', label: 'Settings count' },
   ]
   const spacesActiveSortLabel = SPACES_SORT_OPTIONS.find(o => o.key === spacesSort)?.label ?? 'Sort'
+
+  // Fase 5 · Custom Spaces (create/edit/duplicate/delete)
+  const {
+    customSettings,
+    allSettings: allSpaceSettings,
+    createCustom,
+    updateCustom,
+    duplicateCustom,
+    deleteCustom,
+    isCustomSettingId,
+  } = useCustomSpaces()
+  const [customModalOpen, setCustomModalOpen] = useState(false)
+  const [editingCustom, setEditingCustom] = useState<SpaceTypeSetting | null>(null)
+  const openCreateCustom = () => { setEditingCustom(null); setCustomModalOpen(true) }
+  const openEditCustom = (setting: SpaceTypeSetting) => { setEditingCustom(setting); setCustomModalOpen(true) }
+  const handleCustomSubmit = (input: CreateCustomSpaceInput) => {
+    if (editingCustom) updateCustom(editingCustom.id, input)
+    else createCustom(input)
+    setCustomModalOpen(false)
+    setEditingCustom(null)
+  }
+  // Count de custom por parent SpaceType para el badge en las cards del grid
+  const customCountByParent: Record<string, number> = {}
+  for (const c of customSettings) customCountByParent[c.spaceTypeId] = (customCountByParent[c.spaceTypeId] ?? 0) + 1
 
   const handleSyncCatalog = (c: Catalog) => {
     setSyncingId(c.id)
@@ -854,14 +880,72 @@ export default function ShowroomPage() {
           </>)}
           {/* /isSpaces sidebar block */}
 
+          {/* Fase 5 · Custom Spaces section · lista de custom del tenant · solo en Spaces mode */}
+          {isSpaces && customSettings.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3" />
+                  My custom spaces ({customSettings.length})
+                </h3>
+              </div>
+              <ul className="space-y-1">
+                {customSettings.slice(0, 6).map((cs) => {
+                  const parent = SPACE_TYPES.find(t => t.id === cs.spaceTypeId)
+                  return (
+                    <li key={cs.id} className="group flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5">
+                      <span className="text-sm shrink-0" aria-hidden="true">{parent?.icon ?? '🏢'}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline gap-1">
+                          <span className="inline-flex items-center rounded-md bg-primary/15 px-1 text-[9px] font-bold text-foreground">{cs.code}</span>
+                          <span className="text-[11px] font-semibold text-foreground truncate">{cs.name}</span>
+                        </div>
+                        <div className="text-[9px] text-muted-foreground truncate">{parent?.name}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openEditCustom(cs)}
+                        className="opacity-0 group-hover:opacity-100 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                        title="Edit"
+                        aria-label="Edit custom space"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </li>
+                  )
+                })}
+                {customSettings.length > 6 && (
+                  <li className="text-[10px] text-muted-foreground italic px-2 py-1">
+                    +{customSettings.length - 6} more · manage from a space detail
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+
           {/* ───── QUICK ACTIONS · al final del sidebar como utilidades globales ───── */}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
             <div className="space-y-1.5">
+              {/* Fase 5 · Create custom space · SOLO visible en Spaces mode */}
+              {isSpaces && (
+                <button
+                  type="button"
+                  onClick={openCreateCustom}
+                  className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create custom space
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowIngest(true)}
-                className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  isSpaces
+                    ? 'border border-border bg-card text-foreground hover:bg-muted'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                }`}
               >
                 <Upload className="h-4 w-4" />
                 Upload Quote / PO
@@ -892,6 +976,12 @@ export default function ShowroomPage() {
                 onViewSelection={() =>
                   window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
                 }
+                customSettings={customSettings.filter(cs => cs.spaceTypeId === selectedSpaceType.id)}
+                onEditCustom={openEditCustom}
+                onDuplicateCustom={(id) => { duplicateCustom(id) }}
+                onDeleteCustom={(id) => { deleteCustom(id) }}
+                isCustom={isCustomSettingId}
+                onCreateCustom={openCreateCustom}
               />
             ) : (
               <SpaceTypesPage
@@ -899,6 +989,8 @@ export default function ShowroomPage() {
                 filters={spacesFilters}
                 sort={spacesSort}
                 onClearFilters={clearSpacesFilters}
+                customCountByParent={customCountByParent}
+                onCreateCustom={openCreateCustom}
               />
             )
           ) : (
@@ -1036,6 +1128,14 @@ export default function ShowroomPage() {
             setQueueIndex(0)
           }
         } : undefined}
+      />
+
+      {/* Fase 5 · Create/Edit Custom Space wizard modal · siempre montado, controla via `open` */}
+      <CreateEditSpaceModal
+        open={customModalOpen}
+        onClose={() => { setCustomModalOpen(false); setEditingCustom(null) }}
+        editing={editingCustom}
+        onSubmit={handleCustomSubmit}
       />
     </div>
   )

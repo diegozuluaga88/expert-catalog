@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ChevronRight, MapPin, FilterX } from 'lucide-react'
+import { ChevronRight, MapPin, FilterX, Sparkles } from 'lucide-react'
 import {
     SPACE_TYPES, SPACE_TYPE_SETTINGS,
     spaceTypeMinCost, spaceTypeMaxCost, spaceTypeSettingsCount,
@@ -30,6 +30,10 @@ interface Props {
     sort?: SpacesSortKey
     /** Callback opcional para el botón "Clear filters" del empty-state. */
     onClearFilters?: () => void
+    /** Fase 5 · count de custom spaces por parent SpaceType id · muestra badge. */
+    customCountByParent?: Record<string, number>
+    /** Fase 5 · callback para el botón "Create custom" del empty state. */
+    onCreateCustom?: () => void
 }
 
 const EMPTY_FILTERS: SpacesFilters = {
@@ -47,6 +51,8 @@ export default function SpaceTypesPage({
     filters = EMPTY_FILTERS,
     sort = 'alpha',
     onClearFilters,
+    customCountByParent = {},
+    onCreateCustom,
 }: Props) {
     const sorted = useMemo(() => {
         const filtered = SPACE_TYPES.filter(type => {
@@ -147,6 +153,16 @@ export default function SpaceTypesPage({
                                             </span>
                                         ))}
                                     </div>
+                                    {/* Fase 5 · badge de custom count top-left · muestra cuántos custom settings tiene este parent */}
+                                    {customCountByParent[type.id] > 0 && (
+                                        <span
+                                            className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-primary/90 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm"
+                                            title={`${customCountByParent[type.id]} custom setting(s) created by you`}
+                                        >
+                                            <Sparkles className="h-2.5 w-2.5" />
+                                            {customCountByParent[type.id]} custom
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="p-5">
                                     <h3 className="text-base font-bold text-foreground mb-1">{type.name}</h3>
@@ -179,15 +195,27 @@ export default function SpaceTypesPage({
                     <FilterX className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
                     <p className="text-sm font-semibold text-foreground mb-1">No space types match your filters</p>
                     <p className="text-xs text-muted-foreground mb-4">Try adjusting or clearing the filters in the sidebar.</p>
-                    {hasActiveFilters && onClearFilters && (
-                        <button
-                            type="button"
-                            onClick={onClearFilters}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-                        >
-                            Clear filters
-                        </button>
-                    )}
+                    <div className="inline-flex items-center gap-2">
+                        {hasActiveFilters && onClearFilters && (
+                            <button
+                                type="button"
+                                onClick={onClearFilters}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted transition-colors"
+                            >
+                                Clear filters
+                            </button>
+                        )}
+                        {onCreateCustom && (
+                            <button
+                                type="button"
+                                onClick={onCreateCustom}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+                            >
+                                <Sparkles className="h-3 w-3" />
+                                Create custom space
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
