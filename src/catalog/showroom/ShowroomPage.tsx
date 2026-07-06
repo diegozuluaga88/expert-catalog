@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft } from 'lucide-react'
-import type { Category, Product, ProductSortKey } from '../types'
+import type { Category, Product, ProductSortKey, SpaceType } from '../types'
+import SpaceTypesPage from '../spaces/SpaceTypesPage'
+import SpaceTypeDetailPage from '../spaces/SpaceTypeDetailPage'
 import {
   UNIFIED_PRODUCTS,
   UNIFIED_PRICE_RANGES,
@@ -25,7 +27,9 @@ import { simulateSyncDelta, SyncResultToast, type SyncToast } from './ShowroomCa
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
 
 const PAGE_SIZE = 8
-type Taxonomy = 'products' | 'materials'
+// Fase 2 refactor · Spaces se integra como 3ra taxonomía del toggle sidebar
+// (era tab independiente en CatalogPage · Diego ask: adaptar al flujo existente).
+type Taxonomy = 'products' | 'materials' | 'spaces'
 
 const SORT_OPTIONS: { key: ProductSortKey; label: string }[] = [
   { key: 'relevant', label: 'Most Relevant' },
@@ -127,6 +131,11 @@ export default function ShowroomPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Materials mode usa subset reducido de filtros (sin Status ni Collection)
   const isMaterials = taxonomy === 'materials'
+  // Spaces mode oculta search/sort/filters/bulk/pagination · main content muta
+  // a SpaceTypesPage/SpaceTypeDetailPage.
+  const isSpaces = taxonomy === 'spaces'
+  // Fase 2 refactor · state local del Space Type seleccionado (antes vivía en CatalogPage).
+  const [selectedSpaceType, setSelectedSpaceType] = useState<SpaceType | null>(null)
 
   const handleSyncCatalog = (c: Catalog) => {
     setSyncingId(c.id)
@@ -395,6 +404,7 @@ export default function ShowroomPage() {
                   onClick={() => {
                     setTaxonomy('products')
                     resetFacets()
+                    setSelectedSpaceType(null)
                   }}
                   className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
                     taxonomy === 'products' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -407,12 +417,27 @@ export default function ShowroomPage() {
                   onClick={() => {
                     setTaxonomy('materials')
                     resetFacets()
+                    setSelectedSpaceType(null)
                   }}
                   className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
                     taxonomy === 'materials' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Materials
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTaxonomy('spaces')
+                    resetFacets()
+                    setSelectedSpaceType(null)
+                  }}
+                  className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
+                    taxonomy === 'spaces' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title="Space Type Settings · pre-armados por tipo de espacio"
+                >
+                  Spaces
                 </button>
               </div>
               <button
@@ -429,6 +454,10 @@ export default function ShowroomPage() {
 
           {/* Resto del sidebar oculto cuando collapsed */}
           {!sidebarCollapsed && <>
+
+          {/* Fase 2 · en Spaces mode ocultamos Search/Sort/Bulk/Filters (no aplican
+              al grid de Space Types) · dejamos sólo el toggle + Quick Actions al final. */}
+          {!isSpaces && <>
 
           {/* ───── SEARCH + SORT ───── */}
           <div>
@@ -697,6 +726,9 @@ export default function ShowroomPage() {
           </FilterSection>
           </div>
 
+          </>}
+          {/* /!isSpaces · fin del bloque Search/Filters/Bulk */}
+
           {/* ───── QUICK ACTIONS · al final del sidebar como utilidades globales ───── */}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Actions</h3>
@@ -724,6 +756,23 @@ export default function ShowroomPage() {
         </aside>
 
         <div className="flex-1">
+          {/* Fase 2 · Spaces mode · reemplaza grid de productos por Space Types
+              cards (o el detail del tipo seleccionado). Reusa los componentes
+              creados en Fase 2 pero embebidos en el shell del ShowroomPage. */}
+          {isSpaces ? (
+            selectedSpaceType ? (
+              <SpaceTypeDetailPage
+                spaceType={selectedSpaceType}
+                onBack={() => setSelectedSpaceType(null)}
+                onViewSelection={() =>
+                  window.dispatchEvent(new CustomEvent('expert-hub:open-quotes'))
+                }
+              />
+            ) : (
+              <SpaceTypesPage onSelectSpaceType={setSelectedSpaceType} />
+            )
+          ) : (
+          <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {pageItems.map((p) => (
               <ProductCatalogCard
@@ -780,6 +829,9 @@ export default function ShowroomPage() {
               </button>
             </div>
           </div>
+          </>
+          )}
+          {/* /isSpaces ? spaces UI : products/materials grid + pagination */}
         </div>
       </div>
 

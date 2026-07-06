@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { LibraryBig, Settings2, ShoppingBag, Store, FileText, MapPin } from 'lucide-react'
+import { LibraryBig, Settings2, ShoppingBag, Store, FileText } from 'lucide-react'
 import Navbar from '../components/Navbar'
-import type { Manufacturer, Category, Product, SpaceType } from './types'
+import type { Manufacturer, Category, Product } from './types'
 import LibraryPage from './browse/LibraryPage'
 import ManufacturerPage from './browse/ManufacturerPage'
 import CategoryPage from './browse/CategoryPage'
@@ -9,8 +9,6 @@ import ProductDetailPage from './browse/ProductDetailPage'
 import ManageCatalogs from './manage/ManageCatalogs'
 import ProductCatalogPage from './shop/ProductCatalogPage'
 import ShowroomPage from './showroom/ShowroomPage'
-import SpaceTypesPage from './spaces/SpaceTypesPage'
-import SpaceTypeDetailPage from './spaces/SpaceTypeDetailPage'
 import QuotesPage from '../quote/QuotesPage'
 import MiniCartDrawer from '../quote/MiniCartDrawer'
 import { useQuote } from '../quote/QuoteContext'
@@ -20,8 +18,9 @@ import { useQuote } from '../quote/QuoteContext'
 // Manage (admin) llega en Etapa 5.
 // Phase 3 Fix #13 iter 2 (Diego): mode 'quotes' como tab del catalog · "Mis Cotizaciones".
 
-// Fase 2 refactor · mode 'spaces' agregado · Space Types (Focus Room, Work Cafe, etc)
-type CatalogMode = 'browse' | 'manage' | 'shop' | 'showroom' | 'spaces' | 'quotes'
+// Fase 2 refactor v2 · Spaces reingresado como 3ra taxonomía dentro de ShowroomPage
+// (era tab standalone en v1 · Diego ask: adaptar al flujo del sidebar existente).
+type CatalogMode = 'browse' | 'manage' | 'shop' | 'showroom' | 'quotes'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
 
 interface BrowseNav {
@@ -39,8 +38,6 @@ interface CatalogPageProps {
 export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) {
   const [mode, setMode] = useState<CatalogMode>('showroom')
   const [nav, setNav] = useState<BrowseNav>({ page: 'library' })
-  // Fase 2 · state del Space Type activo dentro del modo 'spaces'
-  const [selectedSpaceType, setSelectedSpaceType] = useState<SpaceType | null>(null)
   const navigate = (state: BrowseNav) => setNav(state)
   const { activeDrafts } = useQuote()
   const totalCartUnits = activeDrafts.reduce((s, d) => s + d.items.reduce((s2, it) => s2 + it.qty, 0), 0)
@@ -139,15 +136,11 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
             Figma
           </button>
           {/* Diego polish · Product Catalog antes de My Quotes (browsing → cart flow) */}
+          {/* Fase 2 v2 · Spaces vive dentro de Product Catalog como 3ra taxonomía
+              del toggle sidebar (Products/Materials/Spaces) · sin tab dedicado. */}
           <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
             <Store className="h-4 w-4" />
             Product Catalog
-          </button>
-          {/* Fase 2 · Space Type Settings · bundles pre-armados por escenario
-              (Focus Room, Work Cafe, Huddle, Meeting Room, etc). */}
-          <button type="button" onClick={() => { setMode('spaces'); setSelectedSpaceType(null) }} className={tabClass(mode === 'spaces')}>
-            <MapPin className="h-4 w-4" />
-            Spaces
           </button>
           {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
               (Diego: no salirnos de la sección). Badge count del cart. */}
@@ -170,16 +163,6 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
           <ManageCatalogs />
         ) : mode === 'shop' ? (
           <ProductCatalogPage />
-        ) : mode === 'spaces' ? (
-          selectedSpaceType ? (
-            <SpaceTypeDetailPage
-              spaceType={selectedSpaceType}
-              onBack={() => setSelectedSpaceType(null)}
-              onViewSelection={() => setMode('quotes')}
-            />
-          ) : (
-            <SpaceTypesPage onSelectSpaceType={setSelectedSpaceType} />
-          )
         ) : mode === 'quotes' ? (
           <QuotesPage onBack={() => setMode('showroom')} />
         ) : (
@@ -187,10 +170,9 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
         )}
       </div>
 
-      {/* Cart/FAB "Your selection" · Product Catalog + Spaces + My Selection ·
-          Fase 2 lo agrega a Spaces para poder ver la cart mientras se navega
-          bundles. Internamente retorna null si no hay items. */}
-      {(mode === 'showroom' || mode === 'spaces' || mode === 'quotes') && (
+      {/* Cart/FAB "Your selection" · Product Catalog + My Selection.
+          Internamente retorna null si no hay items. */}
+      {(mode === 'showroom' || mode === 'quotes') && (
         <MiniCartDrawer onViewQuote={() => setMode('quotes')} />
       )}
     </>
