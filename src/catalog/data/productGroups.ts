@@ -63,6 +63,12 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
             { optionMasterId: 'om-base', optionGroupPosition: 2 },
             { optionMasterId: 'om-casters', optionGroupPosition: 3 },
         ],
+        // Fase P1.4.a · showcase Finishes 3-niveles. Task chair usa Fabric (para
+        // upholstery) + Frame (para estructura).
+        linkedFinishMasterRefs: [
+            { masterFinishId: 'fm-fabric', masterFinishPosition: 1 },
+            { masterFinishId: 'fm-frame', masterFinishPosition: 2 },
+        ],
         itemIds: ['stub-ch01-1'],
     },
     {
@@ -77,6 +83,11 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         linkedOptionGroupRefs: [
             { optionMasterId: 'om-base', optionGroupPosition: 1 },
             { optionMasterId: 'om-casters', optionGroupPosition: 2 },
+        ],
+        // Fase P1.4.a · meeting chair usa Fabric + Frame.
+        linkedFinishMasterRefs: [
+            { masterFinishId: 'fm-fabric', masterFinishPosition: 1 },
+            { masterFinishId: 'fm-frame', masterFinishPosition: 2 },
         ],
         itemIds: ['stub-ch03-1'],
     },
@@ -144,6 +155,11 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
             { optionMasterId: 'om-shell', optionGroupPosition: 1 },
             { optionMasterId: 'om-base', optionGroupPosition: 2 },
         ],
+        // Fase P1.4.a · stool casual usa Shell + Base finishes.
+        linkedFinishMasterRefs: [
+            { masterFinishId: 'fm-shell', masterFinishPosition: 1 },
+            { masterFinishId: 'fm-base', masterFinishPosition: 2 },
+        ],
         // Fase 3.1 · seed expandido con 3 variantes (Enea Lotus / Enea Altzo / Shortcut).
         itemIds: ['stub-ch15-1', 'stub-ch15-2', 'stub-ch15-3'],
     },
@@ -167,6 +183,11 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         sectionId: 'sec-tables',
         productTypeId: 'pt-table',
         linkedFinishMaster: ['Top', 'Base'],
+        // Fase P1.4.a · meeting table showcase con Top + Base finishes.
+        linkedFinishMasterRefs: [
+            { masterFinishId: 'fm-top', masterFinishPosition: 1 },
+            { masterFinishId: 'fm-base', masterFinishPosition: 2 },
+        ],
         itemIds: ['stub-tb01-1'],
     },
     {

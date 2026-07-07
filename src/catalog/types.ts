@@ -439,6 +439,78 @@ export interface OptionGroupValue {
 }
 
 /**
+ * Fase P1.4.a · FinishMaster · nivel superior de la jerarquía Finishes.
+ * Ejemplo: "Frame Finish", "Fabric Finish", "Shell Finish".
+ *
+ * Alineado con silver schema grupo `FinishMaster`:
+ *   finishMasterId, masterFinishName, finishMasterStatus, finishMasterTenantId.
+ *
+ * Jerarquía: FinishMaster → N FinishOptions → N FinishValues.
+ * Un ProductGroup referencia N FinishMasters via `linkedFinishMasterRefs`.
+ */
+export interface FinishMaster {
+  id: string
+  /** Nombre display · silver `masterFinishName`. Ej. "Frame Finish". */
+  masterFinishName: string
+  /** En silver `text` libre. Aquí unión conservadora. */
+  status: 'Active' | 'Draft' | 'Discontinued'
+  /** FK opcional al tenant · silver `finishMasterTenantId`. Null = global. */
+  tenantId?: string
+}
+
+/**
+ * Fase P1.4.a · FinishOption · nivel intermedio de la jerarquía Finishes.
+ * Ejemplo: dentro de "Frame Finish" → "Powder Coat", "Chrome", "Wood".
+ *
+ * Alineado con silver schema grupo `FinishOption`:
+ *   finishOptionId, finishOptionName, finishOptionStatus, finishMasterIdRef.
+ */
+export interface FinishOption {
+  id: string
+  /** FK → FinishMaster.id · silver `finishMasterIdRef`. */
+  finishMasterId: string
+  /** Nombre · silver `finishOptionName`. Ej. "Powder Coat". */
+  finishOptionName: string
+  /** En silver `text` libre. */
+  status: 'Active' | 'Draft' | 'Discontinued'
+}
+
+/**
+ * Fase P1.4.a · FinishValue · nivel final con precio.
+ * Ejemplo: dentro de "Powder Coat" → "Matte Black" (+$0), "Polished" (+$45).
+ *
+ * Alineado con silver schema grupo `FinishValue`:
+ *   finishValueId, finishValuePosition, finishValueName, finishValueDescription,
+ *   finishValueStatus, finishValuePrice (numeric 18,2), finishValueCurrencyId,
+ *   finishOptionIdRef.
+ *
+ * Silver Finishes SÍ modifican precio (a diferencia de Options que son
+ * semantic-only). El `price` es el modifier sobre el `productItemPrice`.
+ */
+export interface FinishValue {
+  id: string
+  /** FK → FinishOption.id · silver `finishOptionIdRef`. */
+  finishOptionId: string
+  /** Display order · silver `finishValuePosition` (int). */
+  position: number
+  /** Nombre · silver `finishValueName`. Ej. "Matte Black". */
+  finishValueName: string
+  /** Descripción larga · silver `finishValueDescription`. */
+  description?: string
+  /** En silver `text` libre. */
+  status: 'Active' | 'Draft' | 'Discontinued'
+  /** Price modifier (delta sobre productItemPrice) · silver `finishValuePrice`
+   *  (numeric 18,2). Puede ser 0 (included). */
+  price: number
+  /** FK opcional a Currency · silver `finishValueCurrencyId`. Undefined
+   *  → derivable del Catalogue o USD default. */
+  currencyId?: string
+  /** Hex color del swatch · UI-only (silver no lo modela, pero necesario para
+   *  colorway/finish display en el prototype). */
+  swatch?: string
+}
+
+/**
  * SpaceType · tipología de espacio (Focus Room, Work Cafe, Huddle, Meeting Room, etc).
  * Los PDFs de Steelcase organizan el catálogo también por Space Type para
  * mostrar "para qué escenario sirve este producto".
