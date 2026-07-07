@@ -132,58 +132,72 @@ export default function CatalogPage({ onLogout, onNavigate }: CatalogPageProps) 
             Fase 6.1 · icono Info (i) inline por tab · el tooltip aparece solo al
             hover del icono, no del tab entero (evita popovers accidentales al navegar).
             Align smart · start para MRL (evita corte contra borde izq), end para
-            My Selection, center para el resto. */}
-        <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
-          <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
-            <LibraryBig className="h-4 w-4" />
-            MRL
-            <TabInfoTrigger content={TAB_INFO_MRL} align="start" />
-          </button>
-          <button type="button" onClick={() => setMode('manage')} className={tabClass(mode === 'manage')}>
-            <Settings2 className="h-4 w-4" />
-            Dealer / Quote
-            <TabInfoTrigger content={TAB_INFO_DEALER_QUOTE} align="center" />
-          </button>
-          <button type="button" onClick={() => setMode('shop')} className={tabClass(mode === 'shop')}>
-            <ShoppingBag className="h-4 w-4" />
-            Figma
-            <TabInfoTrigger content={TAB_INFO_FIGMA} align="center" />
-          </button>
-          {/* Diego polish · Product Catalog antes de My Quotes (browsing → cart flow) */}
-          {/* Fase 2 v2 · Spaces vive dentro de Product Catalog como 3ra taxonomía
-              del toggle sidebar (Products/Materials/Spaces) · sin tab dedicado. */}
-          <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
-            <Store className="h-4 w-4" />
-            Product Catalog
-            <TabInfoTrigger content={TAB_INFO_PRODUCT_CATALOG} align="center" />
-          </button>
-          {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
-              (Diego: no salirnos de la sección). Badge count del cart. */}
-          <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
-            <FileText className="h-4 w-4" />
-            My Selection
-            {totalCartUnits > 0 && (
-              <span className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
-                mode === 'quotes' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
-              }`}>
-                {totalCartUnits}
-              </span>
-            )}
-            <TabInfoTrigger content={TAB_INFO_MY_SELECTION} align="end" />
-          </button>
-        </div>
+            My Selection, center para el resto.
 
-        {mode === 'browse' ? (
-          renderBrowse()
-        ) : mode === 'manage' ? (
-          <ManageCatalogs />
-        ) : mode === 'shop' ? (
-          <ProductCatalogPage />
-        ) : mode === 'quotes' ? (
-          <QuotesPage onBack={() => setMode('showroom')} />
-        ) : (
-          <ShowroomPage />
-        )}
+            Diego ask (2026-07-07) · en modes 'shop' (Figma) y 'showroom' (Product
+            Catalog) esta barra se muestra al lado del título del tab en lugar de
+            en su propia fila arriba · gana espacio vertical. Para el resto de
+            modes se renderiza aquí como estaba. */}
+        {(() => {
+          const modeTabBar = (
+            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+              <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
+                <LibraryBig className="h-4 w-4" />
+                MRL
+                <TabInfoTrigger content={TAB_INFO_MRL} align="start" />
+              </button>
+              <button type="button" onClick={() => setMode('manage')} className={tabClass(mode === 'manage')}>
+                <Settings2 className="h-4 w-4" />
+                Dealer / Quote
+                <TabInfoTrigger content={TAB_INFO_DEALER_QUOTE} align="center" />
+              </button>
+              <button type="button" onClick={() => setMode('shop')} className={tabClass(mode === 'shop')}>
+                <ShoppingBag className="h-4 w-4" />
+                Figma
+                <TabInfoTrigger content={TAB_INFO_FIGMA} align="center" />
+              </button>
+              {/* Diego polish · Product Catalog antes de My Quotes (browsing → cart flow) */}
+              {/* Fase 2 v2 · Spaces vive dentro de Product Catalog como 3ra taxonomía
+                  del toggle sidebar (Products/Materials/Spaces) · sin tab dedicado. */}
+              <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
+                <Store className="h-4 w-4" />
+                Product Catalog
+                <TabInfoTrigger content={TAB_INFO_PRODUCT_CATALOG} align="center" />
+              </button>
+              {/* Phase 3 Fix #13 iter 2 · "My Quotes" como tab del catalog
+                  (Diego: no salirnos de la sección). Badge count del cart. */}
+              <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
+                <FileText className="h-4 w-4" />
+                My Selection
+                {totalCartUnits > 0 && (
+                  <span className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
+                    mode === 'quotes' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
+                  }`}>
+                    {totalCartUnits}
+                  </span>
+                )}
+                <TabInfoTrigger content={TAB_INFO_MY_SELECTION} align="end" />
+              </button>
+            </div>
+          )
+          const hideTopBar = mode === 'shop' || mode === 'showroom'
+          return (
+            <>
+              {!hideTopBar && modeTabBar}
+              {mode === 'browse' ? (
+                renderBrowse()
+              ) : mode === 'manage' ? (
+                <ManageCatalogs />
+              ) : mode === 'shop' ? (
+                <ProductCatalogPage headerAside={modeTabBar} />
+              ) : mode === 'quotes' ? (
+                <QuotesPage onBack={() => setMode('showroom')} />
+              ) : (
+                <ShowroomPage headerAside={modeTabBar} />
+              )}
+            </>
+          )
+        })()}
       </div>
 
       {/* Cart/FAB "Your selection" · Product Catalog + My Selection.

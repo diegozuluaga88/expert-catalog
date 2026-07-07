@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Search, ChevronDown, Settings2, SlidersHorizontal, Check, PanelLeft, PanelLeftClose } from 'lucide-react'
 import type { Product, ProductSortKey } from '../types'
 import {
@@ -62,7 +62,14 @@ function FilterSection({
   )
 }
 
-export default function ProductCatalogPage() {
+interface ProductCatalogPageProps {
+  /** Diego ask (2026-07-07) · barra de tabs (MRL / Dealer / Figma / Product Catalog /
+   *  My Selection) inyectada por CatalogPage y renderizada al lado del título para
+   *  ganar espacio vertical. Opcional · fallback = header sin acciones a la derecha. */
+  headerAside?: ReactNode
+}
+
+export default function ProductCatalogPage({ headerAside }: ProductCatalogPageProps = {}) {
   const [search, setSearch] = useState('')
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set())
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
@@ -186,29 +193,32 @@ export default function ProductCatalogPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header · title + description + inline brand pills (primary filter CTA).
-          Diego ask (2026-07-07) · promoted the pills into the header row to save
-          vertical space and put them next to the title as the primary quick filter. */}
+      {/* Header · title + description + inline tab-bar aside (MRL/Dealer/Figma/PC/MyS).
+          Diego ask (2026-07-07) · the top mode-switch bar is injected here to
+          save vertical space. */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
           <p className="text-sm text-muted-foreground">Track your orders and shipments</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-center">
-          <button type="button" onClick={() => setOnlyBrand(null)} className={pillClass(selectedBrands.size === 0)}>
-            All Products
+        {headerAside && <div className="self-center">{headerAside}</div>}
+      </div>
+
+      {/* Brand pills · quedan en el header como filtro rápido visible */}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setOnlyBrand(null)} className={pillClass(selectedBrands.size === 0)}>
+          All Products
+        </button>
+        {SHOP_BRANDS.map((b) => (
+          <button
+            key={b}
+            type="button"
+            onClick={() => setOnlyBrand(b)}
+            className={pillClass(selectedBrands.size === 1 && selectedBrands.has(b))}
+          >
+            {b}
           </button>
-          {SHOP_BRANDS.map((b) => (
-            <button
-              key={b}
-              type="button"
-              onClick={() => setOnlyBrand(b)}
-              className={pillClass(selectedBrands.size === 1 && selectedBrands.has(b))}
-            >
-              {b}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
       {/* Main: sidebar (con toolbar adentro) + grid · sidebar collapsible (Diego ask).
