@@ -100,7 +100,7 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {section === 'drafts'
                                     ? 'Add products from the showroom or create an empty draft.'
-                                    : 'Submitted quotes will appear here.'}
+                                    : 'Submitted selections will appear here.'}
                             </p>
                         </div>
                     ) : (
@@ -133,7 +133,7 @@ export default function QuotesPage({ onBack }: QuotesPageProps) {
                         />
                     ) : (
                         <div className="rounded-xl border border-border bg-card p-12 text-center">
-                            <p className="text-sm text-muted-foreground">Select a quote to view details.</p>
+                            <p className="text-sm text-muted-foreground">Select a submission to view details.</p>
                         </div>
                     )}
                 </main>
@@ -551,7 +551,7 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                         </button>
                     ) : (
                         <p className="mt-3 text-center text-xs text-muted-foreground">
-                            This quote was submitted · reference {draft.referenceNumber}
+                            This selection was submitted · reference {draft.referenceNumber}
                         </p>
                     )}
                 </div>
@@ -708,9 +708,9 @@ function SubmittedConfirmation({ refNumber, tenantName, onDone, onBack }: { refN
                 <div className="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-foreground">
                     <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">Quote submitted</h1>
+                <h1 className="text-2xl font-bold text-foreground">Selection submitted</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Your quote for <span className="font-semibold text-foreground">{tenantName}</span> has been sent · we'll be in touch within 24 hours.
+                    Your selection for <span className="font-semibold text-foreground">{tenantName}</span> has been sent · we'll be in touch within 24 hours.
                 </p>
                 <div className="mt-4 rounded-lg bg-muted/40 px-4 py-3">
                     <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Reference number</div>
@@ -718,7 +718,7 @@ function SubmittedConfirmation({ refNumber, tenantName, onDone, onBack }: { refN
                 </div>
                 <div className="mt-6 flex gap-2">
                     <button type="button" onClick={onDone} className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
-                        View submitted
+                        View submitted selection
                     </button>
                     {onBack && (
                         <button type="button" onClick={onBack} className="flex-1 rounded-lg border border-input px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted">

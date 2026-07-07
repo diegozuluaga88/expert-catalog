@@ -225,16 +225,16 @@ export const TAB_INFO_PRODUCT_CATALOG: TabInfo = {
 }
 
 export const TAB_INFO_MY_SELECTION: TabInfo = {
-    title: 'My Selection · Quote drafts',
+    title: 'My Selection · Draft submissions',
     role: 'current',
     whatYouSee:
-        'The active tenant\'s selections · multi-line items, auto-filled buyer info, submit flow.',
+        'The active tenant\'s selections · multi-line items, auto-filled buyer info, submit flow. Neutral about downstream intent (Quote / PO / RFQ) — the dealer decides after submission.',
     dataSource:
         'QuoteContext · multi-draft per tenant in `expert-hub-quotes-{slug}` localStorage.',
     structure:
         '2-col · drafts list + detail with Buyer info + Line items + Totals.',
     features: [
-        'Multi-draft · N parallel quotes per tenant',
+        'Multi-draft · N parallel selections per tenant',
         'Auto-filled buyer info (user + tenant)',
         'Toggle Flat list / By Space Setting',
         'Reference number Q-YYYY-NNN-TENANT',
