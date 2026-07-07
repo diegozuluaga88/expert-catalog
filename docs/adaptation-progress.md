@@ -27,7 +27,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P1.3.b.ii** | Options UI · QuoteTab selector 2-level (coexiste con fabricId) | 🟢 | `f947070` | 2026-07-06 |
 | **P1.3.b.iii** | Options UI · migración final QuoteLineItem.fabricId → optionValueId | ⚪ | — | — |
 | **P1.4.a** | Finishes 3-niveles · data model + seed (sin UI) | 🟢 | `0484590` | 2026-07-06 |
-| **P1.4.b** | Finishes UI · VariantsTab section 3-nivel | ⚪ | — | — |
+| **P1.4.b** | Finishes UI · VariantsTab section 3-nivel | 🟢 | `TBD` | 2026-07-06 |
 | **P1.4.c** | Finishes UI · QuoteTab selector + priceModifier en computeLineItemTotals | ⚪ | — | — |
 | **P2.1** | Multi-tenant per-entity (catalogueTenantId, optionMasterTenantId, finishMasterTenantId) | ⚪ | — | — |
 | **P2.2** | Status per-entity (6 nuevos status independientes) | ⚪ | — | — |

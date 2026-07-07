@@ -27,6 +27,7 @@ import { inferProductGroupCode, findProductGroupByCode } from '../data/productGr
 import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
 import { findOptionMasterById, findOptionValueById, valuesForMaster } from '../data/options'
+import { findFinishMasterById, valuesForMasterGrouped } from '../data/finishes'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -954,6 +955,11 @@ function VariantsTab({ product, variants }: { product: Product; variants: Return
                 sin cambiar el data flow del Quote tab (que sigue usando fabricOptions[]
                 legacy hasta la migración total en P1.3.b.iii). */}
             <ConfigurableOptionsSection product={product} />
+            {/* Fase P1.4.b · Configurable finishes (silver 3-nivel)
+                Aparece cuando el ProductGroup del product tiene `linkedFinishMasterRefs`.
+                Muestra FinishMasters → FinishOptions → FinishValues con swatch + priceModifier.
+                Display-only. QuoteTab selector viene en P1.4.c. */}
+            <ConfigurableFinishesSection product={product} />
         </div>
     )
 }
@@ -1016,6 +1022,79 @@ function ConfigurableOptionsSection({ product }: { product: Product }) {
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+                    )
+                })}
+            </div>
+        </section>
+    )
+}
+
+/**
+ * Fase P1.4.b · Muestra los FinishMasters → FinishOptions → FinishValues
+ * linked al ProductGroup del product, si existen `linkedFinishMasterRefs`.
+ * Display-only con swatch + priceModifier (silver Finishes SÍ modifican precio).
+ * Silent si el ProductGroup no matchea o no tiene refs.
+ */
+function ConfigurableFinishesSection({ product }: { product: Product }) {
+    const groupCode = inferProductGroupCode(product)
+    if (!groupCode) return null
+    const group = findProductGroupByCode(groupCode)
+    if (!group?.linkedFinishMasterRefs || group.linkedFinishMasterRefs.length === 0) return null
+
+    const orderedRefs = [...group.linkedFinishMasterRefs].sort(
+        (a, b) => a.masterFinishPosition - b.masterFinishPosition,
+    )
+
+    return (
+        <section className="lg:col-span-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="mb-3 flex items-baseline gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3" />
+                    Configurable finishes
+                </h3>
+                <span className="text-[10px] text-muted-foreground">via {groupCode} · silver schema · price modifier applies</span>
+            </div>
+            <p className="mb-3 text-[11px] text-muted-foreground italic">
+                Finish jerarquía · Master → Option → Value (con swatch + price delta).
+            </p>
+            <div className="space-y-4">
+                {orderedRefs.map(ref => {
+                    const master = findFinishMasterById(ref.masterFinishId)
+                    if (!master) return null
+                    const groupedByOption = valuesForMasterGrouped(master.id)
+                    return (
+                        <div key={ref.masterFinishId} className="rounded-lg border border-border bg-card p-3">
+                            <h4 className="mb-2 text-sm font-bold text-foreground">{master.masterFinishName}</h4>
+                            <div className="space-y-2">
+                                {groupedByOption.map(({ option, values }) => (
+                                    <div key={option.id}>
+                                        <h5 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            {option.finishOptionName}
+                                        </h5>
+                                        <div className="flex flex-wrap gap-2">
+                                            {values.map(v => (
+                                                <div
+                                                    key={v.id}
+                                                    className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1"
+                                                    title={v.description}
+                                                >
+                                                    {v.swatch && (
+                                                        <span
+                                                            className="inline-block h-4 w-4 rounded-sm border border-border/60 shadow-sm"
+                                                            style={{ backgroundColor: v.swatch }}
+                                                        />
+                                                    )}
+                                                    <span className="text-xs font-medium text-foreground">{v.finishValueName}</span>
+                                                    <span className="text-[10px] font-semibold text-muted-foreground">
+                                                        {v.price > 0 ? `+${formatPrice(v.price, v.currencyId)}` : 'Included'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )
                 })}
