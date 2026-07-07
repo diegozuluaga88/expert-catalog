@@ -31,10 +31,12 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P1.4.c** | Finishes UI · QuoteTab selector + priceModifier en computeLineItemTotals | 🟢 | `8182832` | 2026-07-06 |
 | **P2.1** | Multi-tenant per-entity · helper isVisibleToTenant + UI filter + seeds | 🟢 | `b7c7a52` | 2026-07-06 |
 | **P2.2** | Status per-entity · helpers filter Active + seed Discontinued | 🟢 | `d82ba43` | 2026-07-06 |
-| **P2.3** | Record header pattern (id bigint + recordNumber + recordCreatedAt + tenantId) | ⚪ | — | — |
+| **P2.3** | Record header pattern (id bigint + recordNumber + recordCreatedAt + tenantId) | 🟢 docs | `15b0da8` | 2026-07-07 |
 | **P2.4** | Drawings 2D/3D discriminados | 🟢 | `33e2e09` | 2026-07-06 |
-| **P3.1** | Jerarquía universal documentada (level/isProject/parent*) | ⚪ | — | — |
-| **P3.2** | Overlay documented (Auxiliary tables recommended) | ⚪ | — | — |
+| **P3.1** | Jerarquía universal documentada (level/isProject/parent*) | 🟢 docs | `15b0da8` | 2026-07-07 |
+| **P3.2** | Overlay documented (Auxiliary tables recommended) | 🟢 docs | `15b0da8` | 2026-07-07 |
+
+**Leyenda de estado**: 🟢 = código merged · 🟢 docs = cerrada por documentación (responsabilidad BE, no requiere código en el prototype) · ⚪ = pending
 
 ---
 
