@@ -32,7 +32,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P2.1** | Multi-tenant per-entity (catalogueTenantId, optionMasterTenantId, finishMasterTenantId) | ⚪ | — | — |
 | **P2.2** | Status per-entity (6 nuevos status independientes) | ⚪ | — | — |
 | **P2.3** | Record header pattern (id bigint + recordNumber + recordCreatedAt + tenantId) | ⚪ | — | — |
-| **P2.4** | Drawings 2D/3D discriminados | 🟢 | `TBD` | 2026-07-06 |
+| **P2.4** | Drawings 2D/3D discriminados | 🟢 | `33e2e09` | 2026-07-06 |
 | **P3.1** | Jerarquía universal documentada (level/isProject/parent*) | ⚪ | — | — |
 | **P3.2** | Overlay documented (Auxiliary tables recommended) | ⚪ | — | — |
 
