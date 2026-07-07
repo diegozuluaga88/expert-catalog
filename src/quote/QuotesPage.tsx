@@ -478,6 +478,16 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                                             ))}
                                         </div>
                                     )}
+                                    {/* Fase P1.4.c · Configurable finishes chips (silver 3-nivel · con price modifier) */}
+                                    {item.finishValueLabels && item.finishValueLabels.length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {item.finishValueLabels.map((label, i) => (
+                                                <span key={i} className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                                                    {label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                     <div className="mt-1 text-[10px] text-muted-foreground">Ships in {formatLeadTime(item.leadTimeDays)}</div>
                                 </div>
                                 <div className="flex items-start gap-2">
@@ -629,6 +639,16 @@ function ItemRow({
                     <div className="mt-1 flex flex-wrap gap-1">
                         {item.optionValueLabels.map((label, i) => (
                             <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                                {label}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                {/* Fase P1.4.c · Configurable finishes chips (silver 3-nivel · con price modifier) */}
+                {item.finishValueLabels && item.finishValueLabels.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                        {item.finishValueLabels.map((label, i) => (
+                            <span key={i} className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
                                 {label}
                             </span>
                         ))}

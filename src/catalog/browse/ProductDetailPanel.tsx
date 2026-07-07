@@ -27,7 +27,7 @@ import { inferProductGroupCode, findProductGroupByCode } from '../data/productGr
 import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
 import { findOptionMasterById, findOptionValueById, valuesForMaster } from '../data/options'
-import { findFinishMasterById, valuesForMasterGrouped } from '../data/finishes'
+import { findFinishMasterById, findFinishOptionById, findFinishValueById, valuesForMasterGrouped } from '../data/finishes'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -42,6 +42,11 @@ interface QuoteLine {
      *  Ej. { 'om-armrests': 'ov-armrests-adjustable', 'om-base': 'ov-base-5-star' }.
      *  Se materializa a `optionValueIds[]` + `optionValueLabels[]` al add al draft. */
     optionSelections?: Record<string, string>
+    /** Fase P1.4.c · Map de FinishMaster.id → FinishValue.id elegido.
+     *  Ej. { 'fm-fabric': 'fv-fabric-g3-forest', 'fm-frame': 'fv-frame-chrome-polished' }.
+     *  Se materializa a `finishValueIds[]` + `finishValueLabels[]` + `finishPriceModifier`
+     *  al add al draft (sum de finishValue.price). */
+    finishSelections?: Record<string, string>
 }
 
 interface ProductDetailPanelProps {
@@ -91,10 +96,19 @@ export default function ProductDetailPanel({
                 // Edit mode · pre-fill 1 line with the existing item's variants
                 // Fase P1.3.b.ii · reconstruir optionSelections desde optionValueIds
                 // (reversar de arrays paralelos a Record<masterId, valueId>)
-                const rebuiltSelections: Record<string, string> = {}
+                const rebuiltOptionSelections: Record<string, string> = {}
                 for (const vId of editingItem.item.optionValueIds ?? []) {
                     const v = findOptionValueById(vId)
-                    if (v) rebuiltSelections[v.optionMasterId] = v.id
+                    if (v) rebuiltOptionSelections[v.optionMasterId] = v.id
+                }
+                // Fase P1.4.c · reconstruir finishSelections desde finishValueIds.
+                // Requiere 2-hop: FinishValue.finishOptionId → FinishOption.finishMasterId.
+                const rebuiltFinishSelections: Record<string, string> = {}
+                for (const vId of editingItem.item.finishValueIds ?? []) {
+                    const value = findFinishValueById(vId)
+                    if (!value) continue
+                    const option = findFinishOptionById(value.finishOptionId)
+                    if (option) rebuiltFinishSelections[option.finishMasterId] = value.id
                 }
                 setLines([{
                     id: `edit-${editingItem.item.id}`,
@@ -103,7 +117,8 @@ export default function ProductDetailPanel({
                     finishId: editingItem.item.finishId,
                     fabricId: editingItem.item.fabricId,
                     materialTierId: editingItem.item.materialTierId,
-                    ...(Object.keys(rebuiltSelections).length > 0 && { optionSelections: rebuiltSelections }),
+                    ...(Object.keys(rebuiltOptionSelections).length > 0 && { optionSelections: rebuiltOptionSelections }),
+                    ...(Object.keys(rebuiltFinishSelections).length > 0 && { finishSelections: rebuiltFinishSelections }),
                 }])
             } else {
                 setLines([makeDefaultLine(product)])
@@ -122,15 +137,38 @@ export default function ProductDetailPanel({
     // product existe · sino al renderizar el modal cerrado con product=undefined,
     // computeLineItemTotals(undefined, ...) crashea y se pone toda la app en
     // blanco. NO mover el `if (!product)` arriba de los hooks (rules of hooks).
+    // Fase P1.4.c · lineTotals ahora suma el finishPriceModifier de las
+    // selecciones silver Finishes en tiempo real. El helper base
+    // computeLineItemTotals sigue leyendo el fabric/finish/material legacy;
+    // aquí extendemos el resultado sumando finishValue.price por cada
+    // FinishValue elegido en finishSelections.
     const lineTotals = useMemo(
         () => product
-            ? lines.map(line => computeLineItemTotals(product, {
-                qty: line.qty,
-                colorwayCode: line.colorwayCode,
-                finishId: line.finishId,
-                fabricId: line.fabricId,
-                materialTierId: line.materialTierId,
-            }))
+            ? lines.map(line => {
+                const base = computeLineItemTotals(product, {
+                    qty: line.qty,
+                    colorwayCode: line.colorwayCode,
+                    finishId: line.finishId,
+                    fabricId: line.fabricId,
+                    materialTierId: line.materialTierId,
+                })
+                // Suma silver finish modifiers
+                let finishMod = 0
+                if (line.finishSelections) {
+                    for (const valueId of Object.values(line.finishSelections)) {
+                        if (!valueId) continue
+                        const v = findFinishValueById(valueId)
+                        if (v) finishMod += v.price
+                    }
+                }
+                if (finishMod === 0) return base
+                const unitPrice = base.unitPrice + finishMod
+                return {
+                    ...base,
+                    unitPrice,
+                    totalPrice: unitPrice * line.qty,
+                }
+            })
             : [],
         [product, lines]
     )
@@ -195,6 +233,31 @@ export default function ProductDetailPanel({
                 }
             }
         }
+        // Fase P1.4.c · materializar finishSelections + suma priceModifier.
+        // Silver Finishes SÍ modifican precio · sumo todos los value.price y
+        // los aplico al unitPrice del line item.
+        const finishValueIds: string[] = []
+        const finishValueLabels: string[] = []
+        let finishPriceModifier = 0
+        if (line.finishSelections) {
+            for (const [masterId, valueId] of Object.entries(line.finishSelections)) {
+                if (!valueId) continue
+                const master = findFinishMasterById(masterId)
+                const value = findFinishValueById(valueId)
+                if (master && value) {
+                    finishValueIds.push(value.id)
+                    const priceLabel = value.price > 0
+                        ? ` +${formatPrice(value.price, value.currencyId)}`
+                        : ''
+                    finishValueLabels.push(`${master.masterFinishName}: ${value.finishValueName}${priceLabel}`)
+                    finishPriceModifier += value.price
+                }
+            }
+        }
+        // Fase P1.4.c · totals ya incluye el finishPriceModifier (aplicado en
+        // el useMemo `lineTotals` arriba) · no hay que sumar nuevamente aquí.
+        // Preservamos finishPriceModifier separadamente en el line item para
+        // que el UI de QuotesPage pueda mostrar breakdown "Base $X + Finishes $Y".
         return {
             productId: product.id,
             productName: product.name,
@@ -216,6 +279,11 @@ export default function ProductDetailPanel({
             leadTimeDays: totals.leadTimeDays,
             // Include only if non-empty · preserva backward compat con drafts sin options
             ...(optionValueIds.length > 0 && { optionValueIds, optionValueLabels }),
+            ...(finishValueIds.length > 0 && {
+                finishValueIds,
+                finishValueLabels,
+                finishPriceModifier,
+            }),
         }
     }
 
@@ -720,6 +788,12 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 Silent si no hay refs. Silver options no modifican precio (solo semantic). */}
             <QuoteLineOptionsSelector product={product} line={line} disabled={disabled} onChange={onChange} />
 
+            {/* Fase P1.4.c · Configurable finishes selector (silver-aligned 3-nivel)
+                Renderiza selectors 3-level por cada FinishMaster linked al ProductGroup.
+                Silver Finishes SÍ modifican precio · totales del line item se
+                recomputan al cambiar la selección (via computeLineItemTotals). */}
+            <QuoteLineFinishesSelector product={product} line={line} disabled={disabled} onChange={onChange} />
+
             {/* Qty + line total + lead */}
             <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
                 <div>
@@ -1166,6 +1240,94 @@ function QuoteLineOptionsSelector({
                                 <option value="">— Select {master.name.toLowerCase()} —</option>
                                 {values.map(v => (
                                     <option key={v.id} value={v.id}>{v.value}</option>
+                                ))}
+                            </select>
+                        </label>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
+/**
+ * Fase P1.4.c · Selector 3-level per FinishMaster para el QuoteLineEditor.
+ * Renderiza dropdowns por cada FinishMaster linked al ProductGroup. Cada value
+ * lleva swatch + priceModifier · el UI ayuda al usuario a comparar visualmente.
+ *
+ * Silver Finishes SÍ modifican precio · la sum de finishValue.price se materializa
+ * a QuoteLineItem.finishPriceModifier al add al draft, y el unitPrice del line
+ * item ya lleva el delta aplicado (via computeLineItemTotals extension).
+ *
+ * Silent si el ProductGroup no tiene linkedFinishMasterRefs.
+ */
+function QuoteLineFinishesSelector({
+    product, line, disabled, onChange,
+}: {
+    product: Product
+    line: QuoteLine
+    disabled: boolean
+    onChange: (patch: Partial<QuoteLine>) => void
+}) {
+    const groupCode = inferProductGroupCode(product)
+    if (!groupCode) return null
+    const group = findProductGroupByCode(groupCode)
+    if (!group?.linkedFinishMasterRefs || group.linkedFinishMasterRefs.length === 0) return null
+
+    const orderedRefs = [...group.linkedFinishMasterRefs].sort(
+        (a, b) => a.masterFinishPosition - b.masterFinishPosition,
+    )
+    const currentSelections = line.finishSelections ?? {}
+
+    const handleSelect = (masterId: string, valueId: string) => {
+        onChange({
+            finishSelections: {
+                ...currentSelections,
+                [masterId]: valueId,
+            },
+        })
+    }
+
+    return (
+        <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+            <div className="mb-2 flex items-baseline gap-1.5">
+                <Sparkles className="h-3 w-3 text-foreground" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Configurable finishes</span>
+                <span className="text-[9px] text-muted-foreground">silver schema · price applies</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {orderedRefs.map(ref => {
+                    const master = findFinishMasterById(ref.masterFinishId)
+                    if (!master) return null
+                    const groupedByOption = valuesForMasterGrouped(master.id)
+                    const selectedId = currentSelections[master.id] ?? ''
+                    const selectedValue = selectedId ? findFinishValueById(selectedId) : undefined
+                    return (
+                        <label key={master.id} className="flex flex-col gap-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                                {master.masterFinishName}
+                                {selectedValue?.swatch && (
+                                    <span
+                                        className="inline-block h-3 w-3 rounded-sm border border-border/60"
+                                        style={{ backgroundColor: selectedValue.swatch }}
+                                    />
+                                )}
+                            </span>
+                            <select
+                                disabled={disabled}
+                                value={selectedId}
+                                onChange={(e) => handleSelect(master.id, e.target.value)}
+                                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">— Select finish —</option>
+                                {groupedByOption.map(({ option, values }) => (
+                                    <optgroup key={option.id} label={option.finishOptionName}>
+                                        {values.map(v => (
+                                            <option key={v.id} value={v.id}>
+                                                {v.finishValueName}{v.price > 0 ? ` (+${formatPrice(v.price, v.currencyId)})` : ''}
+                                            </option>
+                                        ))}
+                                    </optgroup>
                                 ))}
                             </select>
                         </label>

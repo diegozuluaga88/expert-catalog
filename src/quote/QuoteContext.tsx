@@ -62,6 +62,17 @@ export interface QuoteLineItem {
     /** Fase P1.3.b.ii · Labels legibles ("Armrests: Adjustable", "Base: 5-star") ·
      *  cached en el line item para display sin resolver el master. */
     optionValueLabels?: string[]
+    /** Fase P1.4.c · IDs de FinishValues elegidos (silver schema aligned).
+     *  Ej. ['fv-fabric-g3-forest', 'fv-frame-chrome-polished'].
+     *  Coexiste con finishId (legacy) por backward compat. Silver Finishes SÍ
+     *  modifican precio · unitPrice del line item ya lleva los deltas sumados. */
+    finishValueIds?: string[]
+    /** Fase P1.4.c · Labels legibles ("Fabric Finish: Grade 3 · Forest Green +$50") ·
+     *  cached para display sin resolver el master + option + value. */
+    finishValueLabels?: string[]
+    /** Fase P1.4.c · Suma de finishValue.price aplicados · útil para display
+     *  breakdown "Base $500 + Finishes $95" en QuotesPage. */
+    finishPriceModifier?: number
 }
 
 export interface BuyerInfo {
