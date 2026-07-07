@@ -23,9 +23,10 @@ import { useQuote, type EditingItemState, type QuoteLineItem } from '../../quote
 import { getRelatedProducts, type RelatedBucket } from '../related'
 import ComparePickerModal from './ComparePickerModal'
 import CompareModal from '../shop/CompareModal'
-import { inferProductGroupCode } from '../data/productGroups'
+import { inferProductGroupCode, findProductGroupByCode } from '../data/productGroups'
 import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
+import { findOptionMasterById, valuesForMaster } from '../data/options'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -912,7 +913,79 @@ function VariantsTab({ product, variants }: { product: Product; variants: Return
                     </dl>
                 </section>
             )}
+            {/* Fase P1.3.b.i · Configurable options (silver schema aligned)
+                Aparece cuando el ProductGroup del product tiene `linkedOptionGroupRefs`.
+                Muestra los OptionMasters + values ordenados por position · display-only,
+                sin cambiar el data flow del Quote tab (que sigue usando fabricOptions[]
+                legacy hasta la migración total en P1.3.b.iii). */}
+            <ConfigurableOptionsSection product={product} />
         </div>
+    )
+}
+
+/**
+ * Fase P1.3.b.i · Muestra los OptionMasters + values linked al ProductGroup
+ * del product, si existen `linkedOptionGroupRefs` (jsonb-style silver).
+ * Silent si el product no matchea un ProductGroup con refs.
+ */
+function ConfigurableOptionsSection({ product }: { product: Product }) {
+    const groupCode = inferProductGroupCode(product)
+    if (!groupCode) return null
+    const group = findProductGroupByCode(groupCode)
+    if (!group?.linkedOptionGroupRefs || group.linkedOptionGroupRefs.length === 0) return null
+
+    const orderedRefs = [...group.linkedOptionGroupRefs].sort(
+        (a, b) => a.optionGroupPosition - b.optionGroupPosition,
+    )
+
+    return (
+        <section className="lg:col-span-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <div className="mb-3 flex items-baseline gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3" />
+                    Configurable options
+                </h3>
+                <span className="text-[10px] text-muted-foreground">via {groupCode} · silver schema</span>
+            </div>
+            <p className="mb-3 text-[11px] text-muted-foreground italic">
+                Choices defined at the ProductGroup level · shared across all items in the group.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {orderedRefs.map(ref => {
+                    const master = findOptionMasterById(ref.optionMasterId)
+                    if (!master) return null
+                    const values = valuesForMaster(master.id)
+                    return (
+                        <div key={ref.optionMasterId} className="rounded-lg border border-border bg-card p-3">
+                            <div className="mb-2 flex items-baseline justify-between gap-2">
+                                <h4 className="text-sm font-bold text-foreground">{master.name}</h4>
+                                <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                                    {values.length} choice{values.length === 1 ? '' : 's'}
+                                </span>
+                            </div>
+                            {master.notes && (
+                                <p className="mb-2 text-[10px] text-muted-foreground italic">{master.notes}</p>
+                            )}
+                            <ul className="space-y-1">
+                                {values.map(v => (
+                                    <li key={v.id} className="flex items-center gap-2 text-xs">
+                                        <span className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-foreground">
+                                            {v.position}
+                                        </span>
+                                        <span className="font-medium text-foreground">{v.value}</span>
+                                        {v.description && (
+                                            <span className="text-[10px] text-muted-foreground truncate" title={v.description}>
+                                                · {v.description}
+                                            </span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )
+                })}
+            </div>
+        </section>
     )
 }
 

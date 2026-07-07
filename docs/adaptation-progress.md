@@ -23,7 +23,9 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P1.1** | Catalogue layer (nueva entidad separada de Manufacturer) | 🟢 | `3aee52c` | 2026-07-06 |
 | **P1.2** | Currency entity + currencyId multi-level | 🟢 | `4659bff` | 2026-07-06 |
 | **P1.3.a** | Options normalizado · data model + seed (sin UI) | 🟢 | `da415c9` | 2026-07-06 |
-| **P1.3.b** | Options normalizado · UI migration (VariantsTab + QuoteTab) | ⚪ | — | — |
+| **P1.3.b.i** | Options UI · VariantsTab "Configurable options" section | 🟢 | `TBD` | 2026-07-06 |
+| **P1.3.b.ii** | Options UI · QuoteTab selector 2-level (coexiste con fabricId) | ⚪ | — | — |
+| **P1.3.b.iii** | Options UI · migración final QuoteLineItem.fabricId → optionValueId | ⚪ | — | — |
 | **P1.4** | Finishes normalizado 3 niveles (FinishMaster + FinishOption + FinishValue) | ⚪ | — | — |
 | **P2.1** | Multi-tenant per-entity (catalogueTenantId, optionMasterTenantId, finishMasterTenantId) | ⚪ | — | — |
 | **P2.2** | Status per-entity (6 nuevos status independientes) | ⚪ | — | — |
