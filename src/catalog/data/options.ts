@@ -71,6 +71,9 @@ export const OPTION_GROUP_VALUES: OptionGroupValue[] = [
     { id: 'ov-armrests-fixed', optionMasterId: 'om-armrests', position: 2, value: 'Fixed', description: 'Apoyabrazos fijos.', status: 'Active' },
     { id: 'ov-armrests-adjustable', optionMasterId: 'om-armrests', position: 3, value: 'Adjustable', description: 'Apoyabrazos ajustables en altura.', status: 'Active' },
     { id: 'ov-armrests-4d', optionMasterId: 'om-armrests', position: 4, value: '4D Adjustable', description: 'Ajuste en 4 dimensiones (height, width, depth, pivot).', status: 'Active' },
+    // Fase P2.2 · sample discontinued · el UI oculta por default via valuesForMaster()
+    // filter status='Active'. Sirve como validación del pattern silver status per-entity.
+    { id: 'ov-armrests-2d-legacy', optionMasterId: 'om-armrests', position: 5, value: '2D Adjustable (legacy)', description: 'Modelo legacy discontinuado en Q4 2025.', status: 'Discontinued' },
 
     // Base (om-base)
     { id: 'ov-base-4-star', optionMasterId: 'om-base', position: 1, value: '4-star base', description: 'Base de 4 puntos.', status: 'Active' },
@@ -115,16 +118,24 @@ export function findOptionValueById(id: string): OptionGroupValue | undefined {
     return OPTION_GROUP_VALUES.find(v => v.id === id)
 }
 
-/** Values de un master, ordenados por position ascendente. */
-export function valuesForMaster(masterId: string): OptionGroupValue[] {
+/** Fase P2.2 · Values de un master ordenados por position asc, filtrados por
+ *  status='Active' por defecto (silver `optionGroupValueStatus`). Los valores
+ *  Discontinued/Draft se ocultan en dropdowns pero permanecen en el data para
+ *  drafts históricos (backward compat).
+ *  @param includeAll · true para incluir Discontinued/Draft (admin UI, edit
+ *  mode de items históricos, etc). Default false. */
+export function valuesForMaster(masterId: string, includeAll = false): OptionGroupValue[] {
     return OPTION_GROUP_VALUES
         .filter(v => v.optionMasterId === masterId)
+        .filter(v => includeAll || v.status === 'Active')
         .sort((a, b) => a.position - b.position)
 }
 
-/** OptionMasters filtrados por tenant · null retorna solo globales. */
-export function mastersForTenant(tenantId: string | null): OptionMaster[] {
-    return OPTION_MASTERS.filter(m => m.tenantId === undefined || m.tenantId === tenantId)
+/** Fase P2.2 · OptionMasters filtrados por tenant + status='Active'. */
+export function mastersForTenant(tenantId: string | null, includeAll = false): OptionMaster[] {
+    return OPTION_MASTERS
+        .filter(m => m.tenantId === undefined || m.tenantId === tenantId)
+        .filter(m => includeAll || m.status === 'Active')
 }
 
 /**

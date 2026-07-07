@@ -67,6 +67,9 @@ export const FINISH_VALUES: FinishValue[] = [
     // Frame · Wood
     { id: 'fv-frame-wood-oak', finishOptionId: 'fo-frame-wood', position: 1, finishValueName: 'Oak Natural', price: 80, swatch: '#c8a274', status: 'Active' },
     { id: 'fv-frame-wood-walnut', finishOptionId: 'fo-frame-wood', position: 2, finishValueName: 'Walnut', price: 95, swatch: '#5b3a29', status: 'Active' },
+    // Fase P2.2 · sample discontinued · el UI oculta por default via valuesForOption()
+    // filter status='Active'. Sirve como validación del pattern silver status per-entity.
+    { id: 'fv-frame-wood-teak-legacy', finishOptionId: 'fo-frame-wood', position: 3, finishValueName: 'Teak (legacy)', price: 110, swatch: '#8b6f47', status: 'Discontinued', description: 'Discontinuado por restricciones de sourcing responsable.' },
 
     // Fabric · Grade 1
     { id: 'fv-fabric-g1-slate', finishOptionId: 'fo-fabric-g1', position: 1, finishValueName: 'Slate', price: 0, swatch: '#6b7280', status: 'Active' },
@@ -127,31 +130,40 @@ export function findFinishValueById(id: string): FinishValue | undefined {
     return FINISH_VALUES.find(v => v.id === id)
 }
 
-/** Options de un FinishMaster. */
-export function optionsForMaster(finishMasterId: string): FinishOption[] {
-    return FINISH_OPTIONS.filter(o => o.finishMasterId === finishMasterId)
+/** Fase P2.2 · Options de un FinishMaster, filtered por status='Active'
+ *  (silver `finishOptionStatus`).
+ *  @param includeAll · true para incluir Discontinued/Draft. */
+export function optionsForMaster(finishMasterId: string, includeAll = false): FinishOption[] {
+    return FINISH_OPTIONS
+        .filter(o => o.finishMasterId === finishMasterId)
+        .filter(o => includeAll || o.status === 'Active')
 }
 
-/** Values de un FinishOption, ordenados por position asc. */
-export function valuesForOption(finishOptionId: string): FinishValue[] {
+/** Fase P2.2 · Values de un FinishOption, ordenados por position asc,
+ *  filtered por status='Active' (silver `finishValueStatus`). */
+export function valuesForOption(finishOptionId: string, includeAll = false): FinishValue[] {
     return FINISH_VALUES
         .filter(v => v.finishOptionId === finishOptionId)
+        .filter(v => includeAll || v.status === 'Active')
         .sort((a, b) => a.position - b.position)
 }
 
 /** All values de un master (todos los sub-options aplanados) · util para
  *  UI que quiera mostrar el catálogo completo agrupado por option.
- *  Retorna Map<optionId, values[]> ordenado por option seed order. */
-export function valuesForMasterGrouped(finishMasterId: string): Array<{ option: FinishOption; values: FinishValue[] }> {
-    return optionsForMaster(finishMasterId).map(option => ({
+ *  Filter cascadea · masters/options/values con status !== 'Active' se
+ *  ocultan por default. */
+export function valuesForMasterGrouped(finishMasterId: string, includeAll = false): Array<{ option: FinishOption; values: FinishValue[] }> {
+    return optionsForMaster(finishMasterId, includeAll).map(option => ({
         option,
-        values: valuesForOption(option.id),
+        values: valuesForOption(option.id, includeAll),
     }))
 }
 
-/** FinishMasters filtrados por tenant · null retorna globales. */
-export function finishMastersForTenant(tenantId: string | null): FinishMaster[] {
-    return FINISH_MASTERS.filter(m => m.tenantId === undefined || m.tenantId === tenantId)
+/** Fase P2.2 · FinishMasters filtrados por tenant + status='Active'. */
+export function finishMastersForTenant(tenantId: string | null, includeAll = false): FinishMaster[] {
+    return FINISH_MASTERS
+        .filter(m => m.tenantId === undefined || m.tenantId === tenantId)
+        .filter(m => includeAll || m.status === 'Active')
 }
 
 /**

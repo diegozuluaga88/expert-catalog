@@ -106,9 +106,15 @@ export function cataloguesForManufacturer(manufacturerId: string): Catalogue[] {
     return CATALOGUES.filter(c => c.manufacturerId === manufacturerId && c.status === 'Active')
 }
 
-/** Catalogues visibles para un tenant · global (sin tenantId) + custom del tenant. */
-export function cataloguesForTenant(tenantId: string | null): Catalogue[] {
-    return CATALOGUES.filter(c => c.tenantId === undefined || c.tenantId === tenantId)
+/** Fase P2.2 · Catalogues visibles para un tenant · global (sin tenantId) +
+ *  custom del tenant. Filtered por status='Active' (silver `catalogueStatus`).
+ *  Archived/Draft/Discontinued se ocultan en el UI por default pero permanecen
+ *  en el data para history/audit.
+ *  @param includeAll · true para admin UI que quiera ver todos los estados. */
+export function cataloguesForTenant(tenantId: string | null, includeAll = false): Catalogue[] {
+    return CATALOGUES
+        .filter(c => c.tenantId === undefined || c.tenantId === tenantId)
+        .filter(c => includeAll || c.status === 'Active')
 }
 
 /** Resuelve el currency code de un catalogue (para display de prices).
