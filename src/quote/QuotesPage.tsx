@@ -468,6 +468,16 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                                         {item.fabricIsPremium && <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
                                         {item.materialTierName && item.materialTierName !== 'Standard' && <span>· {item.materialTierName}</span>}
                                     </div>
+                                    {/* Fase P1.3.b.ii · Configurable options chips (silver-aligned) */}
+                                    {item.optionValueLabels && item.optionValueLabels.length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {item.optionValueLabels.map((label, i) => (
+                                                <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                                                    {label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                     <div className="mt-1 text-[10px] text-muted-foreground">Ships in {formatLeadTime(item.leadTimeDays)}</div>
                                 </div>
                                 <div className="flex items-start gap-2">
@@ -614,6 +624,16 @@ function ItemRow({
                     {item.fabricIsPremium && <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
                     {item.materialTierName && item.materialTierName !== 'Standard' && <span>· {item.materialTierName}</span>}
                 </div>
+                {/* Fase P1.3.b.ii · Configurable options chips (silver-aligned) */}
+                {item.optionValueLabels && item.optionValueLabels.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                        {item.optionValueLabels.map((label, i) => (
+                            <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                                {label}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <div className="mt-1 text-[10px] text-muted-foreground">Ships in {formatLeadTime(item.leadTimeDays)}</div>
             </div>
             <div className="flex items-start gap-2">

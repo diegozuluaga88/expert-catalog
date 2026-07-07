@@ -54,6 +54,14 @@ export interface QuoteLineItem {
     settingCode?: string        // "F1", "WC1", "H2"
     settingName?: string        // "Focus Room · Individual work"
     spaceTypeId?: string        // ref → SpaceType.id
+    /** Fase P1.3.b.ii · IDs de OptionGroupValues elegidos (silver schema aligned).
+     *  Ej. ['ov-armrests-adjustable', 'ov-base-5-star', 'ov-casters-soft'].
+     *  Coexiste con fabricId (legacy) por backward compat. Silver options no
+     *  modifican precio (solo finishes) · estos IDs son semantic choice tracking. */
+    optionValueIds?: string[]
+    /** Fase P1.3.b.ii · Labels legibles ("Armrests: Adjustable", "Base: 5-star") ·
+     *  cached en el line item para display sin resolver el master. */
+    optionValueLabels?: string[]
 }
 
 export interface BuyerInfo {

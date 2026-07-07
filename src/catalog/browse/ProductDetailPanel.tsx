@@ -26,7 +26,7 @@ import CompareModal from '../shop/CompareModal'
 import { inferProductGroupCode, findProductGroupByCode } from '../data/productGroups'
 import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
-import { findOptionMasterById, valuesForMaster } from '../data/options'
+import { findOptionMasterById, findOptionValueById, valuesForMaster } from '../data/options'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -37,6 +37,10 @@ interface QuoteLine {
     finishId?: string
     fabricId?: string
     materialTierId?: string
+    /** Fase P1.3.b.ii · Map de OptionMaster.id → OptionGroupValue.id elegido.
+     *  Ej. { 'om-armrests': 'ov-armrests-adjustable', 'om-base': 'ov-base-5-star' }.
+     *  Se materializa a `optionValueIds[]` + `optionValueLabels[]` al add al draft. */
+    optionSelections?: Record<string, string>
 }
 
 interface ProductDetailPanelProps {
@@ -84,6 +88,13 @@ export default function ProductDetailPanel({
         if (product) {
             if (editingItem) {
                 // Edit mode · pre-fill 1 line with the existing item's variants
+                // Fase P1.3.b.ii · reconstruir optionSelections desde optionValueIds
+                // (reversar de arrays paralelos a Record<masterId, valueId>)
+                const rebuiltSelections: Record<string, string> = {}
+                for (const vId of editingItem.item.optionValueIds ?? []) {
+                    const v = findOptionValueById(vId)
+                    if (v) rebuiltSelections[v.optionMasterId] = v.id
+                }
                 setLines([{
                     id: `edit-${editingItem.item.id}`,
                     qty: editingItem.item.qty,
@@ -91,6 +102,7 @@ export default function ProductDetailPanel({
                     finishId: editingItem.item.finishId,
                     fabricId: editingItem.item.fabricId,
                     materialTierId: editingItem.item.materialTierId,
+                    ...(Object.keys(rebuiltSelections).length > 0 && { optionSelections: rebuiltSelections }),
                 }])
             } else {
                 setLines([makeDefaultLine(product)])
@@ -166,6 +178,22 @@ export default function ProductDetailPanel({
         const finish = variants.finishes?.find(f => f.id === line.finishId)
         const fabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
         const tier = variants.materialTiers?.find(t => t.id === line.materialTierId)
+        // Fase P1.3.b.ii · materializar optionSelections a arrays paralelos de
+        // IDs + labels. Los IDs preservan la relación FK al silver
+        // OptionGroupValue.id · los labels son cached para display sin lookup.
+        const optionValueIds: string[] = []
+        const optionValueLabels: string[] = []
+        if (line.optionSelections) {
+            for (const [masterId, valueId] of Object.entries(line.optionSelections)) {
+                if (!valueId) continue
+                const master = findOptionMasterById(masterId)
+                const value = findOptionValueById(valueId)
+                if (master && value) {
+                    optionValueIds.push(value.id)
+                    optionValueLabels.push(`${master.name}: ${value.value}`)
+                }
+            }
+        }
         return {
             productId: product.id,
             productName: product.name,
@@ -185,6 +213,8 @@ export default function ProductDetailPanel({
             unitPrice: totals.unitPrice,
             totalPrice: totals.totalPrice,
             leadTimeDays: totals.leadTimeDays,
+            // Include only if non-empty · preserva backward compat con drafts sin options
+            ...(optionValueIds.length > 0 && { optionValueIds, optionValueLabels }),
         }
     }
 
@@ -684,6 +714,11 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 )}
             </div>
 
+            {/* Fase P1.3.b.ii · Configurable options selector (silver-aligned)
+                Renderiza selectors 2-level por cada OptionMaster linked al ProductGroup.
+                Silent si no hay refs. Silver options no modifican precio (solo semantic). */}
+            <QuoteLineOptionsSelector product={product} line={line} disabled={disabled} onChange={onChange} />
+
             {/* Qty + line total + lead */}
             <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
                 <div>
@@ -986,6 +1021,79 @@ function ConfigurableOptionsSection({ product }: { product: Product }) {
                 })}
             </div>
         </section>
+    )
+}
+
+/**
+ * Fase P1.3.b.ii · Selector 2-level per OptionMaster para el QuoteLineEditor.
+ * Renderiza un dropdown por cada OptionMaster linked al ProductGroup del product.
+ * Silent si no hay linkedOptionGroupRefs o si no matchea un ProductGroup.
+ *
+ * Guarda la selección en `line.optionSelections: Record<masterId, valueId>` que
+ * se materializa a `optionValueIds[]` + `optionValueLabels[]` al add al draft
+ * (buildLine helper en QuoteTab).
+ */
+function QuoteLineOptionsSelector({
+    product, line, disabled, onChange,
+}: {
+    product: Product
+    line: QuoteLine
+    disabled: boolean
+    onChange: (patch: Partial<QuoteLine>) => void
+}) {
+    const groupCode = inferProductGroupCode(product)
+    if (!groupCode) return null
+    const group = findProductGroupByCode(groupCode)
+    if (!group?.linkedOptionGroupRefs || group.linkedOptionGroupRefs.length === 0) return null
+
+    const orderedRefs = [...group.linkedOptionGroupRefs].sort(
+        (a, b) => a.optionGroupPosition - b.optionGroupPosition,
+    )
+    const currentSelections = line.optionSelections ?? {}
+
+    const handleSelect = (masterId: string, valueId: string) => {
+        onChange({
+            optionSelections: {
+                ...currentSelections,
+                [masterId]: valueId,
+            },
+        })
+    }
+
+    return (
+        <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <div className="mb-2 flex items-baseline gap-1.5">
+                <Sparkles className="h-3 w-3 text-foreground" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Configurable options</span>
+                <span className="text-[9px] text-muted-foreground">silver schema · no price change</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {orderedRefs.map(ref => {
+                    const master = findOptionMasterById(ref.optionMasterId)
+                    if (!master) return null
+                    const values = valuesForMaster(master.id)
+                    const selectedId = currentSelections[master.id] ?? ''
+                    return (
+                        <label key={master.id} className="flex flex-col gap-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                {master.name}
+                            </span>
+                            <select
+                                disabled={disabled}
+                                value={selectedId}
+                                onChange={(e) => handleSelect(master.id, e.target.value)}
+                                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">— Select {master.name.toLowerCase()} —</option>
+                                {values.map(v => (
+                                    <option key={v.id} value={v.id}>{v.value}</option>
+                                ))}
+                            </select>
+                        </label>
+                    )
+                })}
+            </div>
+        </div>
     )
 }
 
