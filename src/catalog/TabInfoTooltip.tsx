@@ -1,16 +1,20 @@
-// Fase 6.1 · TabInfoTooltip (2026-07-06 refactor)
-// Trigger cambiado del tab entero al icono Info (Diego ask · el tooltip no
-// debería aparecer al pasar el mouse para cambiar de tab).
-// Positioning smart · align 'start' / 'center' / 'end' evita que se corte
-// contra el borde del viewport.
-// Contenido más compacto · menos texto denso, mejor jerarquía tipográfica,
-// bullets con lucide Check icon (accesibles + visualmente pro).
+// Fase 6.2 · TabInfoTooltip (2026-07-07 refactor)
+// English-only content + tab role chip (Reference vs Current version).
+// Reference tabs (MRL, Dealer/Quote, Figma) are legacy sections kept for
+// context on how the current catalog was built. The Product Catalog tab
+// is the consolidated Current version that inherits UI + features from
+// the reference tabs. My Selection is the live workspace.
 
 import type { ReactNode } from 'react'
 import { Info, Check } from 'lucide-react'
 
+/** Fase 6.2 · tab role marker · differentiates reference vs current-version tabs. */
+export type TabRole = 'reference' | 'current' | 'live'
+
 export interface TabInfo {
     title: string
+    /** Chip that qualifies the tab's role in the catalog architecture. */
+    role: TabRole
     whatYouSee: string
     dataSource: string
     structure: string
@@ -24,12 +28,34 @@ interface TooltipProps {
     align?: Align
 }
 
-/** Icon-only trigger · un botón Info que despliega el popover al hover.
- *  Diego ask · antes el trigger era el tab entero y aparecía accidentalmente
- *  al navegar. Ahora es explícito · click/hover en el (i) icon. */
+/** Style + label for the role chip. */
+function chipStyle(role: TabRole): { label: string; className: string; tooltip: string } {
+    switch (role) {
+        case 'reference':
+            return {
+                label: 'Reference',
+                className: 'bg-muted text-muted-foreground border-border',
+                tooltip: 'Legacy section preserved to show how the current catalog was built.',
+            }
+        case 'current':
+            return {
+                label: 'Current version',
+                className: 'bg-primary/90 text-primary-foreground border-primary',
+                tooltip: 'Consolidated tab that inherits UI + features from the reference tabs.',
+            }
+        case 'live':
+            return {
+                label: 'Live workspace',
+                className: 'bg-amber-500/15 text-foreground border-amber-500/40',
+                tooltip: 'Real-time state of the user\'s work · drafts, selections, submitted quotes.',
+            }
+    }
+}
+
+/** Icon-only trigger · a small Info button that unfolds the popover on hover.
+ *  Diego ask · previously the whole tab triggered the tooltip and popovers
+ *  appeared while navigating. Now explicit · click/hover on the (i) icon. */
 export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
-    // Positioning del popover · start alinea con left del trigger,
-    // end alinea con right, center centra sobre el trigger.
     const positionClass =
         align === 'start' ? 'left-0'
         : align === 'end' ? 'right-0'
@@ -39,9 +65,11 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
         : align === 'end' ? 'right-2'
         : 'left-1/2 -translate-x-1/2'
 
+    const chip = chipStyle(content.role)
+
     return (
         <span className="group/tt relative inline-flex items-center">
-            {/* Trigger · icon (i) discreto */}
+            {/* Trigger · discreet (i) icon */}
             <button
                 type="button"
                 tabIndex={-1}
@@ -55,19 +83,27 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
             {/* Popover */}
             <div
                 role="tooltip"
-                className={`pointer-events-none absolute top-full ${positionClass} z-[70] mt-2 w-[320px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-200 group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
+                className={`pointer-events-none absolute top-full ${positionClass} z-[70] mt-2 w-[340px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-200 group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
             >
                 {/* Arrow */}
                 <div className={`absolute -top-1.5 ${arrowClass} h-3 w-3 rotate-45 border-l border-t border-border bg-card`} />
 
                 <div className="relative rounded-xl border border-border bg-card shadow-xl">
-                    {/* Header · solo title, compacto */}
+                    {/* Header · title + role chip */}
                     <div className="border-b border-border px-3.5 py-2.5">
-                        <h4 className="text-sm font-bold text-foreground leading-tight">{content.title}</h4>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="text-sm font-bold text-foreground leading-tight">{content.title}</h4>
+                            <span
+                                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap flex-shrink-0 ${chip.className}`}
+                                title={chip.tooltip}
+                            >
+                                {chip.label}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="px-3.5 py-3 space-y-3">
-                        {/* What you'll see */}
+                        {/* Purpose */}
                         <div>
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                                 Purpose
@@ -83,7 +119,7 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <p className="text-[11px] text-foreground leading-relaxed">{content.dataSource}</p>
                         </div>
 
-                        {/* Visual structure */}
+                        {/* Layout */}
                         <div>
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                                 Layout
@@ -91,7 +127,7 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <p className="text-[11px] text-foreground leading-relaxed">{content.structure}</p>
                         </div>
 
-                        {/* Features · list nativa con Check icon como bullet */}
+                        {/* Features · list with accessible bullets */}
                         <div>
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                                 Features
@@ -112,79 +148,100 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
     )
 }
 
-/** Wrapper legacy · mantiene la API previa (children pattern) por si otros
- *  callers dependen de él. Deprecado en favor de TabInfoTrigger. */
+/** Legacy wrapper · preserves the previous children-based API. */
 export default function TabInfoTooltip({ content, children }: { content: TabInfo; children: ReactNode }) {
     return <>{children}<TabInfoTrigger content={content} /></>
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Contenido de cada tab · versión refinada (menos texto denso · más scan-able).
+   Per-tab content · English-only, curated for Diego's review flow.
    ═══════════════════════════════════════════════════════════════════════ */
 
 export const TAB_INFO_MRL: TabInfo = {
     title: 'MRL · Manufacturer Reference Library',
-    whatYouSee: 'Vista jerárquica clásica marca → categoría → producto con detalle rico y documentación.',
-    dataSource: 'manufacturers.ts · Allermuir, Allsteel, AIS + acústicos Camira, HBF, Luum, Mayer.',
-    structure: 'Library → Brand page (hero + contactos) → Category grid → Detail modal 5-tab.',
+    role: 'reference',
+    whatYouSee:
+        'Classic hierarchical view: brand → category → product with rich detail and documentation.',
+    dataSource:
+        'manufacturers.ts · Allermuir, Allsteel, AIS + acoustics Camira, HBF, Luum, Mayer.',
+    structure:
+        'Library → Brand page (hero + contacts) → Category grid → 5-tab detail modal.',
     features: [
-        'Brand pages con contactos de sales y A&D',
-        'Product detail con specs y performance',
-        'Documentos PDF (guarantees, brochures, certs)',
+        'Brand pages with sales & A&D contacts',
+        'Product detail with specs and performance',
+        'PDF documents (guarantees, brochures, certs)',
         'Symbol folders (AutoCAD, Revit, SketchUp)',
     ],
 }
 
 export const TAB_INFO_DEALER_QUOTE: TabInfo = {
     title: 'Dealer / Quote · Manage Catalogs',
-    whatYouSee: 'Panel de administración de los catálogos importados y preferencias del dealer.',
-    dataSource: 'catalogs.ts (mock reactivo) + Preferences per tenant en localStorage.',
-    structure: 'Grid de catalog cards + modal 2-tab · Catalogs y Preferences.',
+    role: 'reference',
+    whatYouSee:
+        'Admin panel for the dealer to manage imported catalogs and buying preferences.',
+    dataSource:
+        'catalogs.ts (reactive mock) + Preferences per tenant in localStorage.',
+    structure:
+        'Catalog card grid + 2-tab modal · Catalogs and Preferences.',
     features: [
-        'Sync management con delta reporting',
+        'Sync management with delta reporting',
         'Preferences · brand priorities, delivery zones',
         'Status · Active / Update Avail. / Out of Sync',
-        'Import y disconnect con confirmación',
+        'Import and disconnect with confirmation',
     ],
 }
 
 export const TAB_INFO_FIGMA: TabInfo = {
-    title: 'Figma · Product Catalog (design original)',
-    whatYouSee: 'Vista alineada con el Figma design original · grid con sidebar de filtros.',
-    dataSource: 'shop/data/products.ts · 12 productos dealer curados.',
-    structure: 'Sidebar filters + main grid 8 items/página + sort dropdown.',
+    title: 'Figma · Product Catalog (original design)',
+    role: 'reference',
+    whatYouSee:
+        'View aligned with the original Figma design · grid with filter sidebar.',
+    dataSource:
+        'shop/data/products.ts · 12 curated dealer products.',
+    structure:
+        'Sidebar filters + main grid (8 items per page) + sort dropdown.',
     features: [
         'Filter sidebar · Category, Brand, Features, Price',
-        'Sort · 7 opciones incluyendo History-First',
-        'Product cards con SKU visible y colorways',
-        'Multi-line quote builder en el detail',
+        'Sort · 7 options including History-First',
+        'Product cards with visible SKU and colorways',
+        'Multi-line quote builder in the detail modal',
     ],
 }
 
 export const TAB_INFO_PRODUCT_CATALOG: TabInfo = {
-    title: 'Product Catalog · Showroom unificado',
-    whatYouSee: 'Storefront que combina Products, Materials y Spaces en un solo tab con toggle sidebar.',
-    dataSource: 'unifiedProducts + SPACE_TYPES + PRODUCT_STUBS + custom spaces localStorage.',
-    structure: 'Sidebar toggle 3-way + filtros específicos + main grid. Spaces mode → detail con bundles.',
+    title: 'Product Catalog · Unified Showroom',
+    role: 'current',
+    whatYouSee:
+        'The consolidated storefront. Combines the browse patterns from MRL + Figma + Dealer tabs and adds Spaces.',
+    dataSource:
+        'unifiedProducts + SPACE_TYPES + PRODUCT_STUBS + custom spaces (localStorage) + finishes/options (silver-aligned).',
+    structure:
+        'Sidebar with 3-way toggle (Products / Materials / Spaces) + facet filters + main grid. Spaces mode → bundle detail.',
     features: [
-        'Toggle 3-way Products / Materials / Spaces',
-        'Filtros específicos por taxonomía',
-        'Space Types con bundles pre-armados',
-        'Custom Spaces · CRUD completo',
-        'Add all N items to Selection en un click',
+        'Reunites UI + features from all reference tabs',
+        '3-way toggle · Products / Materials / Spaces',
+        'Space Types with pre-configured bundles',
+        'Custom Spaces · full CRUD per dealer',
+        'Silver-aligned configurable options + finishes',
+        'Multi-tenant scoped custom catalogs',
+        'Add all N items to Selection in one click',
     ],
 }
 
 export const TAB_INFO_MY_SELECTION: TabInfo = {
     title: 'My Selection · Quote drafts',
-    whatYouSee: 'Selecciones del tenant activo con multi-line items, buyer info auto y submit flow.',
-    dataSource: 'QuoteContext · multi-draft per tenant en `expert-hub-quotes-{slug}` localStorage.',
-    structure: '2-col · drafts list + detail con Buyer info + Line items + Totals.',
+    role: 'live',
+    whatYouSee:
+        'The active tenant\'s selections · multi-line items, auto-filled buyer info, submit flow.',
+    dataSource:
+        'QuoteContext · multi-draft per tenant in `expert-hub-quotes-{slug}` localStorage.',
+    structure:
+        '2-col · drafts list + detail with Buyer info + Line items + Totals.',
     features: [
-        'Multi-draft · N quotes paralelas por tenant',
+        'Multi-draft · N parallel quotes per tenant',
         'Auto-filled buyer info (user + tenant)',
         'Toggle Flat list / By Space Setting',
         'Reference number Q-YYYY-NNN-TENANT',
-        'Persist localStorage · sobrevive refresh',
+        'localStorage persistence · survives refresh',
     ],
 }
