@@ -1372,8 +1372,20 @@ function SpecsTab({ product }: { product: Product }) {
 function ResourcesTab({ product }: { product: Product }) {
     const hasDocs = product.documents && product.documents.length > 0
     const hasCleaning = !!product.cleaning
-    if (!hasCleaning && !hasDocs) {
+    const hasSymbols = product.symbols && product.symbols.length > 0
+    const hasDrawings = !!product.drawingName2D || !!product.drawingName3D
+    if (!hasCleaning && !hasDocs && !hasSymbols && !hasDrawings) {
         return <p className="text-sm text-muted-foreground">No resources available for this product.</p>
+    }
+    // Fase P2.4 · agrupar symbols por dimensión (silver-aligned).
+    const symbolsByDim = {
+        '2D': [] as typeof product.symbols,
+        '3D': [] as typeof product.symbols,
+        'other': [] as typeof product.symbols,
+    }
+    for (const s of product.symbols ?? []) {
+        const dim = s.dimension ?? 'other'
+        symbolsByDim[dim]!.push(s)
     }
     return (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -1387,7 +1399,7 @@ function ResourcesTab({ product }: { product: Product }) {
                 <div>
                     <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Documents</h3>
                     <ul className="space-y-2">
-                        {product.documents.map(d => (
+                        {product.documents!.map(d => (
                             <li key={d.name}>
                                 <a className="inline-flex w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                                     <Download className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
@@ -1397,6 +1409,77 @@ function ResourcesTab({ product }: { product: Product }) {
                             </li>
                         ))}
                     </ul>
+                </div>
+            )}
+            {/* Fase P2.4 · CAD / 3D assets agrupados por dimensión (silver `drawingName2D` / `drawingName3D`)
+                Se renderizan solo si product.symbols[] existe. Cuando drawings2D/3D
+                también están seteados (silver-canonical), aparecen como primary
+                entries destacadas al top de cada grupo. */}
+            {(hasSymbols || hasDrawings) && (
+                <div className="lg:col-span-2">
+                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">CAD & 3D Assets</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 2D group */}
+                        {(symbolsByDim['2D'].length > 0 || product.drawingName2D) && (
+                            <div className="rounded-xl border border-border bg-card p-3">
+                                <h4 className="mb-2 text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/15 text-[9px] font-bold text-foreground">2D</span>
+                                    Drawings
+                                </h4>
+                                <ul className="space-y-1.5">
+                                    {product.drawingName2D && (
+                                        <li className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs">
+                                            <span className="font-semibold text-foreground truncate">{product.drawingName2D}</span>
+                                            <span className="text-[9px] font-semibold uppercase text-muted-foreground">Primary</span>
+                                        </li>
+                                    )}
+                                    {symbolsByDim['2D'].map(s => (
+                                        <li key={s.name} className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-xs">
+                                            <span className="text-foreground truncate">{s.name}</span>
+                                            {s.files !== undefined && <span className="text-[10px] font-semibold text-muted-foreground">{s.files} files</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {/* 3D group */}
+                        {(symbolsByDim['3D'].length > 0 || product.drawingName3D) && (
+                            <div className="rounded-xl border border-border bg-card p-3">
+                                <h4 className="mb-2 text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/15 text-[9px] font-bold text-foreground">3D</span>
+                                    Models
+                                </h4>
+                                <ul className="space-y-1.5">
+                                    {product.drawingName3D && (
+                                        <li className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs">
+                                            <span className="font-semibold text-foreground truncate">{product.drawingName3D}</span>
+                                            <span className="text-[9px] font-semibold uppercase text-muted-foreground">Primary</span>
+                                        </li>
+                                    )}
+                                    {symbolsByDim['3D'].map(s => (
+                                        <li key={s.name} className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-xs">
+                                            <span className="text-foreground truncate">{s.name}</span>
+                                            {s.files !== undefined && <span className="text-[10px] font-semibold text-muted-foreground">{s.files} files</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {/* Other group */}
+                        {symbolsByDim['other'].length > 0 && (
+                            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3 md:col-span-2">
+                                <h4 className="mb-2 text-xs font-bold text-muted-foreground">Other / Unclassified</h4>
+                                <ul className="space-y-1.5">
+                                    {symbolsByDim['other'].map(s => (
+                                        <li key={s.name} className="flex items-center justify-between gap-2 text-xs">
+                                            <span className="text-foreground">{s.name}</span>
+                                            {s.files !== undefined && <span className="text-muted-foreground">{s.files} files</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

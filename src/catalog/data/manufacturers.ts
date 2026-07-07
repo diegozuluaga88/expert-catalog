@@ -58,10 +58,11 @@ export const MANUFACTURERS: Manufacturer[] = [
               'Two-tone colour combination shell/base',
             ],
             symbols: [
-              { name: 'AutoCAD (DWG)', files: 12 },
-              { name: 'Revit Family (RFA)', files: 8 },
-              { name: 'SketchUp (SKP)', files: 12 },
-              { name: '3DS Max', files: 6 },
+              // Fase P2.4 · dimension discriminada · alineado con silver drawingName2D/3D
+              { name: 'AutoCAD (DWG)', files: 12, dimension: '2D' },
+              { name: 'Revit Family (RFA)', files: 8, dimension: '3D' },
+              { name: 'SketchUp (SKP)', files: 12, dimension: '3D' },
+              { name: '3DS Max', files: 6, dimension: '3D' },
             ],
             colorways: [
               { name: 'Slate Grey', code: 'SG01', hex: '#6b7280' },

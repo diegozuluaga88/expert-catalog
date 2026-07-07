@@ -28,9 +28,20 @@ export interface Contact {
   phone?: string
 }
 
+/**
+ * SymbolFolder · carpeta de assets CAD/3D del producto (AutoCAD, Revit, etc).
+ *
+ * Fase P2.4 · agregado `dimension` para alinear con silver schema que discrimina
+ * `drawingName2D` vs `drawingName3D` como campos separados. En expert-catalog
+ * mantenemos `symbols[]` como container multi-format pero cada elemento ahora
+ * declara su dimensión para poder agrupar/filtrar en la UI ResourcesTab.
+ */
 export interface SymbolFolder {
   name: string
   files?: number
+  /** Fase P2.4 · dimensión del asset. Default 'other' si no especificado
+   *  (backward compat con seeds antiguos). */
+  dimension?: '2D' | '3D' | 'other'
 }
 
 /**
@@ -152,6 +163,12 @@ export interface Product {
   /** Fase P1.2 · Currency per productItem · alineado con silver `productItemCurrencyId`.
    *  Undefined → resolvable via Catalogue del ProductGroup, o fallback USD. */
   currencyId?: string
+  /** Fase P2.4 · Nombre/URL del drawing primario 2D · alineado con silver `drawingName2D`.
+   *  En producción es un asset URL/path; aquí puede ser el nombre del archivo o
+   *  la carpeta 2D principal. Complementa `symbols[]` (que agrupa todos los formatos). */
+  drawingName2D?: string
+  /** Fase P2.4 · Nombre/URL del drawing primario 3D · alineado con silver `drawingName3D`. */
+  drawingName3D?: string
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
