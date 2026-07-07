@@ -783,16 +783,16 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 )}
             </div>
 
-            {/* Fase P1.3.b.ii · Configurable options selector (silver-aligned)
-                Renderiza selectors 2-level por cada OptionMaster linked al ProductGroup.
-                Silent si no hay refs. Silver options no modifican precio (solo semantic). */}
-            <QuoteLineOptionsSelector product={product} line={line} disabled={disabled} onChange={onChange} />
-
-            {/* Fase P1.4.c · Configurable finishes selector (silver-aligned 3-nivel)
-                Renderiza selectors 3-level por cada FinishMaster linked al ProductGroup.
-                Silver Finishes SÍ modifican precio · totales del line item se
-                recomputan al cambiar la selección (via computeLineItemTotals). */}
-            <QuoteLineFinishesSelector product={product} line={line} disabled={disabled} onChange={onChange} />
+            {/* Fase P2.4+ · Layout side-by-side (Diego ask · ahorra vertical space)
+                Options + Finishes en grid 2-col horizontal en desktop, stacked en
+                mobile. Cada selector es silent si su ProductGroup no tiene refs
+                (el grid ajusta automáticamente cuando sólo uno de los dos renderiza). */}
+            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* Fase P1.3.b.ii · Configurable options selector (silver-aligned) */}
+                <QuoteLineOptionsSelector product={product} line={line} disabled={disabled} onChange={onChange} />
+                {/* Fase P1.4.c · Configurable finishes selector (silver-aligned 3-nivel · con priceModifier) */}
+                <QuoteLineFinishesSelector product={product} line={line} disabled={disabled} onChange={onChange} />
+            </div>
 
             {/* Qty + line total + lead */}
             <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
@@ -1214,13 +1214,13 @@ function QuoteLineOptionsSelector({
     }
 
     return (
-        <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 h-full">
             <div className="mb-2 flex items-baseline gap-1.5">
                 <Sparkles className="h-3 w-3 text-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Configurable options</span>
                 <span className="text-[9px] text-muted-foreground">silver schema · no price change</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {orderedRefs.map(ref => {
                     const master = findOptionMasterById(ref.optionMasterId)
                     if (!master) return null
@@ -1289,13 +1289,13 @@ function QuoteLineFinishesSelector({
     }
 
     return (
-        <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 h-full">
             <div className="mb-2 flex items-baseline gap-1.5">
                 <Sparkles className="h-3 w-3 text-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Configurable finishes</span>
                 <span className="text-[9px] text-muted-foreground">silver schema · price applies</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {orderedRefs.map(ref => {
                     const master = findFinishMasterById(ref.masterFinishId)
                     if (!master) return null
