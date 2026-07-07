@@ -425,10 +425,59 @@ export default function ShowroomPage() {
   // ── Storefront grid ───────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
-      {/* Header · simplificado · toggle Products/Materials movido al sidebar */}
-      <div>
-        <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Showroom</h1>
-        <p className="text-sm text-muted-foreground">Browse products and materials in one place.</p>
+      {/* Header · title + description + inline 3-way toggle (Products / Materials / Spaces).
+          Diego ask (2026-07-07) · promoted the toggle from the sidebar top to the header
+          row to save vertical space and put the primary CTA next to the title. */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
+          <p className="text-sm text-muted-foreground">Browse products, materials and pre-configured spaces in one place.</p>
+        </div>
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 self-center">
+          <button
+            type="button"
+            onClick={() => {
+              setTaxonomy('products')
+              resetFacets()
+              setSelectedSpaceType(null)
+              clearSpacesFilters()
+            }}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+              taxonomy === 'products' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Products
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTaxonomy('materials')
+              resetFacets()
+              setSelectedSpaceType(null)
+              clearSpacesFilters()
+            }}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+              taxonomy === 'materials' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Materials
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTaxonomy('spaces')
+              resetFacets()
+              setSelectedSpaceType(null)
+              clearSpacesFilters()
+            }}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+              taxonomy === 'spaces' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title="Space Type Settings · pre-armados por tipo de espacio"
+          >
+            Spaces
+          </button>
+        </div>
       </div>
 
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
@@ -446,7 +495,7 @@ export default function ShowroomPage() {
         <aside className={`hidden shrink-0 lg:block transition-[width] duration-200 ${
           sidebarCollapsed ? 'w-12' : 'w-64 space-y-5'
         }`}>
-          {/* ───── COLLAPSE TOGGLE + (when expanded) MODE SWITCH ───── */}
+          {/* ───── COLLAPSE TOGGLE (mode switch moved to header row) ───── */}
           {sidebarCollapsed ? (
             <button
               type="button"
@@ -458,52 +507,7 @@ export default function ShowroomPage() {
               <PanelLeft className="h-4 w-4" />
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <div className="inline-flex flex-1 items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTaxonomy('products')
-                    resetFacets()
-                    setSelectedSpaceType(null)
-                    clearSpacesFilters()
-                  }}
-                  className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
-                    taxonomy === 'products' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Products
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTaxonomy('materials')
-                    resetFacets()
-                    setSelectedSpaceType(null)
-                    clearSpacesFilters()
-                  }}
-                  className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
-                    taxonomy === 'materials' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Materials
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTaxonomy('spaces')
-                    resetFacets()
-                    setSelectedSpaceType(null)
-                    clearSpacesFilters()
-                  }}
-                  className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
-                    taxonomy === 'spaces' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  title="Space Type Settings · pre-armados por tipo de espacio"
-                >
-                  Spaces
-                </button>
-              </div>
+            <div className="flex items-center justify-end">
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed(true)}

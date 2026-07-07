@@ -186,27 +186,29 @@ export default function ProductCatalogPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header simplificado · solo título (acciones se movieron al sidebar) */}
-      <div>
-        <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
-        <p className="text-sm text-muted-foreground">Track your orders and shipments</p>
-      </div>
-
-      {/* Brand pills · quedan en el header como filtro rápido visible */}
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setOnlyBrand(null)} className={pillClass(selectedBrands.size === 0)}>
-          All Products
-        </button>
-        {SHOP_BRANDS.map((b) => (
-          <button
-            key={b}
-            type="button"
-            onClick={() => setOnlyBrand(b)}
-            className={pillClass(selectedBrands.size === 1 && selectedBrands.has(b))}
-          >
-            {b}
+      {/* Header · title + description + inline brand pills (primary filter CTA).
+          Diego ask (2026-07-07) · promoted the pills into the header row to save
+          vertical space and put them next to the title as the primary quick filter. */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
+          <p className="text-sm text-muted-foreground">Track your orders and shipments</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 self-center">
+          <button type="button" onClick={() => setOnlyBrand(null)} className={pillClass(selectedBrands.size === 0)}>
+            All Products
           </button>
-        ))}
+          {SHOP_BRANDS.map((b) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setOnlyBrand(b)}
+              className={pillClass(selectedBrands.size === 1 && selectedBrands.has(b))}
+            >
+              {b}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Main: sidebar (con toolbar adentro) + grid · sidebar collapsible (Diego ask).
