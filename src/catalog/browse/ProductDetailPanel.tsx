@@ -28,6 +28,8 @@ import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
 import { findOptionMasterById, findOptionValueById, valuesForMaster } from '../data/options'
 import { findFinishMasterById, findFinishOptionById, findFinishValueById, valuesForMasterGrouped } from '../data/finishes'
+import { isVisibleToTenant } from '../data/tenantVisibility'
+import { useTenant } from '../../TenantContext'
 
 type DetailTab = 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
 
@@ -1044,6 +1046,8 @@ function VariantsTab({ product, variants }: { product: Product; variants: Return
  * Silent si el product no matchea un ProductGroup con refs.
  */
 function ConfigurableOptionsSection({ product }: { product: Product }) {
+    // Fase P2.1 · resolve tenant activo para filtrar tenant-scoped OptionMasters
+    const { currentTenant } = useTenant()
     const groupCode = inferProductGroupCode(product)
     if (!groupCode) return null
     const group = findProductGroupByCode(groupCode)
@@ -1069,6 +1073,8 @@ function ConfigurableOptionsSection({ product }: { product: Product }) {
                 {orderedRefs.map(ref => {
                     const master = findOptionMasterById(ref.optionMasterId)
                     if (!master) return null
+                    // Fase P2.1 · silent si el master es tenant-scoped y no matchea el tenant activo
+                    if (!isVisibleToTenant(master, currentTenant)) return null
                     const values = valuesForMaster(master.id)
                     return (
                         <div key={ref.optionMasterId} className="rounded-lg border border-border bg-card p-3">
@@ -1111,6 +1117,8 @@ function ConfigurableOptionsSection({ product }: { product: Product }) {
  * Silent si el ProductGroup no matchea o no tiene refs.
  */
 function ConfigurableFinishesSection({ product }: { product: Product }) {
+    // Fase P2.1 · resolve tenant activo para filtrar tenant-scoped FinishMasters
+    const { currentTenant } = useTenant()
     const groupCode = inferProductGroupCode(product)
     if (!groupCode) return null
     const group = findProductGroupByCode(groupCode)
@@ -1135,6 +1143,8 @@ function ConfigurableFinishesSection({ product }: { product: Product }) {
             <div className="space-y-4">
                 {orderedRefs.map(ref => {
                     const master = findFinishMasterById(ref.masterFinishId)
+                    // Fase P2.1 · silent si el master es tenant-scoped y no matchea
+                    if (master && !isVisibleToTenant(master, currentTenant)) return null
                     if (!master) return null
                     const groupedByOption = valuesForMasterGrouped(master.id)
                     return (
@@ -1194,6 +1204,8 @@ function QuoteLineOptionsSelector({
     disabled: boolean
     onChange: (patch: Partial<QuoteLine>) => void
 }) {
+    // Fase P2.1 · tenant filter para masters tenant-scoped
+    const { currentTenant } = useTenant()
     const groupCode = inferProductGroupCode(product)
     if (!groupCode) return null
     const group = findProductGroupByCode(groupCode)
@@ -1224,6 +1236,8 @@ function QuoteLineOptionsSelector({
                 {orderedRefs.map(ref => {
                     const master = findOptionMasterById(ref.optionMasterId)
                     if (!master) return null
+                    // Fase P2.1 · silent si el master es tenant-scoped y no matchea el tenant activo
+                    if (!isVisibleToTenant(master, currentTenant)) return null
                     const values = valuesForMaster(master.id)
                     const selectedId = currentSelections[master.id] ?? ''
                     return (
@@ -1269,6 +1283,8 @@ function QuoteLineFinishesSelector({
     disabled: boolean
     onChange: (patch: Partial<QuoteLine>) => void
 }) {
+    // Fase P2.1 · tenant filter
+    const { currentTenant } = useTenant()
     const groupCode = inferProductGroupCode(product)
     if (!groupCode) return null
     const group = findProductGroupByCode(groupCode)
@@ -1298,6 +1314,8 @@ function QuoteLineFinishesSelector({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {orderedRefs.map(ref => {
                     const master = findFinishMasterById(ref.masterFinishId)
+                    // Fase P2.1 · silent si el master es tenant-scoped y no matchea
+                    if (master && !isVisibleToTenant(master, currentTenant)) return null
                     if (!master) return null
                     const groupedByOption = valuesForMasterGrouped(master.id)
                     const selectedId = currentSelections[master.id] ?? ''

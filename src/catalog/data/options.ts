@@ -59,6 +59,17 @@ export const OPTION_MASTERS: OptionMaster[] = [
         notes: 'Configuración de patas de mesa.',
         status: 'Active',
     },
+    // Fase P2.1 · tenant-scoped OptionMaster · validación del pattern multi-tenant
+    // silver `optionMasterTenantId`. Solo visible para 'special-t' (DEALER 1) ·
+    // representa una configuración custom negociada con el cliente executive.
+    {
+        id: 'om-executive-armrests',
+        optionGroupCode: 'Executive Armrests',
+        name: 'Executive Armrests',
+        notes: 'Configuración premium negociada para Special-T Executive Package · incluye 4D pro + leather pad.',
+        status: 'Active',
+        tenantId: 'special-t',
+    },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -100,6 +111,9 @@ export const OPTION_GROUP_VALUES: OptionGroupValue[] = [
     { id: 'ov-legs-metal-4', optionMasterId: 'om-legs', position: 1, value: '4-leg metal', description: 'Patas de metal · 4 puntos.', status: 'Active' },
     { id: 'ov-legs-pedestal', optionMasterId: 'om-legs', position: 2, value: 'Pedestal', description: 'Base tipo pedestal central.', status: 'Active' },
     { id: 'ov-legs-y-base', optionMasterId: 'om-legs', position: 3, value: 'Y-base', description: 'Base tipo Y con 3 puntos.', status: 'Active' },
+    // Fase P2.1 · values para el tenant-scoped OptionMaster om-executive-armrests
+    { id: 'ov-exec-armrests-4d-pro', optionMasterId: 'om-executive-armrests', position: 1, value: '4D Pro (executive)', description: 'Ajuste 4D + memory foam padding.', status: 'Active' },
+    { id: 'ov-exec-armrests-leather', optionMasterId: 'om-executive-armrests', position: 2, value: 'Leather-wrapped 4D', description: 'Full leather con perforación decorativa.', status: 'Active' },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════

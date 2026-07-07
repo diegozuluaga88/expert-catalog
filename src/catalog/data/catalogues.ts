@@ -87,6 +87,19 @@ export const CATALOGUES: Catalogue[] = [
         currencyId: 'EUR',
         manufacturerId: 'allermuir',
     },
+    // Fase P2.1 · tenant-scoped catalogue · validación del pattern multi-tenant
+    // silver `catalogueTenantId`. Solo visible para el tenant 'special-t' (DEALER 1).
+    {
+        id: 'cat-special-t-executive-2026',
+        catalogueNumber: 'ST-EXEC-2026',
+        name: 'Special-T Executive Package 2026',
+        activeDate: '2026-01-01T00:00:00Z',
+        expirationDate: '2026-12-31T23:59:59Z',
+        status: 'Active',
+        currencyId: 'USD',
+        manufacturerId: 'allermuir',
+        tenantId: 'special-t',
+    },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════

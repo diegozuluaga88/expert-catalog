@@ -58,16 +58,23 @@ export const PRODUCT_GROUPS: ProductGroup[] = [
         // Fase P1.3.a · showcase de la nueva jsonb-style. Coexiste con
         // linkedOptionGroup (legacy string[]) para backward compat mientras
         // se migran los consumers en P1.3.b.
+        // Fase P2.1 · agregado om-executive-armrests · master tenant-scoped
+        // ('special-t'). En el UI · el dropdown de Executive Armrests SOLO
+        // aparece si el user está en DEALER 1 (special-t) · silent para otros.
         linkedOptionGroupRefs: [
             { optionMasterId: 'om-armrests', optionGroupPosition: 1 },
             { optionMasterId: 'om-base', optionGroupPosition: 2 },
             { optionMasterId: 'om-casters', optionGroupPosition: 3 },
+            { optionMasterId: 'om-executive-armrests', optionGroupPosition: 4 },
         ],
         // Fase P1.4.a · showcase Finishes 3-niveles. Task chair usa Fabric (para
         // upholstery) + Frame (para estructura).
+        // Fase P2.1 · agregado fm-couture-fabric · master tenant-scoped
+        // ('special-t'). SOLO aparece para DEALER 1.
         linkedFinishMasterRefs: [
             { masterFinishId: 'fm-fabric', masterFinishPosition: 1 },
             { masterFinishId: 'fm-frame', masterFinishPosition: 2 },
+            { masterFinishId: 'fm-couture-fabric', masterFinishPosition: 3 },
         ],
         itemIds: ['stub-ch01-1'],
     },

@@ -25,6 +25,10 @@ export const FINISH_MASTERS: FinishMaster[] = [
     { id: 'fm-shell', masterFinishName: 'Shell Finish', status: 'Active' },
     { id: 'fm-top', masterFinishName: 'Top Finish', status: 'Active' },
     { id: 'fm-base', masterFinishName: 'Base Finish', status: 'Active' },
+    // Fase P2.1 · tenant-scoped FinishMaster · validación multi-tenant silver
+    // `finishMasterTenantId`. Solo visible para 'special-t' (DEALER 1) ·
+    // representa una linea de acabados premium negociada con el cliente.
+    { id: 'fm-couture-fabric', masterFinishName: 'Couture Fabric', status: 'Active', tenantId: 'special-t' },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -49,6 +53,9 @@ export const FINISH_OPTIONS: FinishOption[] = [
     // Base Finish · para stools/chairs
     { id: 'fo-base-steel', finishMasterId: 'fm-base', finishOptionName: 'Steel', status: 'Active' },
     { id: 'fo-base-wood', finishMasterId: 'fm-base', finishOptionName: 'Wood', status: 'Active' },
+    // Fase P2.1 · options del tenant-scoped FinishMaster fm-couture-fabric
+    { id: 'fo-couture-silk', finishMasterId: 'fm-couture-fabric', finishOptionName: 'Silk', status: 'Active' },
+    { id: 'fo-couture-linen', finishMasterId: 'fm-couture-fabric', finishOptionName: 'Linen', status: 'Active' },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -105,6 +112,11 @@ export const FINISH_VALUES: FinishValue[] = [
     // Base · Wood
     { id: 'fv-base-wood-oak', finishOptionId: 'fo-base-wood', position: 1, finishValueName: 'Oak', price: 60, swatch: '#c8a274', status: 'Active' },
     { id: 'fv-base-wood-walnut', finishOptionId: 'fo-base-wood', position: 2, finishValueName: 'Walnut', price: 75, swatch: '#5b3a29', status: 'Active' },
+    // Fase P2.1 · values para el tenant-scoped FinishMaster fm-couture-fabric
+    // (via el sub-option fo-couture-silk que agrego abajo)
+    { id: 'fv-couture-silk-champagne', finishOptionId: 'fo-couture-silk', position: 1, finishValueName: 'Champagne Silk', price: 285, swatch: '#f7e7ce', status: 'Active', description: 'Seda natural con acabado champagne · custom Special-T executive line.' },
+    { id: 'fv-couture-silk-noir', finishOptionId: 'fo-couture-silk', position: 2, finishValueName: 'Noir Silk', price: 285, swatch: '#0f0f0f', status: 'Active' },
+    { id: 'fv-couture-linen-oyster', finishOptionId: 'fo-couture-linen', position: 1, finishValueName: 'Oyster Linen', price: 225, swatch: '#e8dfd0', status: 'Active' },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════
