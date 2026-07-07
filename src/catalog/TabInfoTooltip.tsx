@@ -8,8 +8,10 @@
 import type { ReactNode } from 'react'
 import { Info, Check } from 'lucide-react'
 
-/** Fase 6.2 · tab role marker · differentiates reference vs current-version tabs. */
-export type TabRole = 'reference' | 'current' | 'live'
+/** Fase 6.2 · tab role marker · differentiates reference vs current-version tabs.
+ *  Diego ask (2026-07-07) · My Selection también es Current Version (misma
+ *  arquitectura consolidada que Product Catalog) · role 'live' retirado. */
+export type TabRole = 'reference' | 'current'
 
 export interface TabInfo {
     title: string
@@ -42,12 +44,6 @@ function chipStyle(role: TabRole): { label: string; className: string; tooltip: 
                 label: 'Current version',
                 className: 'bg-primary/90 text-primary-foreground border-primary',
                 tooltip: 'Consolidated tab that inherits UI + features from the reference tabs.',
-            }
-        case 'live':
-            return {
-                label: 'Live workspace',
-                className: 'bg-amber-500/15 text-foreground border-amber-500/40',
-                tooltip: 'Real-time state of the user\'s work · drafts, selections, submitted quotes.',
             }
     }
 }
@@ -230,7 +226,7 @@ export const TAB_INFO_PRODUCT_CATALOG: TabInfo = {
 
 export const TAB_INFO_MY_SELECTION: TabInfo = {
     title: 'My Selection · Quote drafts',
-    role: 'live',
+    role: 'current',
     whatYouSee:
         'The active tenant\'s selections · multi-line items, auto-filled buyer info, submit flow.',
     dataSource:
