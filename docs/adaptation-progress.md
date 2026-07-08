@@ -25,7 +25,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P1.3.a** | Options normalizado · data model + seed (sin UI) | 🟢 | `da415c9` | 2026-07-06 |
 | **P1.3.b.i** | Options UI · VariantsTab "Configurable options" section | 🟢 | `9cdc1ba` | 2026-07-06 |
 | **P1.3.b.ii** | Options UI · QuoteTab selector 2-level (coexiste con fabricId) | 🟢 | `f947070` | 2026-07-06 |
-| **P1.3.b.iii** | Options UI · migración final QuoteLineItem.fabricId → optionValueId | ⚪ | — | — |
+| **P1.3.b.iii** | Deprecar `QuoteLineItem.fabricId` → apunta a `finishValueIds[]` (silver Fabric FinishMaster) | 🟢 | *pending* | 2026-07-08 |
 | **P1.4.a** | Finishes 3-niveles · data model + seed (sin UI) | 🟢 | `0484590` | 2026-07-06 |
 | **P1.4.b** | Finishes UI · VariantsTab section 3-nivel | 🟢 | `0822146` | 2026-07-06 |
 | **P1.4.c** | Finishes UI · QuoteTab selector + priceModifier en computeLineItemTotals | 🟢 | `8182832` | 2026-07-06 |
@@ -204,6 +204,38 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
   - EditQuoteItemPanel · misma lógica
 - **P1.4** (Finishes 3-niveles): mismo pattern con FinishMaster/FinishOption/FinishValue
 - **Cleanup.1**: usar `resolveLegacyLinkedOptionGroup` para migrar los otros 19 ProductGroups del seed a la nueva shape · después eliminar `linkedOptionGroup: string[]` legacy
+
+---
+
+## Fase P1.3.b.iii · Deprecar fabricId · 🟢 COMPLETADA (2026-07-08)
+
+### Corrección conceptual respecto al plan original
+
+El tracker inicial listaba esta fase como *"migración final QuoteLineItem.fabricId → optionValueId"*. Al ejecutarla se aclaró que **`fabricId` no mapea a `optionValueId`** sino a `finishValueIds[]`. Razón semántica:
+
+- En el silver schema, **Options** son configuraciones sin precio (Armrests, Base, Casters — 2 niveles OptionMaster → OptionGroupValue).
+- **Finishes** son acabados con precio (Fabric, Frame — 3 niveles FinishMaster → FinishOption → FinishValue con `priceModifier`).
+- El legacy `fabricId` tenía `priceModifier` (via `fabricIsPremium`) → pertenece a **Finish**, no Option.
+
+Por lo tanto la migración canónica es `fabricId → finishValueIds[]` bajo `FinishMaster: Fabric`. La infra para esto quedó lista en P1.4.c.
+
+### Scope ejecutado
+
+- ✅ `QuoteLineItem.fabricId` / `fabricName` / `fabricIsPremium` marcados con JSDoc `@deprecated` en `QuoteContext.tsx` · apuntan a `finishValueIds[]` como fuente de verdad silver.
+- ✅ `LineItemSelection.fabricId` en `helpers.ts` marcado `@deprecated` · el compute sigue leyendo el scalar para no romper flujos UI legacy que aún llegan con este atajo.
+- ✅ Consumers verificados: `ProductDetailPanel` ya popula `finishValueIds[]` en paralelo con `fabricId` desde P1.4.c (ver líneas 241-286 · `buildItemPatch`). `CompareModal` e `IngestQuoteModal` también.
+
+### Por qué NO se elimina el field físicamente
+
+- Drafts persistidos en `localStorage` bajo `expert-hub-quotes-{tenantSlug}` tienen `fabricId` guardado. Eliminarlo rompe el load de drafts pre-migración.
+- La eliminación física va en **Cleanup.2** junto con los otros aliases legacy · agrupada para hacer una sola sesión de barrido cuando confirmemos por grep que ningún consumer los lee ya.
+
+### Verification
+
+1. `npx tsc --noEmit` · 0 errors.
+2. Grep test: `grep -rn "fabricId" src/` retorna solo lecturas legacy compat + la definición deprecated · nada nuevo.
+3. UI intact · abrir Product Catalog → cualquier producto → Quote tab → seleccionar Fabric → añadir a Selection · el line item guarda ambos `fabricId` (legacy) y `finishValueIds[]` (silver).
+4. Drafts pre-migración cargan sin errores (backward compat probado con localStorage existente).
 
 ---
 

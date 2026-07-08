@@ -9,6 +9,13 @@ export interface LineItemSelection {
   qty: number
   colorwayCode?: string
   finishId?: string
+  /** @deprecated Fase P1.3.b.iii · legacy scalar. En el silver schema una
+   *  selección de fabric se representa como un `FinishValue` bajo el
+   *  `FinishMaster` "Fabric" — el path canónico es que los consumers pasen
+   *  la selección vía `finishSelections` en el modelo Silver y el
+   *  totalizador consulte finishValueIds ahí. Aquí se conserva para no
+   *  romper el cálculo de precio de UI legacy que aún llega con este
+   *  scalar. Se elimina en Cleanup.2. */
   fabricId?: string
   materialTierId?: string
 }

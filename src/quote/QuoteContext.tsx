@@ -35,8 +35,16 @@ export interface QuoteLineItem {
     colorwayHex?: string
     finishId?: string
     finishName?: string
+    /** @deprecated Fase P1.3.b.iii · legacy scalar. La fuente de verdad silver
+     *  para la selección de fabric es `finishValueIds[]` bajo el FinishMaster
+     *  "Fabric" (P1.4.c). Se conserva populado por consumers (ProductDetailPanel,
+     *  CompareModal, IngestQuoteModal) para que drafts persistidos en
+     *  localStorage antes de la migración sigan cargando sin perder info.
+     *  Se elimina en Cleanup.2. */
     fabricId?: string
+    /** @deprecated Fase P1.3.b.iii · ver `fabricId`. */
     fabricName?: string
+    /** @deprecated Fase P1.3.b.iii · ver `fabricId`. */
     fabricIsPremium?: boolean
     materialTierId?: string
     materialTierName?: string
