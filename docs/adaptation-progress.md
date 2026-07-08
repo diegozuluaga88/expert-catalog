@@ -312,14 +312,36 @@ Solo 2 ProductGroups tenían `linkedOptionGroup` (CH01 + CH03) y ambos ya recibi
 
 No hay migración pendiente. El helper `resolveLegacyLinkedOptionGroup` queda disponible para P1.4 (Finishes) donde sí hay 22 groups con `linkedFinishMaster` para migrar.
 
-### Cleanup.2 · Remove legacy aliases (post-implementación total)
+### Cleanup.2a · Remove P0.1 aliases · 🟢 COMPLETADA (2026-07-08)
 
-Después de que TODA la codebase use los nuevos nombres exclusivamente:
-- Remover `ProductGroup.linkedOptionGroupCodes` (P0.1 alias)
-- Remover `ProductGroup.linkedFinishMasterCodes` (P0.1 alias)
-- Remover `ProductGroup.linkedOptionGroup: string[]` legacy (P1.3.a)
-- Remover `ProductGroup.linkedFinishMaster: string[]` legacy (P1.4 futuro)
-- Remover `SpaceBundle.currency: 'USD'` legacy (P1.2)
+Barrido inicial de aliases eliminables sin migración previa:
+
+- ✅ `ProductGroup.linkedOptionGroupCodes` eliminado · grep del codebase confirmaba 0 consumers (solo definición en types.ts:391).
+- ✅ `ProductGroup.linkedFinishMasterCodes` eliminado · idem, 0 consumers.
+- ✅ Comentario en interface actualizado para no referenciar los aliases removidos.
+
+**Files touched**: `src/catalog/types.ts` (2 fields removidos + JSDoc actualizado).
+
+**Verification**: TS check 0 errors · grep confirma que no queda ninguna referencia.
+
+### Cleanup.2b · Aliases diferidos (require migration first)
+
+Los siguientes aliases siguen vivos porque tienen consumers activos. Cada uno requiere una migración previa antes de eliminarse:
+
+| Alias | Consumers | Migración pendiente |
+|---|---|---|
+| `ProductGroup.linkedOptionGroup: string[]` | 22+ rows en seed `productGroups.ts` + 1 helper `resolveLegacyLinkedOptionGroup` en `options.ts` | Reescribir cada row del seed a `linkedOptionGroupRefs`. Después eliminar el field y el helper legacy bridge. |
+| `ProductGroup.linkedFinishMaster: string[]` | 22+ rows en seed + 1 helper `resolveLegacyLinkedFinishMaster` en `finishes.ts` | Idem al anterior con `linkedFinishMasterRefs`. |
+| `QuoteLineItem.fabricId` / `fabricName` / `fabricIsPremium` | 42 usos entre 7 files (ProductDetailPanel, CompareModal, IngestQuoteModal, QuotesPage, MiniCartDrawer, QuoteContext, helpers) | Migrar todos los readers a `finishValueIds[]` / lookup `findFinishValueById`. Después eliminar. Alto riesgo · drafts en localStorage tienen `fabricId` guardado. |
+| `LineItemSelection.fabricId` en `helpers.ts` | 1 reader dentro del compute + 6 sitios que lo pasan como argumento | Se elimina junto con el `QuoteLineItem.fabricId` (mismo lote). |
+| `SpaceBundle.currency` legacy | 1 reader en `SpaceBundleCard.tsx:34` como fallback (`bundle.currencyId ?? bundle.currency`) | Migrar todos los seed bundles a `currencyId` (probablemente ya lo tienen todos). Después eliminar el fallback y el field. |
+| `Category` type alias (de `Section`) | 19 usos en 10 files | Rename en cascada Category → Section en toda la codebase (imports, prop types, variable names). Alto tocado · commit grande pero mecánico. |
+
+### Cleanup.2c · Cuando ejecutar los diferidos
+
+- Recomiendo primero Cleanup.2b `Category → Section` porque es rename mecánico, cero riesgo lógico.
+- Después `linkedOptionGroup` / `linkedFinishMaster` string[] con un script pequeño que use los helpers `resolveLegacyLinkedOptionGroup` / `resolveLegacyLinkedFinishMaster` para autogenerar la nueva shape.
+- `fabricId` va al final · exige migrar buyer flow completo y decidir política de drafts persistidos (upgrade lazy vs migration script).
 
 ### Cleanup.3 · Remove overlay backwards compat
 

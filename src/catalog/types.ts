@@ -372,7 +372,7 @@ export interface ProductType {
  * ProductGroup · nivel intermedio entre Section y ProductItem.
  * Ejemplo · "CH15 Stool Casual" que contiene CH15.1 Enea Lotus, CH15.2 Enea
  * Altzo, CH15.3 Shortcut X-Base. Todos los items del grupo comparten las
- * mismas opciones (linkedOptionGroupCodes) y finishes (linkedFinishMasterCodes).
+ * mismas opciones (linkedOptionGroup) y finishes (linkedFinishMaster).
  */
 export interface ProductGroup {
   id: string
@@ -386,9 +386,6 @@ export interface ProductGroup {
    *  @deprecated en favor de `linkedOptionGroupRefs` (P1.3.a) · aún soportado
    *  por backward compat mientras se migra el seed a la nueva shape jsonb. */
   linkedOptionGroup?: string[]
-  /** @deprecated Fase P0.1 · usa `linkedOptionGroup` en su lugar. Alias legacy para
-   *  código no migrado aún; será removido en Cleanup.1. */
-  linkedOptionGroupCodes?: string[]
   /** Fase P1.3.a · nueva shape jsonb-style alineada 1:1 con silver
    *  `linkedOptionGroup: Array<{ optionGroupId, optionGroupPosition }>`.
    *  Cada elemento referencia un OptionMaster.id + su display order. */
@@ -398,9 +395,6 @@ export interface ProductGroup {
    *  @deprecated en favor de `linkedFinishMasterRefs` (P1.4) · aún soportado
    *  por backward compat. */
   linkedFinishMaster?: string[]
-  /** @deprecated Fase P0.1 · usa `linkedFinishMaster` en su lugar. Alias legacy para
-   *  código no migrado aún; será removido en Cleanup.1. */
-  linkedFinishMasterCodes?: string[]
   /** Fase P1.3.a · placeholder para la migración P1.4 · nueva shape jsonb-style. */
   linkedFinishMasterRefs?: Array<{ masterFinishId: string; masterFinishPosition: number }>
   /** IDs de Product.id que pertenecen a este grupo. */
