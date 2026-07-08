@@ -25,7 +25,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P1.3.a** | Options normalizado · data model + seed (sin UI) | 🟢 | `da415c9` | 2026-07-06 |
 | **P1.3.b.i** | Options UI · VariantsTab "Configurable options" section | 🟢 | `9cdc1ba` | 2026-07-06 |
 | **P1.3.b.ii** | Options UI · QuoteTab selector 2-level (coexiste con fabricId) | 🟢 | `f947070` | 2026-07-06 |
-| **P1.3.b.iii** | Deprecar `QuoteLineItem.fabricId` → apunta a `finishValueIds[]` (silver Fabric FinishMaster) | 🟢 | *pending* | 2026-07-08 |
+| **P1.3.b.iii** | Deprecar `QuoteLineItem.fabricId` → apunta a `finishValueIds[]` (silver Fabric FinishMaster) | 🟢 | `78abdb1` | 2026-07-08 |
 | **P1.4.a** | Finishes 3-niveles · data model + seed (sin UI) | 🟢 | `0484590` | 2026-07-06 |
 | **P1.4.b** | Finishes UI · VariantsTab section 3-nivel | 🟢 | `0822146` | 2026-07-06 |
 | **P1.4.c** | Finishes UI · QuoteTab selector + priceModifier en computeLineItemTotals | 🟢 | `8182832` | 2026-07-06 |
