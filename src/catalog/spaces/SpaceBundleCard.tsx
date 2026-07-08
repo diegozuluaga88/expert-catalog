@@ -29,10 +29,10 @@ interface Props {
 export default function SpaceBundleCard({ setting, spaceType, onAddToSelection }: Props) {
     const { code, name, description, notes, bundle } = setting
     const totalItems = bundle.items.reduce((sum, i) => sum + i.qty, 0)
-    // Fase P1.2 · Currency resolvable via bundle.currencyId (nuevo) o bundle.currency
-    // (legacy 'USD'). formatPrice/Range agregan símbolo apropiado.
-    const currencyId = bundle.currencyId ?? bundle.currency
-    const costRangeText = formatPriceRange(bundle.estimatedCostMin, bundle.estimatedCostMax, currencyId)
+    // Fase P1.2 · Currency del bundle · silver `currencyId`.
+    // Cleanup.2b (2026-07-08) · el fallback a `bundle.currency` (legacy 'USD')
+    // se removió tras eliminar el field · todos los bundles seed setean currencyId.
+    const costRangeText = formatPriceRange(bundle.estimatedCostMin, bundle.estimatedCostMax, bundle.currencyId)
 
     return (
         <article className={cn('flex flex-col rounded-xl border border-border bg-card overflow-hidden hover:border-primary/50 transition-colors')}>

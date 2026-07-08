@@ -141,7 +141,7 @@ function makeBundle(
         items,
         estimatedCostMin: costMin,
         estimatedCostMax: costMax,
-        currency: 'USD',
+        currencyId: 'USD',
     }
 }
 

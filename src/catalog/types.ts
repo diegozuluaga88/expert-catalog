@@ -187,21 +187,27 @@ export type ProductSortKey =
 export type ReportFormat = 'csv' | 'excel' | 'json' | 'pdf'
 
 /**
- * Category · legacy alias del concepto **Section** del silver schema.
+ * Category · UI navigation container que agrupa `Product[]` bajo una Brand.
  *
- * En el silver schema de producción, una Section tiene shape:
- * `{ sectionId, sectionName, sectionCatalogueId }` (ver `Section` interface abajo).
+ * **NO es un alias de `Section`.** Aunque en la migración a silver-schema
+ * Category y Section apuntan al mismo concepto de negocio ("capítulo del
+ * catálogo"), aquí son shapes distintos:
  *
- * expert-catalog usa `Category` en el sub-mode Figma (`ProductCatalogPage`) y en
- * el navigation state del MRL para agrupar Products bajo una Brand. En producción
- * este concepto colapsa con Section · el `products: Product[]` nested aquí es
- * conveniencia de UI, no del schema.
+ * - `Section { id, name, slug, order }` · silver-canonical, plano, referenciable.
+ * - `Category { id, name, icon?, subtitle?, products: Product[] }` · convenience
+ *   type de UI con `products[]` nested para el patrón browse (Brand → Category →
+ *   Product) del MRL y el sub-mode Figma.
  *
- * @deprecated Fase P0.1 · en la migración a producción, este concepto se
- * consolida bajo `Section`. Los usages actuales de `Category` en UI (browse
- * navigation, filtros del Product Catalog) permanecen como conveniencia local.
- * NO se remueve la interfaz porque el nested `products[]` es útil para el UI
- * pattern actual, pero semánticamente equivale a Section.
+ * En el processor bronze→silver, `Category.products[]` se aplana a filas
+ * de `Product` referenciando `Section.id`. Esta interface se conserva **porque
+ * el nested `products[]` es el shape natural para el navigation state del UI**
+ * (ver `MRL/CategoryPage`, `browse/ProductDetailPanel`). No se remueve ni se
+ * fusiona con Section.
+ *
+ * Rev Cleanup.2b (2026-07-08) · el JSDoc anterior decía "@deprecated · alias
+ * legacy de Section". Era incorrecto · Category tiene un `products[]` nested
+ * que Section no soporta, y renombrarlo rompería 19 usos que dependen de esa
+ * forma. Se retira la marca @deprecated.
  */
 export interface Category {
   id: string
@@ -382,20 +388,25 @@ export interface ProductGroup {
   sectionId: string                     // ref → Section.id
   productTypeId: string                 // ref → ProductType.id
   /** Codes de OptionGroup linked (ej. ["Armrests", "Base"]).
-   *  Fase P0.1 · nombre alineado con silver.
-   *  @deprecated en favor de `linkedOptionGroupRefs` (P1.3.a) · aún soportado
-   *  por backward compat mientras se migra el seed a la nueva shape jsonb. */
+   *  **Seed input format** · forma human-friendly de escribir el seed en TS.
+   *  Los consumers runtime NO deben leer este field directamente para lógica
+   *  de negocio · usar `linkedOptionGroupRefs` (P1.3.a) que expone el shape
+   *  jsonb silver, o `resolveLegacyLinkedOptionGroup(names)` para convertir
+   *  on-the-fly. */
   linkedOptionGroup?: string[]
-  /** Fase P1.3.a · nueva shape jsonb-style alineada 1:1 con silver
+  /** Fase P1.3.a · runtime shape jsonb-style alineada 1:1 con silver
    *  `linkedOptionGroup: Array<{ optionGroupId, optionGroupPosition }>`.
-   *  Cada elemento referencia un OptionMaster.id + su display order. */
+   *  Cada elemento referencia un OptionMaster.id + su display order.
+   *  Es la fuente de verdad que consumers de UI deberían leer. */
   linkedOptionGroupRefs?: Array<{ optionMasterId: string; optionGroupPosition: number }>
   /** Codes de FinishMaster linked (ej. ["Frame", "Fabric"]).
-   *  Fase P0.1 · nombre alineado con silver.
-   *  @deprecated en favor de `linkedFinishMasterRefs` (P1.4) · aún soportado
-   *  por backward compat. */
+   *  **Seed input format** · forma human-friendly de escribir el seed en TS.
+   *  Consumers runtime deberían leer `linkedFinishMasterRefs` (P1.4) o llamar
+   *  `resolveLegacyLinkedFinishMaster(names)` para obtener refs. */
   linkedFinishMaster?: string[]
-  /** Fase P1.3.a · placeholder para la migración P1.4 · nueva shape jsonb-style. */
+  /** Fase P1.4 · runtime shape jsonb-style alineada 1:1 con silver
+   *  `linkedFinishMaster: Array<{ masterFinishId, masterFinishPosition }>`.
+   *  Fuente de verdad silver para consumers de UI. */
   linkedFinishMasterRefs?: Array<{ masterFinishId: string; masterFinishPosition: number }>
   /** IDs de Product.id que pertenecen a este grupo. */
   itemIds: string[]
@@ -581,17 +592,14 @@ export interface SpaceBundle {
   }>
   estimatedCostMin: number
   estimatedCostMax: number
-  /**
-   * @deprecated Fase P1.2 · usa `currencyId` en su lugar. Este campo se mantiene
-   * como legacy para compat de código no migrado; será removido en Cleanup.1.
-   *
-   * En producción, la currency debe derivarse del `Catalogue.currencyId` del
-   * ProductGroup padre (via Section → Catalogue chain) o del `productItemCurrencyId`
-   * del ProductItem primario del bundle.
-   */
-  currency: 'USD'
   /** Fase P1.2 · Currency del bundle · alineado con silver. Undefined → USD default.
-   *  En producción esto puede derivarse del Catalogue del setting o hardcoded a demanda. */
+   *  En producción esto puede derivarse del Catalogue del setting o del
+   *  productItemCurrencyId del ProductItem primario del bundle.
+   *
+   *  Rev Cleanup.2b (2026-07-08) · el field legacy `currency: 'USD'` (P1.2
+   *  deprecated) fue removido · el único reader (`SpaceBundleCard.tsx`) ya
+   *  lo consumía vía el fallback `currencyId ?? currency` y el único writer
+   *  (factory `makeBundle`) fue migrado a setear `currencyId`. */
   currencyId?: string
 }
 

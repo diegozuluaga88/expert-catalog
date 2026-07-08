@@ -324,24 +324,43 @@ Barrido inicial de aliases eliminables sin migración previa:
 
 **Verification**: TS check 0 errors · grep confirma que no queda ninguna referencia.
 
-### Cleanup.2b · Aliases diferidos (require migration first)
+### Cleanup.2b · Doctrina corregida + SpaceBundle.currency eliminado · 🟢 COMPLETADA (2026-07-08)
 
-Los siguientes aliases siguen vivos porque tienen consumers activos. Cada uno requiere una migración previa antes de eliminarse:
+Al ejecutar Cleanup.2b se descubrió que **tres de los "aliases" listados en el plan inicial no eran aliases reales** y se corrigió la doctrina. Un cuarto sí lo era y se eliminó completo.
+
+#### Falsos alias · JSDoc corregidos
+
+**Category** · el plan lo listaba como "alias de Section para renombrar en cascada". Al inspeccionar:
+- `Section { id, name, slug, order }` — silver-canonical, plano.
+- `Category { id, name, icon?, subtitle?, products: Product[] }` — UI convenience con `products[]` nested para el patrón browse (Brand → Category → Product).
+
+Son **shapes distintas**. Renombrar rompería el patrón de navigation del MRL. Se retiró el marker `@deprecated` engañoso y se documentó explícitamente que Category NO es alias.
+
+**`linkedOptionGroup: string[]`** y **`linkedFinishMaster: string[]`** · el plan los listaba como "legacy string[] a migrar a `*Refs`". Al inspeccionar:
+- El string[] es el **input human-friendly del seed** (maintainers escriben `['Fabric', 'Frame']`).
+- El `*Refs` es la **runtime shape jsonb-style** que consumers de UI deben leer.
+
+No hay migración pendiente · son dos representaciones válidas del mismo dato. Los seeds pueden seguir escribiéndose con el string[] siempre que el runtime resuelva vía `resolveLegacyLinkedFinishMaster(names)` o `resolveLegacyLinkedOptionGroup(names)`. Se retiraron los markers `@deprecated` engañosos y se documentó el patrón "seed input vs runtime read".
+
+#### Alias real eliminado
+
+**`SpaceBundle.currency: 'USD'`** legacy · sí era alias real de `currencyId`:
+- 1 writer · factory `makeBundle` en `spaceTypes.ts:144`.
+- 1 reader · `SpaceBundleCard.tsx:34` con fallback `bundle.currencyId ?? bundle.currency`.
+
+Migración ejecutada:
+- ✅ `makeBundle` ahora setea `currencyId: 'USD'` en vez de `currency: 'USD'`.
+- ✅ `SpaceBundleCard` consume directo `bundle.currencyId` sin fallback.
+- ✅ Field `currency: 'USD'` eliminado del interface `SpaceBundle`.
+- ✅ TS check 0 errors · grep confirma que no queda ningún reader/writer.
+
+### Cleanup.2c · Deuda real remanente
+
+Único alias legacy con readers activos que NO se pudo eliminar hoy:
 
 | Alias | Consumers | Migración pendiente |
 |---|---|---|
-| `ProductGroup.linkedOptionGroup: string[]` | 22+ rows en seed `productGroups.ts` + 1 helper `resolveLegacyLinkedOptionGroup` en `options.ts` | Reescribir cada row del seed a `linkedOptionGroupRefs`. Después eliminar el field y el helper legacy bridge. |
-| `ProductGroup.linkedFinishMaster: string[]` | 22+ rows en seed + 1 helper `resolveLegacyLinkedFinishMaster` en `finishes.ts` | Idem al anterior con `linkedFinishMasterRefs`. |
-| `QuoteLineItem.fabricId` / `fabricName` / `fabricIsPremium` | 42 usos entre 7 files (ProductDetailPanel, CompareModal, IngestQuoteModal, QuotesPage, MiniCartDrawer, QuoteContext, helpers) | Migrar todos los readers a `finishValueIds[]` / lookup `findFinishValueById`. Después eliminar. Alto riesgo · drafts en localStorage tienen `fabricId` guardado. |
-| `LineItemSelection.fabricId` en `helpers.ts` | 1 reader dentro del compute + 6 sitios que lo pasan como argumento | Se elimina junto con el `QuoteLineItem.fabricId` (mismo lote). |
-| `SpaceBundle.currency` legacy | 1 reader en `SpaceBundleCard.tsx:34` como fallback (`bundle.currencyId ?? bundle.currency`) | Migrar todos los seed bundles a `currencyId` (probablemente ya lo tienen todos). Después eliminar el fallback y el field. |
-| `Category` type alias (de `Section`) | 19 usos en 10 files | Rename en cascada Category → Section en toda la codebase (imports, prop types, variable names). Alto tocado · commit grande pero mecánico. |
-
-### Cleanup.2c · Cuando ejecutar los diferidos
-
-- Recomiendo primero Cleanup.2b `Category → Section` porque es rename mecánico, cero riesgo lógico.
-- Después `linkedOptionGroup` / `linkedFinishMaster` string[] con un script pequeño que use los helpers `resolveLegacyLinkedOptionGroup` / `resolveLegacyLinkedFinishMaster` para autogenerar la nueva shape.
-- `fabricId` va al final · exige migrar buyer flow completo y decidir política de drafts persistidos (upgrade lazy vs migration script).
+| `QuoteLineItem.fabricId` / `fabricName` / `fabricIsPremium` + `LineItemSelection.fabricId` | 42 usos entre 7 files (ProductDetailPanel, CompareModal, IngestQuoteModal, QuotesPage, MiniCartDrawer, QuoteContext, helpers) | Migrar todos los readers a `finishValueIds[]` + lookup `findFinishValueById`. **Alto riesgo** · drafts persistidos en localStorage bajo `expert-hub-quotes-{tenantSlug}` tienen `fabricId` guardado · política de migración de drafts pendiente de decidir (upgrade lazy en load vs migration script one-shot). |
 
 ### Cleanup.3 · Remove overlay backwards compat
 
