@@ -22,6 +22,8 @@ import { getUserCompanyProfile, type UserCompanyProfile } from './userProfile'
 // require() previo rompía en Vite/ESM (require is not defined) · silent-skip
 // dejaba lineInputs vacío y por eso los bundles no se agregaban al Selection.
 import { findProductStub } from '../catalog/data/productGroups'
+import { resolveLegacyFabricId } from '../catalog/data/finishes'
+import { formatPrice } from '../catalog/data/catalogues'
 
 export interface QuoteLineItem {
     id: string
@@ -183,13 +185,51 @@ function generateReferenceNumber(tenantSlug: string, draftCount: number): string
     return `Q-2026-${seq}-${tenantPart}`
 }
 
+/**
+ * P1.4.d.v (2026-07-08) · Lazy-upgrade line items on load. Drafts persisted
+ * before the P1.4.d migration have `fabricId` but no `finishValueIds[]`.
+ * Detect them, resolve the legacy fabric to a silver FinishValue, and
+ * materialize the silver trio (finishValueIds/Labels/PriceModifier).
+ *
+ * Idempotent · once a line item has finishValueIds populated, subsequent
+ * loads pass through untouched.
+ *
+ * Note · we DO NOT recompute `unitPrice` on upgrade. The persisted price
+ * was correct for whatever compute ran at save time; introducing the silver
+ * modifier retroactively would double-count it. The silver display path
+ * (Cleanup.2c gating) shows the label without altering price on old drafts.
+ */
+function upgradeLegacyFabricInLineItem(item: QuoteLineItem): QuoteLineItem {
+    if (!item.fabricId) return item
+    if (item.finishValueIds && item.finishValueIds.length > 0) return item
+    const silverFv = resolveLegacyFabricId(item.fabricId)
+    if (!silverFv) return item
+    const priceLabel = silverFv.price > 0
+        ? ` +${formatPrice(silverFv.price, silverFv.currencyId)}`
+        : ''
+    return {
+        ...item,
+        finishValueIds: [silverFv.id],
+        finishValueLabels: [`Fabric Finish: ${silverFv.finishValueName}${priceLabel}`],
+        finishPriceModifier: silverFv.price,
+    }
+}
+
+function upgradeDraft(draft: QuoteDraft): QuoteDraft {
+    return { ...draft, items: draft.items.map(upgradeLegacyFabricInLineItem) }
+}
+
 function loadDrafts(tenantSlug: string): QuoteDraft[] {
     try {
         const raw = localStorage.getItem(STORAGE_KEY_PREFIX + tenantSlug)
         if (!raw) return []
         const parsed = JSON.parse(raw)
         if (!Array.isArray(parsed)) return []
-        return parsed as QuoteDraft[]
+        const drafts = (parsed as QuoteDraft[]).map(upgradeDraft)
+        // Persist the upgraded shape so the migration only runs once per tenant.
+        // Idempotent · if nothing changed, saveDrafts writes the same JSON back.
+        saveDrafts(tenantSlug, drafts)
+        return drafts
     } catch {
         return []
     }
