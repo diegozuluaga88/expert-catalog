@@ -175,7 +175,7 @@ export default function IngestQuoteModal({ isOpen, onClose, onComplete }: Ingest
                 materialTierId,
             })
             const finish = variants.finishes?.find(f => f.id === finishId)
-            const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
+            // P1.4.d.vi · fabric lookup removed · silver via silverFabric below.
             const tier = variants.materialTiers?.find(t => t.id === materialTierId)
             items.push({
                 productId: product.id,
@@ -188,9 +188,7 @@ export default function IngestQuoteModal({ isOpen, onClose, onComplete }: Ingest
                 colorwayHex: colorway?.hex,
                 finishId: finish?.id,
                 finishName: finish?.name,
-                fabricId: fabric?.id,
-                fabricName: fabric?.name,
-                fabricIsPremium: fabric?.type === 'special',
+                // P1.4.d.vi · fabricId/Name/IsPremium removed from QuoteLineItem.
                 materialTierId: tier?.id,
                 materialTierName: tier?.name,
                 unitPrice: totals.unitPrice,

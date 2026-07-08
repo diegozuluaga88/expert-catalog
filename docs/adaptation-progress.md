@@ -35,7 +35,7 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P2.4** | Drawings 2D/3D discriminados | 🟢 | `33e2e09` | 2026-07-06 |
 | **P3.1** | Jerarquía universal documentada (level/isProject/parent*) | 🟢 docs | `15b0da8` | 2026-07-07 |
 | **P3.2** | Overlay documented (Auxiliary tables recommended) | 🟢 docs | `15b0da8` | 2026-07-07 |
-| **P1.4.d** | Configurable Fabric UI silver-aligned (rewrite select + compute + writers) | ⚪ nueva | — | — |
+| **P1.4.d** | Configurable Fabric UI silver-aligned (bridge + compute + writers + lazy upgrade + type strip) | 🟢 | `cad19f9` `1a2c404` `3b97e92` + (this commit) | 2026-07-08 |
 
 **Leyenda de estado**: 🟢 = código merged · 🟢 docs = cerrada por documentación (responsabilidad BE, no requiere código en el prototype) · ⚪ = pending · ⚪ nueva = fase nueva descubierta durante ejecución que reemplaza scope originalmente clasificado como "cleanup"
 
@@ -383,13 +383,46 @@ En vez de eliminar, priorizamos silver en display · los legacy `fabricName` / `
 
 ### Cleanup.2c-remaining · deuda real (queda para P1.4.d)
 
-| Legacy path | Ubicación | Rewrite requerido en P1.4.d |
-|---|---|---|
-| Select de fabric | `ProductDetailPanel.tsx:766` + preload en 220, 697 | Consumir de `FinishMaster.Fabric` via `linkedFinishMasterRefs` → popular `finishValueIds[]`. |
-| Compute price modifier legacy | `helpers.ts:92-98` (`computeLineItemTotals`) | Reemplazar por sum de `finishValue.price` de cada `finishValueId`. |
-| Default fabric writer | `CompareModal.tsx:29-48` + `ProductDetailPanel.tsx:1532-1551` (Add-all) | Buscar `FinishMaster.Fabric.options[0].values[0]` equivalente y popular `finishValueIds[0]`. |
-| AI ingest fabric matcher | `IngestQuoteModal.tsx:164-189` | Migrar matcher para producir `finishValueIds` desde el PDF ingestado. |
-| Persisted drafts | `expert-hub-quotes-{tenantSlug}` en localStorage | Decidir política: upgrade lazy on-load (reader detecta `fabricId` sin `finishValueIds` → resuelve equivalente + reescribe) vs migration script one-shot al upgrade. |
+_Ver P1.4.d abajo · cerrada 2026-07-08._
+
+---
+
+## Fase P1.4.d · Configurable Fabric UI silver-aligned · 🟢 COMPLETADA (2026-07-08)
+
+Migración completa del path legacy `fabricId` al silver-canonical `finishValueIds[]` bajo `FinishMaster.Fabric`. Split en seis sub-commits atómicos con verificación TS entre cada uno.
+
+### Sub-fases
+
+- **P1.4.d.i** · `finishes.ts` · Introdujo `LEGACY_FABRIC_TO_FINISH_VALUE` mapping table + helper `resolveLegacyFabricId(fabricId): FinishValue | undefined`. Cero cambio funcional. Foundation para el resto.
+- **P1.4.d.ii** · `ProductDetailPanel.buildItemPatch` · Bridge dual-write · `line.fabricId` se traduce al silver equivalente y se inyecta en `finishSelections['fm-fabric']` antes de materializar. UX del select sin cambios.
+- **P1.4.d.iii** · `helpers.ts computeLineItemTotals` · El compute ahora prefiere `finishValueIds[]` cuando está poblado (sum de `finishValue.price`). Cuando llega solo `fabricId`, resuelve al silver equivalente y usa `finishValue.price`. Fallback ultra-legacy al `Product.fabricOptions[]` sólo si el mapping no cubre el ID (tenant-scoped / custom).
+- **P1.4.d.iv** · Writers · `CompareModal.handleAddToQuote`, `IngestQuoteModal` materializer, `ProductDetailPanel.StrataRecommends.handleAdd` · dual-write silver trio (`finishValueIds` + `finishValueLabels` + `finishPriceModifier`).
+- **P1.4.d.v** · Lazy upgrade on-load · `QuoteContext.loadDrafts` detecta line items con `fabricId` sin `finishValueIds` en el JSON parseado, materializa el silver trio, y re-persiste. Idempotente. Silver labels aparecen en drafts viejos sin intervención del usuario.
+- **P1.4.d.vi** · Type cleanup · `QuoteLineItem.fabricId` / `fabricName` / `fabricIsPremium` **eliminados del type público**. `PersistedQuoteLineItem` interno lee el JSON legacy y `upgradeLegacyFabricInLineItem` strippea los fields al producir el shape actual. Todos los writers dejan de emitir los legacy fields. Los readers en QuotesPage + MiniCartDrawer eliminan las branches legacy que ya eran dead code post-upgrade.
+
+### Files touched
+
+- `src/catalog/data/finishes.ts` · +40 LOC · mapping table + `resolveLegacyFabricId`.
+- `src/quote/helpers.ts` · compute silver + `finishValueIds` en `LineItemSelection`.
+- `src/catalog/browse/ProductDetailPanel.tsx` · bridge en `buildItemPatch`, dual-write en `StrataRecommends`, cleanup de lookup vars muertos.
+- `src/catalog/shop/CompareModal.tsx` · dual-write + cleanup.
+- `src/quote/IngestQuoteModal.tsx` · dual-write + cleanup.
+- `src/quote/QuoteContext.tsx` · `QuoteLineItem` limpio + `PersistedQuoteLineItem` interno + `upgradeLegacyFabricInLineItem` strip + `loadDrafts` invoke.
+- `src/quote/QuotesPage.tsx` + `MiniCartDrawer.tsx` · reads legacy eliminados.
+
+### Explicit non-changes
+
+- **`unitPrice` NO se recomputa on upgrade** · el price persistido era correcto al momento del save; agregar el `finishValue.price` silver retroactivamente doble-contaría.
+- **El select fabric en QuoteTab sigue mostrando `variants.fabricOptions` legacy** · el bridge dual-write lo mapea al silver por debajo. UX del user sin cambios. Un rewrite del select a un widget silver-native (dropdown por FinishOption / FinishValue con swatch colors) queda como P1.4.e futuro si se decide.
+- **`LineItemSelection.fabricId` en helpers.ts NO se elimina** · marcado `@deprecated` pero preservado porque los writers actuales lo pasan como shortcut al compute (junto con `finishValueIds`). Se elimina cuando el select UI sea silver-native.
+- **Legacy `Product.fabricOptions[]` seguía existiendo** en el modelo del prototype · no se toca porque el select UI todavía lo consume.
+
+### Verification
+
+1. `npx tsc --noEmit` · 0 errors.
+2. Grep test: `grep -rn "fabricId\|fabricName\|fabricIsPremium" src/quote/` retorna solo el field opcional en `LineItemSelection` y las referencias del upgrade path — 0 usos productivos.
+3. UI smoke: abrir Product Catalog → añadir producto con fabric selection → verificar que aparece el chip silver `Fabric Finish: G1 · Slate` en QuotesPage (silver path) y no aparece el chip legacy "premium" duplicado.
+4. localStorage upgrade: drafts guardados antes del deploy deberían auto-materializar el silver trio al primer load post-deploy · verificar en DevTools Application → Local Storage → `expert-hub-quotes-{tenantSlug}` que los items ya tienen `finishValueIds` populados después de refrescar.
 
 ### Cleanup.3 · Remove overlay backwards compat
 

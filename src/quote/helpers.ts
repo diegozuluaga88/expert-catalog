@@ -10,12 +10,11 @@ export interface LineItemSelection {
   qty: number
   colorwayCode?: string
   finishId?: string
-  /** @deprecated Fase P1.3.b.iii · legacy scalar. Silver-canonical es pasar
-   *  `finishValueIds` con el ID del FinishValue silver. Cuando ambos están
-   *  presentes, `finishValueIds` gana. Cuando solo llega `fabricId`, el
-   *  compute lo resuelve al FinishValue silver equivalente vía
-   *  `resolveLegacyFabricId()` (P1.4.d.iii) y usa el `price` silver como
-   *  modifier. Se elimina en P1.4.d.vi. */
+  /** @deprecated Fase P1.3.b.iii → P1.4.d.vi · legacy scalar. Kept in the
+   *  selection shape ONLY because a handful of writers still compute the
+   *  legacy fabricId from Product.fabricOptions[] and pass it in for
+   *  price/leadTime lookup while the UI select is not yet silver-native.
+   *  The compute (below) prefers finishValueIds when both are present. */
   fabricId?: string
   /** P1.4.d.iii · IDs de FinishValues silver seleccionados. Preferred
    *  sobre `fabricId` para el price compute · cada `finishValue.price` se

@@ -40,7 +40,7 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
       materialTierId,
     })
     const finish = variants.finishes?.find(f => f.id === finishId)
-    const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
+    // P1.4.d.vi · fabric lookup removed · silver flows via silverFabric below.
     const tier = variants.materialTiers?.find(t => t.id === materialTierId)
     addItems([{
       productId: p.id,
@@ -53,9 +53,7 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
       colorwayHex: colorway?.hex,
       finishId: finish?.id,
       finishName: finish?.name,
-      fabricId: fabric?.id,
-      fabricName: fabric?.name,
-      fabricIsPremium: fabric?.type === 'special',
+      // P1.4.d.vi · fabricId/Name/IsPremium removed from QuoteLineItem.
       materialTierId: tier?.id,
       materialTierName: tier?.name,
       unitPrice: totals.unitPrice,

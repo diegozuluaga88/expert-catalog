@@ -190,9 +190,7 @@ export default function MiniCartDrawer({ onViewQuote }: MiniCartDrawerProps) {
                                             <span className="inline-block h-2.5 w-2.5 rounded-sm border border-border" style={{ backgroundColor: item.colorwayHex }} />
                                         )}
                                         <span>{item.colorwayName ?? '—'}</span>
-                                        {/* Cleanup.2c (2026-07-08) · legacy fabricIsPremium sólo se muestra si no hay
-                                            finishValueLabels silver (drafts pre-P1.4.c). */}
-                                        {!item.finishValueLabels?.length && item.fabricIsPremium && <span className="rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
+                                        {/* P1.4.d.vi · legacy fabricIsPremium removed · silver finishValueLabels lo cubre. */}
                                         {/* Fase 3 · si el item vino de un bundle-add, marca settingCode
                                             como pill · da contexto de "de dónde vino" en el drawer. */}
                                         {item.settingCode && (

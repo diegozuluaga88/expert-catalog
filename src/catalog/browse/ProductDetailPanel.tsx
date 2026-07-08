@@ -217,7 +217,10 @@ export default function ProductDetailPanel({
         if (!totals) return null
         const colorway = product.colorways.find(c => c.code === line.colorwayCode)
         const finish = variants.finishes?.find(f => f.id === line.finishId)
-        const fabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
+        // P1.4.d.vi · legacy fabric lookup ya no se necesita para emit del
+        // line item (fabric* removidos del type). Legacy line.fabricId sigue
+        // en QuoteLine local state para el select UX; se traduce a silver via
+        // effectiveFinishSelections abajo.
         const tier = variants.materialTiers?.find(t => t.id === line.materialTierId)
         // Fase P1.3.b.ii · materializar optionSelections a arrays paralelos de
         // IDs + labels. Los IDs preservan la relación FK al silver
@@ -283,9 +286,11 @@ export default function ProductDetailPanel({
             colorwayHex: colorway?.hex,
             finishId: finish?.id,
             finishName: finish?.name,
-            fabricId: fabric?.id,
-            fabricName: fabric?.name,
-            fabricIsPremium: fabric?.type === 'special',
+            // P1.4.d.vi (2026-07-08) · fabricId/Name/IsPremium removed from
+            // QuoteLineItem type · silver Fabric flows through finishValueIds
+            // via the bridge in effectiveFinishSelections above. `fabric` var
+            // (Product.fabricOptions lookup) still exists for the QuoteLine
+            // local-state select UX but isn't emitted on the persisted item.
             materialTierId: tier?.id,
             materialTierName: tier?.name,
             unitPrice: totals.unitPrice,
@@ -1554,7 +1559,7 @@ function StrataRecommendsSection({ product }: { product: Product }) {
             materialTierId,
         })
         const finish = variants.finishes?.find(f => f.id === finishId)
-        const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
+        // P1.4.d.vi · fabric lookup ya no se usa (fabric* removed del item shape).
         const tier = variants.materialTiers?.find(t => t.id === materialTierId)
         addItems([{
             productId: p.id,
@@ -1567,9 +1572,7 @@ function StrataRecommendsSection({ product }: { product: Product }) {
             colorwayHex: colorway?.hex,
             finishId: finish?.id,
             finishName: finish?.name,
-            fabricId: fabric?.id,
-            fabricName: fabric?.name,
-            fabricIsPremium: fabric?.type === 'special',
+            // P1.4.d.vi · fabricId/Name/IsPremium removed from QuoteLineItem.
             materialTierId: tier?.id,
             materialTierName: tier?.name,
             unitPrice: totals.unitPrice,

@@ -464,10 +464,8 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                                         {item.colorwayHex && <span className="inline-block h-3 w-3 rounded-sm border border-border" style={{ backgroundColor: item.colorwayHex }} />}
                                         {item.colorwayName && <span>{item.colorwayName}</span>}
                                         {item.finishName && <span>· {item.finishName}</span>}
-                                        {/* Cleanup.2c (2026-07-08) · legacy fabricName/fabricIsPremium sólo se muestran
-                                            si el line item aún no tiene finishValueLabels silver (drafts pre-P1.4.c). */}
-                                        {!item.finishValueLabels?.length && item.fabricName && <span>· {item.fabricName}</span>}
-                                        {!item.finishValueLabels?.length && item.fabricIsPremium && <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
+                                        {/* P1.4.d.vi (2026-07-08) · legacy fabricName/fabricIsPremium removed
+                                            del QuoteLineItem type · silver finishValueLabels abajo lo cubre. */}
                                         {item.materialTierName && item.materialTierName !== 'Standard' && <span>· {item.materialTierName}</span>}
                                     </div>
                                     {/* Fase P1.3.b.ii · Configurable options chips (silver-aligned) */}
@@ -632,9 +630,7 @@ function ItemRow({
                     {item.colorwayHex && <span className="inline-block h-3 w-3 rounded-sm border border-border" style={{ backgroundColor: item.colorwayHex }} />}
                     {item.colorwayName && <span>{item.colorwayName}</span>}
                     {item.finishName && <span>· {item.finishName}</span>}
-                    {/* Cleanup.2c (2026-07-08) · legacy fabric* sólo si no hay finishValueLabels silver. */}
-                    {!item.finishValueLabels?.length && item.fabricName && <span>· {item.fabricName}</span>}
-                    {!item.finishValueLabels?.length && item.fabricIsPremium && <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1 text-amber-700 dark:text-amber-400">premium</span>}
+                    {/* P1.4.d.vi · legacy fabric* removed · silver finishValueLabels abajo lo cubre. */}
                     {item.materialTierName && item.materialTierName !== 'Standard' && <span>· {item.materialTierName}</span>}
                 </div>
                 {/* Fase P1.3.b.ii · Configurable options chips (silver-aligned) */}

@@ -37,17 +37,13 @@ export interface QuoteLineItem {
     colorwayHex?: string
     finishId?: string
     finishName?: string
-    /** @deprecated Fase P1.3.b.iii · legacy scalar. La fuente de verdad silver
-     *  para la selección de fabric es `finishValueIds[]` bajo el FinishMaster
-     *  "Fabric" (P1.4.c). Se conserva populado por consumers (ProductDetailPanel,
-     *  CompareModal, IngestQuoteModal) para que drafts persistidos en
-     *  localStorage antes de la migración sigan cargando sin perder info.
-     *  Se elimina en Cleanup.2. */
-    fabricId?: string
-    /** @deprecated Fase P1.3.b.iii · ver `fabricId`. */
-    fabricName?: string
-    /** @deprecated Fase P1.3.b.iii · ver `fabricId`. */
-    fabricIsPremium?: boolean
+    // P1.4.d.vi (2026-07-08) · fabricId / fabricName / fabricIsPremium
+    // removidos del shape público. Silver-canonical es `finishValueIds[]` bajo
+    // FinishMaster "Fabric" (P1.4.c). Drafts persistidos que aún tengan estos
+    // fields en el JSON son upgradeados via `upgradeLegacyFabricInLineItem`
+    // durante `loadDrafts` — el upgrade strippea los legacy fields del line
+    // item resultante. Ver `PersistedQuoteLineItem` abajo para el shape de
+    // lectura del JSON.
     materialTierId?: string
     materialTierName?: string
     unitPrice: number
@@ -186,36 +182,56 @@ function generateReferenceNumber(tenantSlug: string, draftCount: number): string
 }
 
 /**
- * P1.4.d.v (2026-07-08) · Lazy-upgrade line items on load. Drafts persisted
- * before the P1.4.d migration have `fabricId` but no `finishValueIds[]`.
- * Detect them, resolve the legacy fabric to a silver FinishValue, and
- * materialize the silver trio (finishValueIds/Labels/PriceModifier).
+ * P1.4.d.v/vi (2026-07-08) · Lazy-upgrade line items on load.
  *
- * Idempotent · once a line item has finishValueIds populated, subsequent
- * loads pass through untouched.
+ * Drafts persisted before the P1.4.d migration carry the legacy fabricId /
+ * fabricName / fabricIsPremium fields, and may lack `finishValueIds[]`.
+ * `PersistedQuoteLineItem` describes the shape of that raw JSON. The
+ * upgrade path:
+ *   1. reads the legacy fabricId,
+ *   2. resolves it to a silver FinishValue via `resolveLegacyFabricId`,
+ *   3. injects the silver trio (finishValueIds/Labels/PriceModifier),
+ *   4. strips the legacy fabric* fields from the output.
  *
- * Note · we DO NOT recompute `unitPrice` on upgrade. The persisted price
- * was correct for whatever compute ran at save time; introducing the silver
- * modifier retroactively would double-count it. The silver display path
- * (Cleanup.2c gating) shows the label without altering price on old drafts.
+ * Idempotent · line items whose JSON already has finishValueIds pass
+ * through with just the strip step.
+ *
+ * Explicit non-change · we DO NOT recompute `unitPrice`. The persisted
+ * price was correct at save time; adding the silver modifier retroactively
+ * would double-count. The silver label surfaces without changing the price
+ * on legacy drafts.
  */
-function upgradeLegacyFabricInLineItem(item: QuoteLineItem): QuoteLineItem {
-    if (!item.fabricId) return item
-    if (item.finishValueIds && item.finishValueIds.length > 0) return item
-    const silverFv = resolveLegacyFabricId(item.fabricId)
-    if (!silverFv) return item
+interface PersistedQuoteLineItem extends QuoteLineItem {
+    fabricId?: string
+    fabricName?: string
+    fabricIsPremium?: boolean
+}
+
+function upgradeLegacyFabricInLineItem(raw: PersistedQuoteLineItem): QuoteLineItem {
+    // Strip legacy fabric* fields regardless of the upgrade outcome so the
+    // in-memory line item shape matches the current QuoteLineItem type.
+    const { fabricId, fabricName: _fabricName, fabricIsPremium: _fabricIsPremium, ...clean } = raw
+    void _fabricName; void _fabricIsPremium
+    if (!fabricId) return clean
+    if (clean.finishValueIds && clean.finishValueIds.length > 0) return clean
+    const silverFv = resolveLegacyFabricId(fabricId)
+    if (!silverFv) return clean
     const priceLabel = silverFv.price > 0
         ? ` +${formatPrice(silverFv.price, silverFv.currencyId)}`
         : ''
     return {
-        ...item,
+        ...clean,
         finishValueIds: [silverFv.id],
         finishValueLabels: [`Fabric Finish: ${silverFv.finishValueName}${priceLabel}`],
         finishPriceModifier: silverFv.price,
     }
 }
 
-function upgradeDraft(draft: QuoteDraft): QuoteDraft {
+interface PersistedQuoteDraft extends Omit<QuoteDraft, 'items'> {
+    items: PersistedQuoteLineItem[]
+}
+
+function upgradeDraft(draft: PersistedQuoteDraft): QuoteDraft {
     return { ...draft, items: draft.items.map(upgradeLegacyFabricInLineItem) }
 }
 
@@ -225,7 +241,7 @@ function loadDrafts(tenantSlug: string): QuoteDraft[] {
         if (!raw) return []
         const parsed = JSON.parse(raw)
         if (!Array.isArray(parsed)) return []
-        const drafts = (parsed as QuoteDraft[]).map(upgradeDraft)
+        const drafts = (parsed as PersistedQuoteDraft[]).map(upgradeDraft)
         // Persist the upgraded shape so the migration only runs once per tenant.
         // Idempotent · if nothing changed, saveDrafts writes the same JSON back.
         saveDrafts(tenantSlug, drafts)
