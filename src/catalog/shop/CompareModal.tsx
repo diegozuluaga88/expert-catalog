@@ -7,6 +7,7 @@ import { getProductVariants } from '../data/productVariants'
 import { computeLineItemTotals } from '../../quote/helpers'
 import { useQuote } from '../../quote/QuoteContext'
 import { formatPrice } from '../data/catalogues'
+import { resolveLegacyFabricId } from '../data/finishes'
 
 // Etapa 8.4 — Modal Compare Products (Figma · Compare 1329:27352).
 // Tabla comparativa. Campos no presentes en el mock se muestran como "—" (sin inventar datos).
@@ -28,7 +29,16 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
     const finishId = variants.finishes?.[0]?.id
     const fabricId = variants.fabricOptions?.find(f => f.type === 'standard')?.id
     const materialTierId = variants.materialTiers?.[0]?.id
-    const totals = computeLineItemTotals(p, { qty: 1, colorwayCode: colorway?.code, finishId, fabricId, materialTierId })
+    // P1.4.d.iv (2026-07-08) · resolve legacy fabricId to silver FinishValue for dual-write.
+    const silverFabric = resolveLegacyFabricId(fabricId)
+    const totals = computeLineItemTotals(p, {
+      qty: 1,
+      colorwayCode: colorway?.code,
+      finishId,
+      fabricId,
+      finishValueIds: silverFabric ? [silverFabric.id] : undefined,
+      materialTierId,
+    })
     const finish = variants.finishes?.find(f => f.id === finishId)
     const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
     const tier = variants.materialTiers?.find(t => t.id === materialTierId)
@@ -51,6 +61,12 @@ export default function CompareModal({ products, onClose }: CompareModalProps) {
       unitPrice: totals.unitPrice,
       totalPrice: totals.totalPrice,
       leadTimeDays: totals.leadTimeDays,
+      // P1.4.d.iv · silver-canonical fabric selection sincronizado con el legacy fabric* fields.
+      ...(silverFabric && {
+        finishValueIds: [silverFabric.id],
+        finishValueLabels: [`Fabric Finish: ${silverFabric.finishValueName}${silverFabric.price > 0 ? ` +${formatPrice(silverFabric.price, silverFabric.currencyId)}` : ''}`],
+        finishPriceModifier: silverFabric.price,
+      }),
     }])
   }
 

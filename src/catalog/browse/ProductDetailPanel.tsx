@@ -1543,7 +1543,16 @@ function StrataRecommendsSection({ product }: { product: Product }) {
         const finishId = variants.finishes?.[0]?.id
         const fabricId = variants.fabricOptions?.find(f => f.type === 'standard')?.id
         const materialTierId = variants.materialTiers?.[0]?.id
-        const totals = computeLineItemTotals(p, { qty: 1, colorwayCode: colorway?.code, finishId, fabricId, materialTierId })
+        // P1.4.d.iv (2026-07-08) · resolve legacy fabricId to silver FinishValue for dual-write.
+        const silverFabric = resolveLegacyFabricId(fabricId)
+        const totals = computeLineItemTotals(p, {
+            qty: 1,
+            colorwayCode: colorway?.code,
+            finishId,
+            fabricId,
+            finishValueIds: silverFabric ? [silverFabric.id] : undefined,
+            materialTierId,
+        })
         const finish = variants.finishes?.find(f => f.id === finishId)
         const fabric = variants.fabricOptions?.find(f => f.id === fabricId)
         const tier = variants.materialTiers?.find(t => t.id === materialTierId)
@@ -1566,6 +1575,12 @@ function StrataRecommendsSection({ product }: { product: Product }) {
             unitPrice: totals.unitPrice,
             totalPrice: totals.totalPrice,
             leadTimeDays: totals.leadTimeDays,
+            // P1.4.d.iv · silver-canonical fabric selection.
+            ...(silverFabric && {
+                finishValueIds: [silverFabric.id],
+                finishValueLabels: [`Fabric Finish: ${silverFabric.finishValueName}${silverFabric.price > 0 ? ` +${formatPrice(silverFabric.price, silverFabric.currencyId)}` : ''}`],
+                finishPriceModifier: silverFabric.price,
+            }),
         }])
     }
 

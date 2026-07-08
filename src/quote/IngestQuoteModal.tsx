@@ -23,6 +23,7 @@ import { getProductVariants } from '../catalog/data/productVariants'
 import { computeLineItemTotals } from './helpers'
 import { useQuote, type QuoteLineItem } from './QuoteContext'
 import { formatPrice } from '../catalog/data/catalogues'
+import { resolveLegacyFabricId } from '../catalog/data/finishes'
 
 type IngestStep = 'upload' | 'processing' | 'review' | 'confirm'
 
@@ -163,11 +164,14 @@ export default function IngestQuoteModal({ isOpen, onClose, onComplete }: Ingest
             const finishId = variants.finishes?.[0]?.id
             const fabricId = variants.fabricOptions?.find(f => f.type === 'standard')?.id
             const materialTierId = variants.materialTiers?.[0]?.id
+            // P1.4.d.iv (2026-07-08) · resolve legacy fabricId to silver FinishValue for dual-write.
+            const silverFabric = resolveLegacyFabricId(fabricId)
             const totals = computeLineItemTotals(product, {
                 qty: line.raw.qty,
                 colorwayCode: colorway?.code,
                 finishId,
                 fabricId,
+                finishValueIds: silverFabric ? [silverFabric.id] : undefined,
                 materialTierId,
             })
             const finish = variants.finishes?.find(f => f.id === finishId)
@@ -193,6 +197,12 @@ export default function IngestQuoteModal({ isOpen, onClose, onComplete }: Ingest
                 totalPrice: totals.totalPrice,
                 leadTimeDays: totals.leadTimeDays,
                 sourceDocRef: doc.id,
+                // P1.4.d.iv · silver-canonical fabric selection.
+                ...(silverFabric && {
+                    finishValueIds: [silverFabric.id],
+                    finishValueLabels: [`Fabric Finish: ${silverFabric.finishValueName}${silverFabric.price > 0 ? ` +${formatPrice(silverFabric.price, silverFabric.currencyId)}` : ''}`],
+                    finishPriceModifier: silverFabric.price,
+                }),
             })
         }
         if (items.length > 0) addItems(items, draft.id)
