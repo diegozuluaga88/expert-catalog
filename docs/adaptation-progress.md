@@ -35,8 +35,9 @@ Objetivo · alinear el prototype `expert-catalog` con el silver schema de produc
 | **P2.4** | Drawings 2D/3D discriminados | 🟢 | `33e2e09` | 2026-07-06 |
 | **P3.1** | Jerarquía universal documentada (level/isProject/parent*) | 🟢 docs | `15b0da8` | 2026-07-07 |
 | **P3.2** | Overlay documented (Auxiliary tables recommended) | 🟢 docs | `15b0da8` | 2026-07-07 |
+| **P1.4.d** | Configurable Fabric UI silver-aligned (rewrite select + compute + writers) | ⚪ nueva | — | — |
 
-**Leyenda de estado**: 🟢 = código merged · 🟢 docs = cerrada por documentación (responsabilidad BE, no requiere código en el prototype) · ⚪ = pending
+**Leyenda de estado**: 🟢 = código merged · 🟢 docs = cerrada por documentación (responsabilidad BE, no requiere código en el prototype) · ⚪ = pending · ⚪ nueva = fase nueva descubierta durante ejecución que reemplaza scope originalmente clasificado como "cleanup"
 
 ---
 
@@ -354,13 +355,41 @@ Migración ejecutada:
 - ✅ Field `currency: 'USD'` eliminado del interface `SpaceBundle`.
 - ✅ TS check 0 errors · grep confirma que no queda ningún reader/writer.
 
-### Cleanup.2c · Deuda real remanente
+### Cleanup.2c · Priorización silver en display · 🟢 PARCIAL (2026-07-08)
 
-Único alias legacy con readers activos que NO se pudo eliminar hoy:
+Audit exhaustivo de los 42 usos de `fabricId`/`fabricName`/`fabricIsPremium` revela que **la eliminación total NO es un cleanup** — es una migración de feature que requiere una fase nueva (P1.4.d) porque:
 
-| Alias | Consumers | Migración pendiente |
+- El select de fabric en `ProductDetailPanel.tsx:766` es **UI activa** que popula `fabricId` on-change.
+- El compute `computeLineItemTotals` en `helpers.ts:92-98` lee `selection.fabricId` para calcular `priceModifier` desde `variants.fabricOptions[]` (modelo legacy).
+- `CompareModal.tsx:29-48` e `IngestQuoteModal.tsx:164-189` **no leen** — extraen del modelo legacy `variants.fabricOptions?.find(f => f.type === 'standard')` para setear defaults en nuevos line items.
+
+Estos flujos están atados al modelo `Product.fabricOptions[]` legacy. Reemplazarlos exige:
+- Sustituir el select por un dropdown que consuma `FinishMaster.Fabric` via `linkedFinishMasterRefs` y popule `finishValueIds[]`.
+- Migrar el compute a leer `finishValue.price` en vez de `fabric.priceModifier`.
+- Actualizar los flows CompareModal + IngestQuoteModal para buscar el FinishValue equivalente.
+- Definir política de drafts persistidos en `localStorage` (upgrade lazy on-load vs migration script one-shot).
+
+Ese scope es **P1.4.d · Configurable Fabric UI silver-aligned** y va como fase nueva del roadmap, no cleanup.
+
+#### Lo ejecutable hoy (silver-first display)
+
+En vez de eliminar, priorizamos silver en display · los legacy `fabricName` / `fabricIsPremium` sólo aparecen cuando el line item aún NO tiene `finishValueLabels[]` populado (drafts pre-P1.4.c). Line items nuevos siempre muestran el silver path.
+
+**Files touched**:
+- `src/quote/QuotesPage.tsx` · 2 sitios (flat mode + by-space mode) · gate `!item.finishValueLabels?.length &&` en front del legacy display.
+- `src/quote/MiniCartDrawer.tsx` · 1 sitio · idem gate para el chip "premium".
+
+**Efecto**: cero visual duplication cuando ambos existen, retro-compat cuando solo existe legacy. Elimina la fricción visual sin tocar shape del type ni compute.
+
+### Cleanup.2c-remaining · deuda real (queda para P1.4.d)
+
+| Legacy path | Ubicación | Rewrite requerido en P1.4.d |
 |---|---|---|
-| `QuoteLineItem.fabricId` / `fabricName` / `fabricIsPremium` + `LineItemSelection.fabricId` | 42 usos entre 7 files (ProductDetailPanel, CompareModal, IngestQuoteModal, QuotesPage, MiniCartDrawer, QuoteContext, helpers) | Migrar todos los readers a `finishValueIds[]` + lookup `findFinishValueById`. **Alto riesgo** · drafts persistidos en localStorage bajo `expert-hub-quotes-{tenantSlug}` tienen `fabricId` guardado · política de migración de drafts pendiente de decidir (upgrade lazy en load vs migration script one-shot). |
+| Select de fabric | `ProductDetailPanel.tsx:766` + preload en 220, 697 | Consumir de `FinishMaster.Fabric` via `linkedFinishMasterRefs` → popular `finishValueIds[]`. |
+| Compute price modifier legacy | `helpers.ts:92-98` (`computeLineItemTotals`) | Reemplazar por sum de `finishValue.price` de cada `finishValueId`. |
+| Default fabric writer | `CompareModal.tsx:29-48` + `ProductDetailPanel.tsx:1532-1551` (Add-all) | Buscar `FinishMaster.Fabric.options[0].values[0]` equivalente y popular `finishValueIds[0]`. |
+| AI ingest fabric matcher | `IngestQuoteModal.tsx:164-189` | Migrar matcher para producir `finishValueIds` desde el PDF ingestado. |
+| Persisted drafts | `expert-hub-quotes-{tenantSlug}` en localStorage | Decidir política: upgrade lazy on-load (reader detecta `fabricId` sin `finishValueIds` → resuelve equivalente + reescribe) vs migration script one-shot al upgrade. |
 
 ### Cleanup.3 · Remove overlay backwards compat
 
