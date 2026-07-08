@@ -194,3 +194,46 @@ export function resolveLegacyLinkedFinishMaster(
         })
         .filter((x): x is { masterFinishId: string; masterFinishPosition: number } => x !== null)
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   P1.4.d.i · Legacy Fabric → silver FinishValue bridge (2026-07-08)
+
+   The prototype's legacy `Product.fabricOptions[]` uses 5 generic entries
+   (Grade A / B / Leather / COM / Recycled) keyed by loose "type"
+   (standard | premium | special). The silver seed under FinishMaster
+   `fm-fabric` is 3 grades (G1 / G3 / G5) × ~3 named color values each.
+
+   There's no 1:1 name match, so this table encodes the closest silver
+   equivalent for each legacy fabric ID. Consumers migrating to silver
+   flow should call `resolveLegacyFabricId(fabricId)` to get the target
+   FinishValue.
+
+   Choices:
+   - fabric-grade-a  (standard, $0)   → fv-fabric-g1-slate  (G1, $0)
+   - fabric-grade-b  (standard, +$35) → fv-fabric-g3-forest (G3, +$50)
+                                         · closest priced tier available
+   - fabric-leather  (special, +$220) → fv-fabric-g5-boucle-cream (G5, +$145)
+                                         · same "special premium" role
+   - fabric-com      (special, $0)    → fv-fabric-g5-boucle-cream (G5)
+                                         · fallback since silver has no COM
+   - fabric-recycled (standard, +$15) → fv-fabric-g1-navy    (G1, $0)
+                                         · sustainable analog under G1
+   ═══════════════════════════════════════════════════════════════════════ */
+
+export const LEGACY_FABRIC_TO_FINISH_VALUE: Record<string, string> = {
+    'fabric-grade-a': 'fv-fabric-g1-slate',
+    'fabric-grade-b': 'fv-fabric-g3-forest',
+    'fabric-leather': 'fv-fabric-g5-boucle-cream',
+    'fabric-com': 'fv-fabric-g5-boucle-cream',
+    'fabric-recycled': 'fv-fabric-g1-navy',
+}
+
+/** P1.4.d.i · Resuelve un fabricId legacy al FinishValue silver equivalente.
+ *  Devuelve `undefined` si el fabricId no tiene mapping registrado (defensivo
+ *  para tenant-scoped fabrics futuros o custom entries no listados). */
+export function resolveLegacyFabricId(fabricId: string | undefined | null): FinishValue | undefined {
+    if (!fabricId) return undefined
+    const silverId = LEGACY_FABRIC_TO_FINISH_VALUE[fabricId]
+    if (!silverId) return undefined
+    return findFinishValueById(silverId)
+}

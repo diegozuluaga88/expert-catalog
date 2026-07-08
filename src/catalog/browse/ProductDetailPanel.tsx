@@ -27,7 +27,7 @@ import { inferProductGroupCode, findProductGroupByCode } from '../data/productGr
 import { formatPrice } from '../data/catalogues'
 import { settingsUsingProductGroup, findSpaceTypeById } from '../data/spaceTypes'
 import { findOptionMasterById, findOptionValueById, valuesForMaster } from '../data/options'
-import { findFinishMasterById, findFinishOptionById, findFinishValueById, valuesForMasterGrouped } from '../data/finishes'
+import { findFinishMasterById, findFinishOptionById, findFinishValueById, resolveLegacyFabricId, valuesForMasterGrouped } from '../data/finishes'
 import { isVisibleToTenant } from '../data/tenantVisibility'
 import { useTenant } from '../../TenantContext'
 
@@ -238,22 +238,34 @@ export default function ProductDetailPanel({
         // Fase P1.4.c · materializar finishSelections + suma priceModifier.
         // Silver Finishes SÍ modifican precio · sumo todos los value.price y
         // los aplico al unitPrice del line item.
+        //
+        // P1.4.d.ii (2026-07-08) · Bridge legacy → silver · si el line tiene
+        // fabricId (del select legacy en la QuoteTab) y NO hay una selección
+        // silver explícita para fm-fabric, resolvemos el fabricId a un
+        // FinishValue silver equivalente vía resolveLegacyFabricId() y lo
+        // inyectamos en el patch como si viniera de finishSelections. Esto
+        // sincroniza el silver path por debajo sin cambiar la UX del select.
+        const effectiveFinishSelections: Record<string, string> = { ...(line.finishSelections ?? {}) }
+        if (line.fabricId && !effectiveFinishSelections['fm-fabric']) {
+            const silverFv = resolveLegacyFabricId(line.fabricId)
+            if (silverFv) {
+                effectiveFinishSelections['fm-fabric'] = silverFv.id
+            }
+        }
         const finishValueIds: string[] = []
         const finishValueLabels: string[] = []
         let finishPriceModifier = 0
-        if (line.finishSelections) {
-            for (const [masterId, valueId] of Object.entries(line.finishSelections)) {
-                if (!valueId) continue
-                const master = findFinishMasterById(masterId)
-                const value = findFinishValueById(valueId)
-                if (master && value) {
-                    finishValueIds.push(value.id)
-                    const priceLabel = value.price > 0
-                        ? ` +${formatPrice(value.price, value.currencyId)}`
-                        : ''
-                    finishValueLabels.push(`${master.masterFinishName}: ${value.finishValueName}${priceLabel}`)
-                    finishPriceModifier += value.price
-                }
+        for (const [masterId, valueId] of Object.entries(effectiveFinishSelections)) {
+            if (!valueId) continue
+            const master = findFinishMasterById(masterId)
+            const value = findFinishValueById(valueId)
+            if (master && value) {
+                finishValueIds.push(value.id)
+                const priceLabel = value.price > 0
+                    ? ` +${formatPrice(value.price, value.currencyId)}`
+                    : ''
+                finishValueLabels.push(`${master.masterFinishName}: ${value.finishValueName}${priceLabel}`)
+                finishPriceModifier += value.price
             }
         }
         // Fase P1.4.c · totals ya incluye el finishPriceModifier (aplicado en

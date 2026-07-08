@@ -4,19 +4,23 @@
 
 import type { Product, VolumeTier } from '../catalog/types'
 import { getProductVariants } from '../catalog/data/productVariants'
+import { findFinishValueById, resolveLegacyFabricId } from '../catalog/data/finishes'
 
 export interface LineItemSelection {
   qty: number
   colorwayCode?: string
   finishId?: string
-  /** @deprecated Fase P1.3.b.iii · legacy scalar. En el silver schema una
-   *  selección de fabric se representa como un `FinishValue` bajo el
-   *  `FinishMaster` "Fabric" — el path canónico es que los consumers pasen
-   *  la selección vía `finishSelections` en el modelo Silver y el
-   *  totalizador consulte finishValueIds ahí. Aquí se conserva para no
-   *  romper el cálculo de precio de UI legacy que aún llega con este
-   *  scalar. Se elimina en Cleanup.2. */
+  /** @deprecated Fase P1.3.b.iii · legacy scalar. Silver-canonical es pasar
+   *  `finishValueIds` con el ID del FinishValue silver. Cuando ambos están
+   *  presentes, `finishValueIds` gana. Cuando solo llega `fabricId`, el
+   *  compute lo resuelve al FinishValue silver equivalente vía
+   *  `resolveLegacyFabricId()` (P1.4.d.iii) y usa el `price` silver como
+   *  modifier. Se elimina en P1.4.d.vi. */
   fabricId?: string
+  /** P1.4.d.iii · IDs de FinishValues silver seleccionados. Preferred
+   *  sobre `fabricId` para el price compute · cada `finishValue.price` se
+   *  suma al unitPrice. */
+  finishValueIds?: string[]
   materialTierId?: string
 }
 
@@ -96,11 +100,29 @@ export function computeLineItemTotals(product: Product, selection: LineItemSelec
     }
   }
 
-  if (selection.fabricId && variants.fabricOptions) {
-    const fabric = variants.fabricOptions.find((f) => f.id === selection.fabricId)
-    if (fabric) {
-      priceModifier += fabric.priceModifier
-      leadAdjust += fabric.leadTimeAdjust
+  // P1.4.d.iii · Silver path preferred · sum every FinishValue.price when
+  // finishValueIds is populated. Legacy fabricId is used ONLY as fallback
+  // when the silver path is empty · in that case we resolve to the silver
+  // equivalent via LEGACY_FABRIC_TO_FINISH_VALUE and use its silver price
+  // instead of reading from Product.fabricOptions[]. This keeps the compute
+  // consistent with the finishPriceModifier written by ProductDetailPanel.
+  if (selection.finishValueIds && selection.finishValueIds.length > 0) {
+    for (const fvId of selection.finishValueIds) {
+      const fv = findFinishValueById(fvId)
+      if (fv) priceModifier += fv.price
+    }
+  } else if (selection.fabricId) {
+    const silverFv = resolveLegacyFabricId(selection.fabricId)
+    if (silverFv) {
+      priceModifier += silverFv.price
+    } else if (variants.fabricOptions) {
+      // Ultra-fallback · legacy fabricId not registered in silver mapping
+      // (tenant-scoped or custom entry). Read from legacy Product.fabricOptions[].
+      const fabric = variants.fabricOptions.find((f) => f.id === selection.fabricId)
+      if (fabric) {
+        priceModifier += fabric.priceModifier
+        leadAdjust += fabric.leadTimeAdjust
+      }
     }
   }
 
