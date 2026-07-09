@@ -4,6 +4,7 @@ import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufac
 import ShelfView from '../components/ShelfView'
 import GridView from '../components/GridView'
 import FilterSidebar from '../components/FilterSidebar'
+import { ToastContainer, useToast } from '../../components/AuthToast'
 
 interface LibraryPageProps {
   onSelectManufacturer: (m: Manufacturer) => void
@@ -18,6 +19,9 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
   })
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  // MRL Fase 3 (2026-07-09) · toast global de la page para el feedback de
+  // My Binders toggle. Se propaga como prop a ShelfView → BinderLibrary.
+  const { toasts, addToast, dismissToast } = useToast()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_VIEW, viewMode)
@@ -61,12 +65,19 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
               <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or search.</p>
             </div>
           ) : viewMode === 'shelf' ? (
-            <ShelfView manufacturers={filtered} onSelect={onSelectManufacturer} />
+            <ShelfView
+              manufacturers={filtered}
+              onSelect={onSelectManufacturer}
+              onToast={addToast}
+            />
           ) : (
             <GridView manufacturers={filtered} onSelect={onSelectManufacturer} />
           )}
         </div>
       </div>
+
+      {/* Toast container · muestra feedback de My Binders toggle */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

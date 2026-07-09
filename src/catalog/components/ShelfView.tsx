@@ -1,14 +1,17 @@
 import type { Manufacturer } from '../types'
-import BinderSpine from './BinderSpine'
+import BinderLibrary from './BinderLibrary'
+import type { ToastAction, ToastType } from '../../components/AuthToast'
 
 interface ShelfViewProps {
   manufacturers: Manufacturer[]
   onSelect: (m: Manufacturer) => void
+  /** MRL Fase 3 · pipe hacia BinderLibrary para feedback del My Binders toggle. */
+  onToast?: (type: ToastType, message: string, action?: ToastAction) => void
 }
 
 const BINDERS_PER_SHELF = 14
 
-export default function ShelfView({ manufacturers, onSelect }: ShelfViewProps) {
+export default function ShelfView({ manufacturers, onSelect, onToast }: ShelfViewProps) {
   // Expand manufacturers with multiple binders (e.g. Camira Fabrics with binderCount=4)
   const expanded: Array<{ manufacturer: Manufacturer; label: string; index: number }> = []
   for (const m of manufacturers) {
@@ -40,11 +43,12 @@ export default function ShelfView({ manufacturers, onSelect }: ShelfViewProps) {
             {/* Binders row */}
             <div className="flex items-end gap-1 flex-wrap min-h-[210px] relative z-10">
               {row.map((item, i) => (
-                <BinderSpine
+                <BinderLibrary
                   key={`${item.manufacturer.id}-${item.index}-${i}`}
                   manufacturer={item.manufacturer}
                   label={item.label}
                   onClick={() => onSelect(item.manufacturer)}
+                  onToast={onToast}
                 />
               ))}
             </div>
