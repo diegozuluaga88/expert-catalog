@@ -15,6 +15,10 @@ interface FilterSidebarProps {
   onSearchChange: (v: string) => void
   viewMode: ViewMode
   onViewModeChange: (v: ViewMode) => void
+  /** MRL Fase 6 · state del filtro "My Binders" (owned por LibraryPage). */
+  showMyBindersOnly?: boolean
+  /** MRL Fase 6 · toggle del filtro "My Binders". */
+  onMyBindersToggle?: () => void
 }
 
 const SWATCH_COLORS = [
@@ -68,6 +72,8 @@ export default function FilterSidebar({
   onSearchChange,
   viewMode,
   onViewModeChange,
+  showMyBindersOnly = false,
+  onMyBindersToggle,
 }: FilterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
@@ -149,7 +155,13 @@ export default function FilterSidebar({
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Filter by</p>
         <button
-          onClick={() => { setCheckedTags(new Set()); setCheckedBinders(new Set()); onCategoryChange(null); setSelectedColor(null) }}
+          onClick={() => {
+            setCheckedTags(new Set())
+            setCheckedBinders(new Set())
+            onCategoryChange(null)
+            setSelectedColor(null)
+            if (showMyBindersOnly && onMyBindersToggle) onMyBindersToggle()
+          }}
           className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
         >
           Clear all
@@ -160,7 +172,13 @@ export default function FilterSidebar({
       <FilterSection label="Tags" open={tagsOpen} onToggle={() => setTagsOpen(o => !o)}>
         {activeTab === 'products' ? (
           <>
-            <CheckItem label="My Favorite Binders" checked={checkedTags.has('favbinders')} onChange={() => toggleTag('favbinders')} />
+            {/* MRL Fase 6 · "My Binders" wire real al hook useMyBinders via LibraryPage.
+                Diego ask · en el contexto de MRL "binders" y "favoritos" son lo mismo. */}
+            <CheckItem
+              label="My Binders"
+              checked={showMyBindersOnly}
+              onChange={() => onMyBindersToggle?.()}
+            />
             <CheckItem label="QuickShip" checked={checkedTags.has('quickship')} onChange={() => toggleTag('quickship')} />
             <CheckItem label="GSA" checked={checkedTags.has('gsa')} onChange={() => toggleTag('gsa')} />
             <CheckItem label="CET Extension" checked={checkedTags.has('cet')} onChange={() => toggleTag('cet')} />
@@ -168,8 +186,11 @@ export default function FilterSidebar({
           </>
         ) : (
           <>
-            <CheckItem label="My Favorite Binders" checked={checkedTags.has('favbinders')} onChange={() => toggleTag('favbinders')} />
-            <CheckItem label="My Favorite Products" checked={checkedTags.has('favproducts')} onChange={() => toggleTag('favproducts')} />
+            <CheckItem
+              label="My Binders"
+              checked={showMyBindersOnly}
+              onChange={() => onMyBindersToggle?.()}
+            />
           </>
         )}
       </FilterSection>
@@ -191,11 +212,22 @@ export default function FilterSidebar({
             <span className="text-xs text-muted-foreground">({totalProducts})</span>
           </label>
         ) : (
-          allCategories.map(cat => {
-            const count = manufacturers.reduce(
-              (acc, m) => acc + m.categories.filter(c => c.name === cat).reduce((a, c) => a + c.products.length, 0), 0
-            )
-            return (
+          // MRL Fase 6 · para cada categoría, sumar el count preferido:
+          // `mockCount` cuando cualquiera de las Category-instances lo trae seteado
+          // (override para display · Nielsen H2 real world) · sino cae al `.length`
+          // real. Se ocultan categorías cuyo total final es 0 (Nielsen H8 aesthetic ·
+          // reducir noise visual de "chairs (0)" que no llevan a nada).
+          allCategories
+            .map(cat => {
+              const matched = manufacturers.flatMap(m => m.categories.filter(c => c.name === cat))
+              const hasMock = matched.some(c => typeof c.mockCount === 'number')
+              const count = hasMock
+                ? matched.reduce((a, c) => a + (c.mockCount ?? c.products.length), 0)
+                : matched.reduce((a, c) => a + c.products.length, 0)
+              return { cat, count }
+            })
+            .filter(({ count }) => count > 0)
+            .map(({ cat, count }) => (
               <CheckItem
                 key={cat}
                 label={cat}
@@ -203,8 +235,7 @@ export default function FilterSidebar({
                 checked={selectedCategory === cat}
                 onChange={() => onCategoryChange(selectedCategory === cat ? null : cat)}
               />
-            )
-          })
+            ))
         )}
       </FilterSection>
 
@@ -236,7 +267,12 @@ export default function FilterSidebar({
 
       {/* BINDER FILTERS */}
       <FilterSection label="Binder Filters" open={binderOpen} onToggle={() => setBinderOpen(o => !o)}>
-        <CheckItem label="My Favorite Binders" checked={checkedBinders.has('favbinders')} onChange={() => toggleBinder('favbinders')} />
+        {/* MRL Fase 6 · mismo wire real al hook (mirror del Tags · My Binders). */}
+        <CheckItem
+          label="My Binders"
+          checked={showMyBindersOnly}
+          onChange={() => onMyBindersToggle?.()}
+        />
         <CheckItem label="QuickShip" checked={checkedBinders.has('quickship')} onChange={() => toggleBinder('quickship')} />
         {activeTab === 'products' && (
           <>

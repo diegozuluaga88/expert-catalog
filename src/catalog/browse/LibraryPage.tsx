@@ -5,6 +5,7 @@ import ShelfView from '../components/ShelfView'
 import GridView from '../components/GridView'
 import FilterSidebar from '../components/FilterSidebar'
 import MRLSidebarAds from '../components/MRLSidebarAds'
+import { useMyBinders } from './useMyBinders'
 import { ToastContainer, useToast } from '../../components/AuthToast'
 
 interface LibraryPageProps {
@@ -20,6 +21,13 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
   })
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  // MRL Fase 6 (2026-07-09) · state del filtro "My Binders" · owned aquí y
+  // propagado tanto a FilterSidebar (checkbox) como a ShelfView (aplica el
+  // filtro + renderiza el chip). Es de sesión, no persiste en localStorage.
+  const [showMyBindersOnly, setShowMyBindersOnly] = useState(false)
+  // MRL Fase 6 · hook de persistence · lee `catalog-my-binders` de localStorage
+  // + seed inicial de 3 IDs. Se propaga `myBinderIds` a ShelfView para filtrar.
+  const { myBinderIds } = useMyBinders()
   // MRL Fase 3 (2026-07-09) · toast global de la page para el feedback de
   // My Binders toggle. Se propaga como prop a ShelfView → BinderLibrary.
   const { toasts, addToast, dismissToast } = useToast()
@@ -51,6 +59,8 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
         onSearchChange={setSearch}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        showMyBindersOnly={showMyBindersOnly}
+        onMyBindersToggle={() => setShowMyBindersOnly(v => !v)}
       />
 
       {/* Main content */}
@@ -70,6 +80,9 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
               manufacturers={filtered}
               onSelect={onSelectManufacturer}
               onToast={addToast}
+              showMyBindersOnly={showMyBindersOnly}
+              myBinderIds={myBinderIds}
+              onClearFilter={() => setShowMyBindersOnly(false)}
             />
           ) : (
             <GridView manufacturers={filtered} onSelect={onSelectManufacturer} />
