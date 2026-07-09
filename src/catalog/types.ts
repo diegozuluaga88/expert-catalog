@@ -215,6 +215,11 @@ export interface Category {
   icon?: string
   subtitle?: string
   products: Product[]
+  /** MRL Fase 1 (2026-07-09) · override del count mostrado en el sidebar
+   *  izquierdo. Si está seteado, el FilterSidebar prefiere este número sobre
+   *  `products.length`. Útil para simular densidad realista tipo referente
+   *  (Chairs 1612, Acoustic 738) sin inflar el seed real de productos. */
+  mockCount?: number
 }
 
 export interface Manufacturer {
@@ -233,6 +238,21 @@ export interface Manufacturer {
   brandResources?: BrandResource[]
   contacts?: Contact[]
   categories: Category[]
+  /** MRL Fase 1 (2026-07-09) · tamaño del spine en el shelf. Default `'md'`. */
+  size?: 'sm' | 'md' | 'lg'
+  /** MRL Fase 1 · variante del binder. `'spine'` (default) o `'wide'` (2 spines
+   *  pegados con imagen central) inspirado en los wide binders del referente
+   *  (Egan, dreamwalls, Diversified de myresourcelibrary.com). */
+  variant?: 'spine' | 'wide'
+  /** MRL Fase 1 · subtext bajo el logo del brand en el spine (ej. `"CONTRACT"`,
+   *  `"Systems Casegoods"`). ~30% de los seeds lo tienen. Renderizado con
+   *  tipografía `text-[8px] uppercase tracking-widest` respetando `textColor`. */
+  tagline?: string
+  /** MRL Fase 1 · imagen central para variant='wide' (mock via Unsplash). */
+  wideImageUrl?: string
+  /** MRL Fase 1 · tags del sidebar izquierdo del referente (`'quickship'`,
+   *  `'gsa'`, `'cet'`, `'cil'`). Filtro real llega en Fase 6. */
+  tags?: string[]
 }
 
 export type LibraryTab = 'products' | 'materials'
