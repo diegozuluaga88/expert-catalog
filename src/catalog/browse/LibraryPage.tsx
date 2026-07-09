@@ -4,6 +4,7 @@ import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufac
 import ShelfView from '../components/ShelfView'
 import GridView from '../components/GridView'
 import FilterSidebar from '../components/FilterSidebar'
+import MRLSidebarAds from '../components/MRLSidebarAds'
 import { ToastContainer, useToast } from '../../components/AuthToast'
 
 interface LibraryPageProps {
@@ -75,6 +76,17 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
           )}
         </div>
       </div>
+
+      {/* MRL Fase 5 · Aside derecho · sidebar de publicidad (mock sponsor
+          slots inspirados en myresourcelibrary.com). Solo visible en:
+          - shelf mode (no interfiere con el grid, más denso ya)
+          - xl:+ (evita reducir el main en pantallas medianas)
+          Ancho `w-72` (288px) · scroll independiente. */}
+      {viewMode === 'shelf' && (
+        <aside className="hidden xl:block w-72 shrink-0 border-l border-border/60 bg-card/30 overflow-y-auto p-4">
+          <MRLSidebarAds />
+        </aside>
+      )}
 
       {/* Toast container · muestra feedback de My Binders toggle */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
