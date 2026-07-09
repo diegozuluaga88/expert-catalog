@@ -90,10 +90,11 @@ export default function ShelfView({
         <div key={rowIdx} className="relative">
           {/* Shelf background · brick sutil */}
           <div className="relative bg-muted/30 border border-border/60 rounded-lg px-6 pt-8 pb-4 overflow-hidden">
-            {/* Textura brick sutil · solo líneas horizontales (Nielsen H2 · match real world · H8 · aesthetic) */}
+            {/* Textura brick sutil · solo líneas horizontales (Nielsen H2 · match real world · H8 · aesthetic).
+                Fase 7 · usar `hsl(var(--foreground))` en vez de #000 para respetar dark mode del DS. */}
             <div
               aria-hidden="true"
-              className="absolute inset-0 opacity-[0.015] pointer-events-none bg-[repeating-linear-gradient(0deg,transparent,transparent_24px,#000_24px,#000_25px)]"
+              className="absolute inset-0 opacity-[0.015] pointer-events-none bg-[repeating-linear-gradient(0deg,transparent,transparent_24px,var(--foreground)_24px,var(--foreground)_25px)]"
             />
 
             {/* Binders row */}
@@ -110,7 +111,10 @@ export default function ShelfView({
             </div>
           </div>
 
-          {/* Shelf plank · madera warm */}
+          {/* Shelf plank · madera warm · gradient decorativo intencional (no forma
+              parte del DS · replica la metáfora de estantería del referente MRL).
+              Los tonos son constantes visuales del prop de estantería, análogos
+              a los `bgColor`/`textColor` del seed de manufacturers. */}
           <div className="h-3 bg-gradient-to-b from-[#c8a96e] to-[#a07850] rounded-b-sm shadow-md" />
         </div>
       ))}
