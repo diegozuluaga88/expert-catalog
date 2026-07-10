@@ -18,6 +18,7 @@ import type { Manufacturer, Category } from '../types'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import CategoryCard from '../components/CategoryCard'
 import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
+import ManufacturerHero from '../components/ManufacturerHero'
 
 interface ManufacturerPageProps {
   manufacturer: Manufacturer
@@ -45,28 +46,9 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
         {/* Hero + Descripción · 2 columnas en md+, apiladas en mobile */}
         <div className="mt-6 grid md:grid-cols-2 gap-8">
 
-          {/* Hero media */}
-          <div
-            className="relative aspect-[4/3] rounded-xl overflow-hidden border border-border"
-            style={{ backgroundColor: manufacturer.bgColor }}
-          >
-            {manufacturer.heroImage && (
-              <img
-                src={manufacturer.heroImage}
-                alt={manufacturer.name}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            )}
-            {/* Overlay tagline · glass pill sobre imagen · tokens `background`
-                y `foreground` hacen swap en dark mode. */}
-            {manufacturer.heroTagline && (
-              <div className="absolute inset-x-0 bottom-0 p-5">
-                <span className="inline-block rounded-lg bg-foreground/50 backdrop-blur-sm px-4 py-2 text-sm font-medium text-background">
-                  {manufacturer.heroTagline}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Hero media · componente extraído · incluye botones flotantes
+              expand/download + modal fullscreen (Fase D5). */}
+          <ManufacturerHero manufacturer={manufacturer} />
 
           {/* Brand block · logo (fallback texto) + descripción rich-text */}
           <div className="flex flex-col justify-center">
