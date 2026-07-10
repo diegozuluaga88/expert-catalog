@@ -220,6 +220,19 @@ export interface Category {
    *  `products.length`. Útil para simular densidad realista tipo referente
    *  (Chairs 1612, Acoustic 738) sin inflar el seed real de productos. */
   mockCount?: number
+  /** MRL Detail Fase D1 (2026-07-10) · foto para variant='photo' del
+   *  CategoryCard del ManufacturerPage. Si no viene, cae a `products[0].images[0]`. */
+  cardImage?: string
+  /** MRL Detail Fase D1 · SVG inline (paths) para variantes visuales
+   *  `blob-outline` / `line-icon` / `silhouette`. Solo los `<path>`,
+   *  el wrapper `<svg viewBox>` lo pone el CategoryCard. */
+  cardIconSvg?: string
+  /** MRL Detail Fase D1 · color base para variant='blob-outline' · círculo
+   *  colored gigante con el outline SVG blanco encima. */
+  cardColor?: string
+  /** MRL Detail Fase D1 · sublabel debajo del label principal
+   *  (ej. "Planters & Receptacles" del referente ALLE designs). */
+  cardSubtitle?: string
 }
 
 export interface Manufacturer {
@@ -253,7 +266,36 @@ export interface Manufacturer {
   /** MRL Fase 1 · tags del sidebar izquierdo del referente (`'quickship'`,
    *  `'gsa'`, `'cet'`, `'cil'`). Filtro real llega en Fase 6. */
   tags?: string[]
+  /** MRL Detail Fase D1 (2026-07-10) · tagline overlay del hero en la
+   *  ManufacturerPage (ej. "Seating for an evolving world."). */
+  heroTagline?: string
+  /** MRL Detail Fase D1 · descripción rich-text en secciones · si viene,
+   *  reemplaza el render de `description` como único párrafo. Cada bloque
+   *  opcionalmente tiene un heading inline (Nielsen H8 · scannable). */
+  descriptionBlocks?: DescriptionBlock[]
+  /** MRL Detail Fase D1 · links externos con external-link icon
+   *  (Brochures, Installation Instructions, Request a Quote, CAD Symbols,
+   *  Media Bank, etc). Renderizados en la InfoBar inline (Fase D4). */
+  links?: BrandResource[]
+  /** MRL Detail Fase D1 · variante visual del grid de categorías del
+   *  ManufacturerPage. Default `'photo'` cuando undefined · replica los
+   *  5 estilos observados en myresourcelibrary.com. */
+  categoryCardStyle?: CategoryCardVariant
 }
+
+export interface DescriptionBlock {
+  heading?: string
+  body: string
+}
+
+/** MRL Detail Fase D1 · 5 estilos visuales de category card observados
+ *  en myresourcelibrary.com. Cada uno requiere data distinta en Category:
+ *  - `photo`         → `cardImage` (o fallback a products[0].images[0])
+ *  - `brand-typo`    → sin asset · usa manufacturer.bgColor / textColor
+ *  - `blob-outline`  → `cardColor` + `cardIconSvg`
+ *  - `line-icon`     → `cardIconSvg`
+ *  - `silhouette`    → `cardIconSvg` + manufacturer.accentColor */
+export type CategoryCardVariant = 'photo' | 'brand-typo' | 'blob-outline' | 'line-icon' | 'silhouette'
 
 export type LibraryTab = 'products' | 'materials'
 export type ViewMode = 'shelf' | 'grid'

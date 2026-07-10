@@ -12,6 +12,8 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     tags: ['quickship', 'gsa'],
     heroImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80',
+    heroTagline: 'Great contemporary furniture.',
+    categoryCardStyle: 'photo',
     filterOptions: ['Chairs', 'Sofas', 'Ottomans', 'Tables'],
     brandResources: [
       { name: 'Allermuir Website', href: 'https://allermuir.com' },
@@ -26,6 +28,7 @@ export const MANUFACTURERS: Manufacturer[] = [
       {
         id: 'chairs',
         name: 'Chairs',
+        cardImage: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80',
         products: [
           {
             id: 'axyl',
@@ -157,6 +160,7 @@ export const MANUFACTURERS: Manufacturer[] = [
       {
         id: 'sofas',
         name: 'Sofas',
+        cardImage: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
         products: [
           {
             id: 'kite-sofa',
@@ -190,6 +194,7 @@ export const MANUFACTURERS: Manufacturer[] = [
       {
         id: 'ottomans',
         name: 'Ottomans & Benches',
+        cardImage: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80',
         products: [
           {
             id: 'hive-ottoman',
@@ -232,11 +237,37 @@ export const MANUFACTURERS: Manufacturer[] = [
     textColor: '#e2e8f0',
     type: 'products',
     tags: ['gsa', 'cet', 'cil'],
+    heroImage: 'https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?w=1200&q=80',
+    heroTagline: 'Design the way people work.',
+    categoryCardStyle: 'brand-typo',
+    descriptionBlocks: [
+      {
+        heading: 'Purpose',
+        body: 'We design workplaces that help people do their best work — seating systems and storage that are functional, flexible, and built to last.',
+      },
+      {
+        heading: 'Craft',
+        body: 'Every Allsteel product reflects a deep commitment to ergonomic support, environmental responsibility, and workplace efficiency.',
+      },
+    ],
+    brandResources: [
+      { name: 'Allsteel.com', href: 'https://allsteeloffice.com' },
+      { name: 'Product Catalog PDF', href: '#' },
+    ],
+    contacts: [
+      { name: 'David Chen', title: 'Regional Sales', email: 'dchen@allsteel.com', phone: '+1 800 555 0202' },
+    ],
+    links: [
+      { name: 'Brochures', href: '#' },
+      { name: 'Installation Instructions', href: '#' },
+      { name: 'Request a Quote', href: '#' },
+    ],
     categories: [
       {
         id: 'seating',
         name: 'Seating & Collaboration',
         subtitle: 'Task, Side & Guest',
+        cardSubtitle: 'Acuity · Relate · Access',
         products: [
           {
             id: 'acuity',
@@ -277,6 +308,7 @@ export const MANUFACTURERS: Manufacturer[] = [
         id: 'storage',
         name: 'Systems & Storage',
         subtitle: 'Panels & Storage',
+        cardSubtitle: 'Essence · Terrace',
         products: [
           {
             id: 'essence-storage',
@@ -932,7 +964,42 @@ export const MANUFACTURERS: Manufacturer[] = [
     size: 'md',
     tagline: 'Contract Seating',
     tags: ['quickship'],
-    categories: [],
+    heroImage: 'https://images.unsplash.com/photo-1567538096631-e0c55bd6374c?w=1200&q=80',
+    heroTagline: 'Modular. Refined. Made in the Pacific Northwest.',
+    categoryCardStyle: 'line-icon',
+    brandResources: [
+      { name: 'Corva.com', href: '#' },
+      { name: 'Finishes Guide', href: '#' },
+    ],
+    contacts: [
+      { name: 'Lena Whittaker', title: 'Territory Manager', email: 'lena@corva.com' },
+    ],
+    categories: [
+      {
+        id: 'lounge',
+        name: 'Lounge',
+        cardIconSvg: '<path d="M15 40 L15 65 L65 65 L65 40 L60 40 L60 30 L20 30 L20 40 Z M10 65 L70 65" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+        products: [],
+      },
+      {
+        id: 'side-chairs',
+        name: 'Side Chairs',
+        cardIconSvg: '<path d="M30 20 L30 45 M50 20 L50 45 M25 45 L55 45 L55 55 L25 55 Z M30 55 L30 68 M50 55 L50 68" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+        products: [],
+      },
+      {
+        id: 'benches',
+        name: 'Benches',
+        cardIconSvg: '<path d="M12 40 L68 40 L68 48 L12 48 Z M18 48 L18 68 M62 48 L62 68 M18 55 L62 55" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+        products: [],
+      },
+      {
+        id: 'ottomans',
+        name: 'Ottomans',
+        cardIconSvg: '<ellipse cx="40" cy="45" rx="28" ry="8" stroke="currentColor" stroke-width="2.5" fill="none"/><path d="M12 45 L12 58 Q12 68 40 68 Q68 68 68 58 L68 45" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+        products: [],
+      },
+    ],
   },
   {
     id: 'merida',
@@ -997,11 +1064,45 @@ export const MANUFACTURERS: Manufacturer[] = [
     description: 'Italian-designed ergonomic seating engineered for long sessions of collaborative work.',
     bgColor: '#0F766E',
     textColor: '#FFFFFF',
+    accentColor: '#ec4899',
     type: 'products',
     size: 'lg',
     binderCount: 2,
     tags: ['cet', 'cil'],
-    categories: [],
+    heroImage: 'https://images.unsplash.com/photo-1596522354195-e84ae3c98731?w=1200&q=80',
+    heroTagline: 'Ergonomics for the long session.',
+    categoryCardStyle: 'silhouette',
+    links: [
+      { name: 'Product Catalog', href: '#' },
+      { name: 'CAD Symbols Library', href: '#' },
+      { name: 'Fabric Database', href: '#' },
+    ],
+    categories: [
+      {
+        id: 'task',
+        name: 'Task',
+        cardIconSvg: '<path d="M40 12 Q30 12 30 22 L30 38 Q30 42 34 42 L46 42 Q50 42 50 38 L50 22 Q50 12 40 12 Z M32 42 L32 56 L48 56 L48 42 M40 56 L40 66 M28 66 L52 66 M22 62 L28 66 M58 62 L52 66" fill="currentColor"/>',
+        products: [],
+      },
+      {
+        id: 'executive',
+        name: 'Executive',
+        cardIconSvg: '<path d="M28 10 Q22 10 22 18 L22 40 Q22 46 28 46 L52 46 Q58 46 58 40 L58 18 Q58 10 52 10 Z M25 46 L25 60 L55 60 L55 46 M40 60 L40 68 M28 68 L52 68" fill="currentColor"/>',
+        products: [],
+      },
+      {
+        id: 'stools',
+        name: 'Stools',
+        cardIconSvg: '<path d="M32 10 L32 30 L48 30 L48 10 Q48 6 40 6 Q32 6 32 10 Z M28 30 L52 30 L50 66 L30 66 Z M25 66 L55 66" fill="currentColor"/>',
+        products: [],
+      },
+      {
+        id: 'lounge',
+        name: 'Lounge',
+        cardIconSvg: '<path d="M14 32 Q14 24 22 24 L58 24 Q66 24 66 32 L66 48 Q66 56 58 56 L22 56 Q14 56 14 48 Z M14 56 L14 68 M66 56 L66 68 M22 40 L58 40" fill="currentColor"/>',
+        products: [],
+      },
+    ],
   },
   {
     id: 'salter',
