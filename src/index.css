@@ -162,41 +162,70 @@ html, body { font-family: Inter, system-ui, sans-serif; }
    + `border: 3.5px solid transparent` deja al thumb ocupar solo el 30%
    central del ancho reservado. Los `.scrollbar-*` utility classes de arriba
    siguen ganando por especificidad cuando se aplican explícitamente.
+
+   Repetimos las reglas con selectores explícitos porque Chromium trata al
+   root scrollbar de forma especial · `*::-webkit-scrollbar` no siempre
+   alcanza al scrollbar del <html>/<body>. Con `html`, `body`, `*` y sin
+   selector cubrimos todos los casos.
    ═══════════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
 *::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
+::-webkit-scrollbar-track,
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
 *::-webkit-scrollbar-track {
     background: transparent;
 }
+::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
-    background-color: rgba(15, 23, 42, 0.18);
+    background-color: rgba(15, 23, 42, 0.22);
     background-clip: content-box;
     border: 3.5px solid transparent;
     border-radius: 999px;
     transition: background-color 150ms ease;
+    min-height: 40px;
 }
+::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(15, 23, 42, 0.35);
+    background-color: rgba(15, 23, 42, 0.4);
 }
+::-webkit-scrollbar-corner,
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
 *::-webkit-scrollbar-corner {
     background: transparent;
 }
+.dark ::-webkit-scrollbar-thumb,
+.dark html::-webkit-scrollbar-thumb,
+.dark body::-webkit-scrollbar-thumb,
 .dark *::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.18);
 }
+.dark ::-webkit-scrollbar-thumb:hover,
+.dark html::-webkit-scrollbar-thumb:hover,
+.dark body::-webkit-scrollbar-thumb:hover,
 .dark *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.35);
 }
-/* Firefox · no soporta el truco border-transparent, pero `thin` es OK. */
-html {
+/* Firefox · no soporta el truco border-transparent pero `thin` es OK. */
+html, body {
     scrollbar-width: thin;
-    scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+    scrollbar-color: rgba(15, 23, 42, 0.22) transparent;
 }
 .dark html,
-html.dark {
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+.dark body,
+html.dark,
+body.dark {
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 /* Scrollbar polish · legacy utility (se mantiene por si algo lo referencia) */
