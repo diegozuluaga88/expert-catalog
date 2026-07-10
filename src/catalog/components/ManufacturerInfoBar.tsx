@@ -19,11 +19,16 @@ import { useState } from 'react'
 
 interface ManufacturerInfoBarProps {
   manufacturer: Manufacturer
+  /** MRL Detail post-D6 · layout de las 4 secciones. `'stack'` (default)
+   *  apila vertical con separadores · ideal para columna estrecha (mirror
+   *  del sidebar del referente). `'grid'` renderea grid 2-4 cols · ideal
+   *  para InfoBar full-width. */
+  layout?: 'stack' | 'grid'
 }
 
 const FILTER_LABELS = ['Standard', 'GSA', 'QS'] as const
 
-export default function ManufacturerInfoBar({ manufacturer }: ManufacturerInfoBarProps) {
+export default function ManufacturerInfoBar({ manufacturer, layout = 'stack' }: ManufacturerInfoBarProps) {
   // Filter section · solo si el brand tiene filterOptions que matcheen
   // con los 3 mock labels del referente (Standard/GSA/QS).
   const filterOpts = manufacturer.filterOptions?.filter(o =>
@@ -39,15 +44,18 @@ export default function ManufacturerInfoBar({ manufacturer }: ManufacturerInfoBa
     return null
   }
 
+  const isStack = layout === 'stack'
+  const containerClass = isStack
+    ? 'mt-6 rounded-xl border border-border bg-card/50 p-5 flex flex-col divide-y divide-border'
+    : 'mt-10 rounded-xl border border-border bg-card/50 p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4'
+  const sectionPadClass = isStack ? 'py-4 first:pt-0 last:pb-0' : ''
+
   return (
-    <section
-      aria-label="Brand information"
-      className="mt-10 rounded-xl border border-border bg-card/50 p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4"
-    >
-      {hasFilter && <FilterSection options={filterOpts} />}
-      {hasResources && <ResourcesSection resources={manufacturer.brandResources!} />}
-      {hasLinks && <LinksSection links={manufacturer.links!} />}
-      {hasContacts && <ContactsSection contacts={manufacturer.contacts!} />}
+    <section aria-label="Brand information" className={containerClass}>
+      {hasFilter && <div className={sectionPadClass}><FilterSection options={filterOpts} /></div>}
+      {hasResources && <div className={sectionPadClass}><ResourcesSection resources={manufacturer.brandResources!} /></div>}
+      {hasLinks && <div className={sectionPadClass}><LinksSection links={manufacturer.links!} /></div>}
+      {hasContacts && <div className={sectionPadClass}><ContactsSection contacts={manufacturer.contacts!} /></div>}
     </section>
   )
 }

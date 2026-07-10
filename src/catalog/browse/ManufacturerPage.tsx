@@ -79,6 +79,13 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
                 </p>
               )}
             </div>
+
+            {/* InfoBar dentro de la columna izquierda · stack vertical mirror
+                del sidebar del referente (Filter · Resources · Links · Contacts).
+                Diego ask (2026-07-10) · las acciones/enlaces se pierden si
+                están full-width al fondo · quedan más visibles acá bajo la
+                descripción. */}
+            <ManufacturerInfoBar manufacturer={manufacturer} layout="stack" />
           </div>
 
           {/* ─── Columna der · category grid al costado del hero ─── */}
@@ -104,11 +111,6 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
             )}
           </div>
         </div>
-
-        {/* InfoBar full-width abajo · Filter · Resources · Links · Contacts.
-            El componente se skipea a null si el manufacturer no tiene ninguna
-            de las 4 secciones (Nielsen H8). */}
-        <ManufacturerInfoBar manufacturer={manufacturer} />
       </div>
     </div>
   )
