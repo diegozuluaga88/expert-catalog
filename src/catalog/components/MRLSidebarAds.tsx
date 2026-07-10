@@ -21,9 +21,11 @@ export default function MRLSidebarAds() {
         description="An invite-only field trip to the year's most talked-about workspace installations. Three days · full agenda covered."
         ctaLabel="Learn more"
         imageUrl="https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80"
+        imageAlt="Workspace installation featured at the Delve Series field trip"
       />
 
-      {/* Slot 2 · Product-hero */}
+      {/* Slot 2 · Product-hero · verticalBrand replica el efecto "VERSTEEL"
+          del referente (logo grande vertical del brand como columna decorativa). */}
       <MRLPromoCard
         variant="product"
         eyebrow="New from Merida"
@@ -31,6 +33,8 @@ export default function MRLSidebarAds() {
         description="Space-saver benching with straight-on nesting. Priced to sell · in stock for Q4 projects."
         ctaLabel="Explore"
         imageUrl="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80"
+        imageAlt="Merida Flex sit-stand benching desk in a modern office"
+        verticalBrand="MERIDA"
       />
 
       {/* Slot 3 · House self-promo (lime) */}
