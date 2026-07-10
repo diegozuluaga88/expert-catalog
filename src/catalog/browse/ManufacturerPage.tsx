@@ -17,6 +17,7 @@
 import type { Manufacturer, Category } from '../types'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import CategoryCard from '../components/CategoryCard'
+import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
 
 interface ManufacturerPageProps {
   manufacturer: Manufacturer
@@ -102,10 +103,10 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
           </div>
         </div>
 
-        {/* InfoBar inline · placeholder para Fase D4 (Filter · Resources ·
-            Links · Contacts). Se renderiza solo si el manufacturer tiene
-            alguna de las 4 secciones · Nielsen H8. */}
-        {/* TODO Fase D4 · <ManufacturerInfoBar manufacturer={manufacturer} /> */}
+        {/* InfoBar inline · Filter · Resources · Links · Contacts.
+            El componente se skipea a null si el manufacturer no tiene
+            ninguna de las 4 secciones (Nielsen H8). */}
+        <ManufacturerInfoBar manufacturer={manufacturer} />
 
         {/* Category grid · Fase D3 reemplazará `CategoryCard` emoji-circle
             por la polimórfica con 5 variantes. */}
