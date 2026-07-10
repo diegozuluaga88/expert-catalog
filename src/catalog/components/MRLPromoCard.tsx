@@ -101,30 +101,34 @@ export default function MRLPromoCard({
         <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
       )}
 
-      {/* Gradient de legibilidad · funciona en light y dark porque usa el
-          token `background` que hace swap. La imagen queda vista arriba y
-          va oscureciéndose hacia abajo para que el texto lea siempre. */}
+      {/* Gradient de legibilidad · WCAG AA sobre imágenes claras.
+          Se pisa fuerte el 3/4 inferior con `background` (via `/95`) para
+          garantizar contraste ≥4.5:1 del body text (`text-foreground/75`)
+          sobre cualquier foto de fondo. Token-based · dark mode automático. */}
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-background via-background/85 to-transparent"
+        className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-background from-40% via-background/85 to-transparent"
       />
-      {/* Halo top opcional · solo cuando hay eyebrow · da fondo semi-plano
-          detrás del pill para que se lea sobre imágenes claras. */}
+      {/* Halo top · fondo semi-opaco para el eyebrow · imágenes claras
+          rompen el pill si el halo es muy débil (bajado de 16px a 24
+          + opacity /70). */}
       {eyebrow && (
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-background/50 to-transparent"
+          className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/70 to-transparent"
         />
       )}
 
-      {/* Vertical brand column (Versteel-like) · solo product */}
+      {/* Vertical brand column (Versteel-like) · solo product.
+          Fix accesibilidad · pill con backdrop-blur + fondo pisado en vez de
+          `opacity/70` sin fondo, que se perdía sobre imágenes claras. */}
       {variant === 'product' && verticalBrand && (
         <div
           aria-hidden="true"
-          className="absolute right-3 top-3 bottom-24 flex items-start justify-end pointer-events-none"
+          className="absolute right-2 top-4 bottom-28 flex items-start justify-end pointer-events-none"
         >
           <span
-            className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/70"
+            className="rounded-sm bg-background/70 px-1 py-2 text-[10px] font-bold uppercase tracking-[0.4em] text-foreground backdrop-blur-sm"
             style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
           >
             {verticalBrand}
@@ -135,13 +139,19 @@ export default function MRLPromoCard({
       {/* Content stack · anclado abajo, encima del gradient */}
       <div className="relative z-10 flex h-full flex-col justify-end p-5 gap-2">
         {eyebrow && (
-          <span className="inline-flex w-fit items-center rounded-full bg-foreground/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-foreground backdrop-blur-sm">
+          // Pill · fondo `background/85` en vez de `foreground/10` para
+          // asegurar contraste del texto sobre cualquier zona de la imagen.
+          <span className="inline-flex w-fit items-center rounded-full bg-background/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-foreground backdrop-blur-sm ring-1 ring-border/60">
             {eyebrow}
           </span>
         )}
         <h3 className="text-base font-bold text-foreground leading-tight">{title}</h3>
         {description && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+          // `text-foreground/75` (~75% del token) reemplaza a
+          // `text-muted-foreground` (que baja a ~50% y no pasa AA en light
+          // sobre gradient parcial). Aún se ve secundario vs title, pero
+          // legible en ambos modos.
+          <p className="text-xs text-foreground/75 leading-relaxed line-clamp-2">
             {description}
           </p>
         )}
