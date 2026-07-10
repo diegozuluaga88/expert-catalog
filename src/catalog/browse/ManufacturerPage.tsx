@@ -1,18 +1,13 @@
 // MRL Detail Fase D2 (2026-07-10) · refactor a la estructura del referente
 // myresourcelibrary.com/library/{brand}. Layout full-width con max container ·
-// bloque hero + descripción en 2 columnas · info bar inline (D4) · grid 3-col
-// de category cards (variantes en D3). Sin sidebar lateral (decisión Diego).
+// sin sidebar lateral (decisión Diego).
 //
-// Cambios vs versión anterior:
-// - Descartados el aside w-52 (Filter/Resources/Contacts) y el aside w-72
-//   (descripción centrada) · su contenido migra a la InfoBar inline en D4.
-// - Descartados los `text-white` / `from-black/60 via-black/30` del overlay
-//   del hero · sustituidos por tokens (`text-background` + `bg-foreground/40
-//   backdrop-blur-sm`) para dark mode automático.
-// - Breadcrumb inline reemplazado por el shared `Breadcrumbs` component de
-//   `src/components/Breadcrumbs.tsx`.
-// - CategoryCard actual (emoji-circle) queda como render temporal · será
-//   reemplazado por la CategoryCard polimórfica de Fase D3.
+// Fase D7 (2026-07-10) · reorganización pedida por Diego para acercarse
+// visualmente al referente:
+// - Columna IZQ (col-span-2 de 5) · hero apilado + logo + descripción abajo.
+// - Columna DER (col-span-3 de 5) · grid 3-cols de category cards al costado
+//   del hero (no debajo).
+// - InfoBar full-width abajo (donde caben mejor las 4 secciones).
 
 import type { Manufacturer, Category } from '../types'
 import Breadcrumbs from '../../components/Breadcrumbs'
@@ -31,11 +26,9 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
 
   return (
     <div className="min-h-[calc(100vh-96px)] bg-background">
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-6 py-6">
 
-        {/* Breadcrumb · reusa el shared component. Brand name en `active`
-            queda con text-foreground medium (comportamiento default del
-            componente); si Diego quiere primary color, se ajusta en D6. */}
+        {/* Breadcrumb · reusa el shared component. */}
         <Breadcrumbs
           items={[
             { label: 'Library', onClick: onBack },
@@ -43,79 +36,79 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
           ]}
         />
 
-        {/* Hero + Descripción · 2 columnas en md+, apiladas en mobile */}
-        <div className="mt-6 grid md:grid-cols-2 gap-8">
+        {/* Layout 2-col principal · IZQ hero+description (col-span-2 de 5) ·
+            DER category grid (col-span-3 de 5). En mobile se apila. */}
+        <div className="mt-6 grid gap-8 lg:grid-cols-5">
 
-          {/* Hero media · componente extraído · incluye botones flotantes
-              expand/download + modal fullscreen (Fase D5). */}
-          <ManufacturerHero manufacturer={manufacturer} />
+          {/* ─── Columna izq · hero + logo + description apilados ─── */}
+          <div className="lg:col-span-2 flex flex-col gap-5">
+            {/* Hero media · botones flotantes expand/download + modal fullscreen. */}
+            <ManufacturerHero manufacturer={manufacturer} />
 
-          {/* Brand block · logo (fallback texto) + descripción rich-text */}
-          <div className="flex flex-col justify-center">
-            {manufacturer.logo ? (
-              <img
-                src={manufacturer.logo}
-                alt={`${manufacturer.name} logo`}
-                className="h-12 w-auto object-contain mb-4 self-start"
-              />
-            ) : (
-              <h1 className="text-3xl font-bold text-foreground uppercase tracking-tight mb-4">
-                {manufacturer.name}
-              </h1>
-            )}
+            {/* Brand block · logo (fallback texto) + descripción rich-text.
+                Diego ask · queda DEBAJO del hero, no al lado. */}
+            <div className="flex flex-col">
+              {manufacturer.logo ? (
+                <img
+                  src={manufacturer.logo}
+                  alt={`${manufacturer.name} logo`}
+                  className="h-10 w-auto object-contain mb-3 self-start"
+                />
+              ) : (
+                <h1 className="text-2xl font-bold text-foreground uppercase tracking-tight mb-3">
+                  {manufacturer.name}
+                </h1>
+              )}
 
-            {blocks && blocks.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {blocks.map((block, i) => (
-                  <div key={i}>
-                    {block.heading && (
-                      <h3 className="font-semibold text-foreground mb-1">{block.heading}</h3>
-                    )}
-                    <p className="text-foreground/85 leading-relaxed text-sm">
-                      {block.body}
-                    </p>
-                  </div>
-                ))}
+              {blocks && blocks.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {blocks.map((block, i) => (
+                    <div key={i}>
+                      {block.heading && (
+                        <h3 className="font-semibold text-foreground mb-1 text-sm">{block.heading}</h3>
+                      )}
+                      <p className="text-foreground/85 leading-relaxed text-sm">
+                        {block.body}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-foreground/85 leading-relaxed text-sm">
+                  {manufacturer.description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Columna der · category grid al costado del hero ─── */}
+          <div className="lg:col-span-3">
+            {manufacturer.categories.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+                <p className="text-sm text-foreground font-medium">No categories yet</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The editor hasn't populated categories for this brand.
+                </p>
               </div>
             ) : (
-              <p className="text-foreground/85 leading-relaxed text-sm">
-                {manufacturer.description}
-              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {manufacturer.categories.map(cat => (
+                  <CategoryCard
+                    key={cat.id}
+                    category={cat}
+                    manufacturer={manufacturer}
+                    onClick={() => onSelectCategory(cat)}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
 
-        {/* InfoBar inline · Filter · Resources · Links · Contacts.
-            El componente se skipea a null si el manufacturer no tiene
-            ninguna de las 4 secciones (Nielsen H8). */}
+        {/* InfoBar full-width abajo · Filter · Resources · Links · Contacts.
+            El componente se skipea a null si el manufacturer no tiene ninguna
+            de las 4 secciones (Nielsen H8). */}
         <ManufacturerInfoBar manufacturer={manufacturer} />
-
-        {/* Category grid · Fase D3 reemplazará `CategoryCard` emoji-circle
-            por la polimórfica con 5 variantes. */}
-        <div className="mt-10">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-            Explore {manufacturer.categories.length} categories
-          </h2>
-          {manufacturer.categories.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-              <p className="text-sm text-foreground font-medium">No categories yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                The editor hasn't populated categories for this brand.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {manufacturer.categories.map(cat => (
-                <CategoryCard
-                  key={cat.id}
-                  category={cat}
-                  manufacturer={manufacturer}
-                  onClick={() => onSelectCategory(cat)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
