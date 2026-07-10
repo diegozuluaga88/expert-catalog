@@ -76,7 +76,11 @@ export default function BinderSpine({
 
   return (
     // Outer group · el tooltip se abre al hover del binder completo.
-    <div className="group/binder relative flex flex-col items-center">
+    // `hover:z-50` sube el binder entero (incluidos sus tooltips) por encima
+    // de los binders adyacentes en el shelf · sin esto el tooltip del círculo
+    // se ve "recortado" por el binder siguiente en el DOM (Diego report
+    // 2026-07-10).
+    <div className="group/binder relative flex flex-col items-center hover:z-50">
       <div
         role="button"
         tabIndex={0}
@@ -131,7 +135,7 @@ export default function BinderSpine({
           <button
             type="button"
             onClick={handleToggleClick}
-            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from My Binders` : `Add ${manufacturer.name} to My Binders`}
+            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from favorites` : `Add ${manufacturer.name} to favorites`}
             className="group/dot absolute bottom-1 left-1/2 -translate-x-1/2 p-2 rounded-full"
             style={{ color: manufacturer.textColor }}
           >
@@ -153,7 +157,7 @@ export default function BinderSpine({
               role="tooltip"
               className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[70] whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 invisible transition-opacity duration-150 delay-200 group-hover/dot:opacity-100 group-hover/dot:visible"
             >
-              {isInMyBinders ? 'Remove from My Binders' : 'Add to My Binders'}
+              {isInMyBinders ? 'Remove from favorites' : 'Add to favorites'}
             </span>
           </button>
         </div>

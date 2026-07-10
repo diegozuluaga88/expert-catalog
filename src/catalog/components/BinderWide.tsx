@@ -39,7 +39,9 @@ export default function BinderWide({
   }
 
   return (
-    <div className="group/binder relative flex flex-col items-center">
+    // `hover:z-50` sube el binder + tooltip por encima de los adyacentes
+    // (mismo fix que BinderSpine · Diego report 2026-07-10).
+    <div className="group/binder relative flex flex-col items-center hover:z-50">
       <div
         role="button"
         tabIndex={0}
@@ -87,7 +89,7 @@ export default function BinderWide({
           <button
             type="button"
             onClick={handleToggleClick}
-            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from My Binders` : `Add ${manufacturer.name} to My Binders`}
+            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from favorites` : `Add ${manufacturer.name} to favorites`}
             className="group/dot relative p-2 rounded-full"
             style={{ color: manufacturer.textColor }}
           >
@@ -105,7 +107,7 @@ export default function BinderWide({
               role="tooltip"
               className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[70] whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 invisible transition-opacity duration-150 delay-200 group-hover/dot:opacity-100 group-hover/dot:visible"
             >
-              {isInMyBinders ? 'Remove from My Binders' : 'Add to My Binders'}
+              {isInMyBinders ? 'Remove from favorites' : 'Add to favorites'}
             </span>
           </button>
         </div>
