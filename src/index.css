@@ -71,6 +71,47 @@
         @apply bg-zinc-400 dark:bg-zinc-600;
     }
 
+    /* MRL scrollbar (Diego 2026-07-10) · thumb visualmente ~3px pero
+       reserva 10px de hitbox para mouse. `background-clip: content-box`
+       + `border: 3.5px solid transparent` deja solo el core visible.
+       Aplicada explícitamente a los 3 scrollables del MRL (FilterSidebar
+       aside · LibraryPage main content · MRL aside der) porque el CSS
+       global fue ignorado (posible Fluent Scrollbars de Chrome/Win11). */
+    .scrollbar-mrl {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
+    }
+    .dark .scrollbar-mrl {
+        scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+    .scrollbar-mrl::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    .scrollbar-mrl::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-mrl::-webkit-scrollbar-thumb {
+        background-color: rgba(15, 23, 42, 0.28);
+        background-clip: content-box;
+        border: 3.5px solid transparent;
+        border-radius: 999px;
+        min-height: 32px;
+        transition: background-color 150ms ease;
+    }
+    .scrollbar-mrl::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(15, 23, 42, 0.5);
+    }
+    .dark .scrollbar-mrl::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.22);
+    }
+    .dark .scrollbar-mrl::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+    .scrollbar-mrl::-webkit-scrollbar-button {
+        display: none;
+    }
+
     /* Kanban horizontal scroll — keeps a slim look but exposes a larger (10px)
        grab area so the mouse can detect and drag the bar easily. */
     .scrollbar-kanban {
@@ -190,7 +231,7 @@ html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb,
 #root::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
-    background-color: #ff0000 !important; /* DEBUG · quitar tras confirmar */
+    background-color: rgba(15, 23, 42, 0.22) !important;
     background-clip: content-box !important;
     border: 3.5px solid transparent !important;
     border-radius: 999px !important;

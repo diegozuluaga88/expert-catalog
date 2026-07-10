@@ -111,7 +111,7 @@ export default function FilterSidebar({
   )
 
   return (
-    <aside className={`shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto h-full transition-[width] duration-200 ${collapsed ? 'w-12' : 'w-56'}`}>
+    <aside className={`scrollbar-mrl shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto h-full transition-[width] duration-200 ${collapsed ? 'w-12' : 'w-56'}`}>
 
       {/* Collapse / expand toggle (espejo de Product Catalog) */}
       <div className={`flex items-center border-b border-border px-2 py-2 ${collapsed ? 'justify-center' : 'justify-end'}`}>

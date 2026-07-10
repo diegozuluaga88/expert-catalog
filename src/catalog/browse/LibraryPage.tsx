@@ -80,7 +80,7 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
             panel lateral ("Select your library"). Diego ask. */}
 
         {/* Library content */}
-        <div className="flex-1 px-6 py-6 overflow-auto">
+        <div className="scrollbar-mrl flex-1 px-6 py-6 overflow-auto">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <p className="text-lg font-medium text-foreground">No manufacturers found</p>
@@ -107,7 +107,7 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
           - xl:+ (evita reducir el main en pantallas medianas)
           Ancho `w-72` (288px) · scroll independiente. */}
       {viewMode === 'shelf' && (
-        <aside className="hidden xl:block w-72 shrink-0 border-l border-border/60 bg-card/30 overflow-y-auto p-4">
+        <aside className="scrollbar-mrl hidden xl:block w-72 shrink-0 border-l border-border/60 bg-card/30 overflow-y-auto p-4">
           <MRLSidebarAds />
         </aside>
       )}
