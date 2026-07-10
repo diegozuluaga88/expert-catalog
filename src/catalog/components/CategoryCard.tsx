@@ -20,6 +20,15 @@
 
 import type { Category, Manufacturer, CategoryCardVariant } from '../types'
 
+/* Fallbacks de emergencia · en teoría nunca se ejecutan porque:
+ * - brand-typo requiere manufacturer.bgColor/textColor (required en el type)
+ * - blob-outline requiere que el editor provea cardColor
+ * Pero se dejan para que el componente sea robusto si algún day-1 seed
+ * llega incompleto. Referencian tokens del DS via CSS variable. */
+const FALLBACK_BG = 'var(--card)'
+const FALLBACK_TEXT = 'var(--card-foreground)'
+const FALLBACK_BLOB = 'var(--primary)'
+
 interface CategoryCardProps {
   category: Category
   /** Manufacturer para leer `categoryCardStyle` + colors. Opcional para
@@ -95,8 +104,8 @@ function BrandTypoVariant({ category, manufacturer }: { category: Category; manu
   // Fondo · color del brand (data-driven, patrón ya establecido para
   // bgColor/textColor). Sin fallback obligatorio a token porque cuando
   // esta variante se elige explícitamente, el editor debe proveer colors.
-  const bgColor = manufacturer?.bgColor ?? '#111827'
-  const textColor = manufacturer?.textColor ?? '#ffffff'
+  const bgColor = manufacturer?.bgColor ?? FALLBACK_BG
+  const textColor = manufacturer?.textColor ?? FALLBACK_TEXT
 
   return (
     <div
@@ -117,7 +126,7 @@ function BrandTypoVariant({ category, manufacturer }: { category: Category; manu
 
 function BlobOutlineVariant({ category }: { category: Category }) {
   // Círculo grande con cardColor + outline SVG blanco encima.
-  const color = category.cardColor ?? '#84cc16' // fallback lime del brand
+  const color = category.cardColor ?? FALLBACK_BLOB // fallback primary token
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <div
