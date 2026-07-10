@@ -18,6 +18,7 @@
 // Todas las variantes comparten el shell: aspect-square, rounded-lg, border,
 // hover ring-primary/30, label debajo (Nielsen H6 · recognition).
 
+import { PlayIcon } from '@heroicons/react/24/solid'
 import type { Category, Manufacturer, CategoryCardVariant } from '../types'
 
 /* Fallbacks de emergencia · en teoría nunca se ejecutan porque:
@@ -85,18 +86,51 @@ function PhotoVariant({ category }: { category: Category }) {
   // Prioridad · cardImage explícito → primera imagen del primer producto →
   // placeholder gradient neutro.
   const src = category.cardImage ?? category.products?.[0]?.images?.[0]
-  if (!src) {
-    return (
-      <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
-    )
-  }
+
   return (
-    <img
-      src={src}
-      alt={category.name}
-      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-      draggable={false}
-    />
+    <>
+      {src ? (
+        <img
+          src={src}
+          alt={category.name}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          draggable={false}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
+      )}
+
+      {/* Overlay video · marca la card como módulo de video · replica los
+          thumbnails con play + duration del referente (Artcobell, Tayco). */}
+      {category.isVideo && <VideoOverlay duration={category.videoDuration} />}
+    </>
+  )
+}
+
+function VideoOverlay({ duration }: { duration?: string }) {
+  return (
+    <>
+      {/* Scrim sutil para que el play icon lea sobre cualquier foto */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/10 transition-colors"
+      />
+
+      {/* Play icon central · pill circular con backdrop-blur */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border transition-transform duration-300 group-hover:scale-110">
+          <PlayIcon className="h-6 w-6 text-foreground translate-x-0.5" />
+        </span>
+      </div>
+
+      {/* Duration badge · esquina inferior derecha, glass pill.
+          Formato "MM:SS" · mock display. */}
+      {duration && (
+        <div className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded bg-foreground/75 backdrop-blur-sm px-1.5 py-0.5 text-[10px] font-semibold text-background tabular-nums">
+          {duration}
+        </div>
+      )}
+    </>
   )
 }
 

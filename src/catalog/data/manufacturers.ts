@@ -161,6 +161,8 @@ export const MANUFACTURERS: Manufacturer[] = [
         id: 'sofas',
         name: 'Sofas',
         cardImage: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
+        isVideo: true,
+        videoDuration: '02:14',
         products: [
           {
             id: 'kite-sofa',
@@ -195,6 +197,8 @@ export const MANUFACTURERS: Manufacturer[] = [
         id: 'ottomans',
         name: 'Ottomans & Benches',
         cardImage: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80',
+        isVideo: true,
+        videoDuration: '00:47',
         products: [
           {
             id: 'hive-ottoman',

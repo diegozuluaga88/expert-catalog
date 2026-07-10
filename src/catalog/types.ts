@@ -233,6 +233,14 @@ export interface Category {
   /** MRL Detail Fase D1 · sublabel debajo del label principal
    *  (ej. "Planters & Receptacles" del referente ALLE designs). */
   cardSubtitle?: string
+  /** MRL Detail post-D6 (2026-07-10) · marca la category card como "video".
+   *  En variant='photo', renderiza el thumbnail (cardImage) + overlay play
+   *  icon centrado + duration badge esquina (mock display · replica los
+   *  video modules del referente tipo Artcobell / Tayco). */
+  isVideo?: boolean
+  /** MRL Detail post-D6 · duración mock del video, formato "MM:SS".
+   *  Solo se muestra si `isVideo === true`. */
+  videoDuration?: string
 }
 
 export interface Manufacturer {
