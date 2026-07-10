@@ -123,7 +123,12 @@ export default function ManufacturerPage({ manufacturer, onBack, onSelectCategor
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {manufacturer.categories.map(cat => (
-                <CategoryCard key={cat.id} category={cat} onClick={() => onSelectCategory(cat)} />
+                <CategoryCard
+                  key={cat.id}
+                  category={cat}
+                  manufacturer={manufacturer}
+                  onClick={() => onSelectCategory(cat)}
+                />
               ))}
             </div>
           )}

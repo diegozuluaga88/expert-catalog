@@ -1,56 +1,170 @@
-import type { Category } from '../types'
+// MRL Detail Fase D3 (2026-07-10) · CategoryCard polimórfica.
+//
+// Renderiza una category card con uno de los 5 estilos visuales observados
+// en myresourcelibrary.com. El estilo se decide via `manufacturer.categoryCardStyle`:
+//
+//   photo         → foto full-bleed (cardImage o fallback a products[0].images[0]).
+//   brand-typo    → fondo con `manufacturer.bgColor`, typo huge uppercase de
+//                   `category.name` en `manufacturer.textColor`.
+//   blob-outline  → círculo grande con `cardColor` de fondo, SVG paths outline
+//                   (cardIconSvg) en blanco encima.
+//   line-icon     → SVG lineal grande centrado en `text-primary` o
+//                   `text-foreground/60`.
+//   silhouette    → silueta SVG grande en `manufacturer.accentColor`.
+//
+// Fallback · si no se pasa `manufacturer` o su `categoryCardStyle` es
+// undefined, cae a `photo` con placeholder.
+//
+// Todas las variantes comparten el shell: aspect-square, rounded-lg, border,
+// hover ring-primary/30, label debajo (Nielsen H6 · recognition).
+
+import type { Category, Manufacturer, CategoryCardVariant } from '../types'
 
 interface CategoryCardProps {
   category: Category
+  /** Manufacturer para leer `categoryCardStyle` + colors. Opcional para
+   *  retrocompat con lugares que no lo tienen (fallback a variant 'photo'). */
+  manufacturer?: Manufacturer
   onClick: () => void
+  /** Estado seleccionado · aplica ring lime (Nielsen H1). */
+  selected?: boolean
 }
 
-const ICONS: Record<string, string> = {
-  'Chairs': '🪑',
-  'Sofas': '🛋️',
-  'Conference Chairs and Pods': '💼',
-  'Ottomans & Benches': '🪵',
-  'Soft Seating': '☁️',
-  'Stools': '🪑',
-  'Tables': '🪞',
-  'Seating & Collaboration': '🤝',
-  'Systems & Storage': '🗄️',
-  'Systems Casegoods': '📐',
-  'Upholstery': '🧵',
-  'Panel': '🟦',
-  'Acoustics': '🔊',
-  'Cubicle & Drapery': '🪟',
-  'Panels': '🟦',
-  'A–G': '📗',
-  'H–M': '📘',
-  'N–T': '📙',
-}
-
-export default function CategoryCard({ category, onClick }: CategoryCardProps) {
-  const icon = category.icon ?? ICONS[category.name] ?? '📁'
+export default function CategoryCard({ category, manufacturer, onClick, selected = false }: CategoryCardProps) {
+  const variant: CategoryCardVariant = manufacturer?.categoryCardStyle ?? 'photo'
 
   return (
     <button
       onClick={onClick}
       aria-label={`Browse ${category.name}`}
-      className="group flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-muted transition-colors duration-150"
+      className="group flex flex-col items-stretch text-left w-full"
     >
-      {/* Circle icon */}
-      <div className="w-24 h-24 rounded-full bg-muted border border-border flex items-center justify-center text-3xl transition-all duration-200 group-hover:bg-card group-hover:shadow-md group-hover:border-primary/30 group-hover:scale-105">
-        {icon}
+      {/* Shell común · aspect-square + rounded + border + hover ring. La
+          variante decide el contenido interno. */}
+      <div
+        className={`group relative aspect-square rounded-lg overflow-hidden bg-card border transition-all duration-200 ${
+          selected
+            ? 'border-primary ring-2 ring-primary/30'
+            : 'border-border hover:border-primary/60 hover:ring-2 hover:ring-primary/30'
+        }`}
+      >
+        {variant === 'photo' && <PhotoVariant category={category} />}
+        {variant === 'brand-typo' && <BrandTypoVariant category={category} manufacturer={manufacturer} />}
+        {variant === 'blob-outline' && <BlobOutlineVariant category={category} />}
+        {variant === 'line-icon' && <LineIconVariant category={category} />}
+        {variant === 'silhouette' && <SilhouetteVariant category={category} manufacturer={manufacturer} />}
       </div>
 
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-snug">
+      {/* Label · debajo de la card, centrado */}
+      <div className="mt-2 text-center">
+        <p className="text-sm font-medium text-foreground leading-snug">
           {category.name}
         </p>
-        {category.subtitle && (
-          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{category.subtitle}</p>
+        {category.cardSubtitle && (
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+            {category.cardSubtitle}
+          </p>
         )}
-        <p className="text-xs text-muted-foreground mt-1">
-          {category.products.length} {category.products.length === 1 ? 'product' : 'products'}
-        </p>
       </div>
     </button>
+  )
+}
+
+/* ─── Variant renders ─────────────────────────────────────────────────── */
+
+function PhotoVariant({ category }: { category: Category }) {
+  // Prioridad · cardImage explícito → primera imagen del primer producto →
+  // placeholder gradient neutro.
+  const src = category.cardImage ?? category.products?.[0]?.images?.[0]
+  if (!src) {
+    return (
+      <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
+    )
+  }
+  return (
+    <img
+      src={src}
+      alt={category.name}
+      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+      draggable={false}
+    />
+  )
+}
+
+function BrandTypoVariant({ category, manufacturer }: { category: Category; manufacturer?: Manufacturer }) {
+  // Fondo · color del brand (data-driven, patrón ya establecido para
+  // bgColor/textColor). Sin fallback obligatorio a token porque cuando
+  // esta variante se elige explícitamente, el editor debe proveer colors.
+  const bgColor = manufacturer?.bgColor ?? '#111827'
+  const textColor = manufacturer?.textColor ?? '#ffffff'
+
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center px-4 py-6 text-center"
+      style={{ backgroundColor: bgColor, color: textColor }}
+    >
+      {category.cardSubtitle && (
+        <div className="text-[9px] font-bold uppercase tracking-widest opacity-70 mb-2">
+          {category.cardSubtitle}
+        </div>
+      )}
+      <div className="text-xl font-black uppercase tracking-tight leading-none">
+        {category.name}
+      </div>
+    </div>
+  )
+}
+
+function BlobOutlineVariant({ category }: { category: Category }) {
+  // Círculo grande con cardColor + outline SVG blanco encima.
+  const color = category.cardColor ?? '#84cc16' // fallback lime del brand
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div
+        className="rounded-full flex items-center justify-center"
+        style={{ backgroundColor: color, width: '78%', height: '78%' }}
+      >
+        <svg
+          viewBox="0 0 80 80"
+          className="w-3/5 h-3/5 text-primary-foreground"
+          fill="none"
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: category.cardIconSvg ?? '' }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function LineIconVariant({ category }: { category: Category }) {
+  // SVG grande centrado en fondo `bg-card`. Color foreground/60 para no
+  // dominar visualmente · el hover ring aporta el color primary.
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-card">
+      <svg
+        viewBox="0 0 80 80"
+        className="w-1/2 h-1/2 text-foreground/60 group-hover:text-foreground transition-colors"
+        fill="none"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: category.cardIconSvg ?? '' }}
+      />
+    </div>
+  )
+}
+
+function SilhouetteVariant({ category, manufacturer }: { category: Category; manufacturer?: Manufacturer }) {
+  // Silueta grande fill=currentColor pintada con `manufacturer.accentColor`
+  // (inline style, data-driven).
+  const color = manufacturer?.accentColor ?? 'currentColor'
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-card">
+      <svg
+        viewBox="0 0 80 80"
+        className="w-3/5 h-3/5 transition-transform duration-300 group-hover:scale-105"
+        aria-hidden="true"
+        style={{ color }}
+        dangerouslySetInnerHTML={{ __html: category.cardIconSvg ?? '' }}
+      />
+    </div>
   )
 }
