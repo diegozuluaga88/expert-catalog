@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/ou
 import { PanelLeft, PanelLeftClose } from 'lucide-react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import ViewToggle from './ViewToggle'
+import { MOCK_PRODUCT_CATEGORIES, MOCK_MATERIAL_CATEGORIES } from '../data/mockCategories'
 
 interface FilterSidebarProps {
   manufacturers: Manufacturer[]
@@ -101,14 +102,6 @@ export default function FilterSidebar({
     onTagsChange(n)
   }
   const hasTag = (t: string) => currentTags.has(t)
-
-  const allCategories = Array.from(
-    new Set(manufacturers.flatMap(m => m.categories.map(c => c.name)))
-  )
-
-  const totalProducts = manufacturers.reduce((acc, m) =>
-    acc + m.categories.reduce((a2, c) => a2 + c.products.length, 0), 0
-  )
 
   return (
     <aside className={`scrollbar-mrl shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto h-full transition-[width] duration-200 ${collapsed ? 'w-12' : 'w-56'}`}>
@@ -213,48 +206,22 @@ export default function FilterSidebar({
         )}
       </FilterSection>
 
-      {/* CATEGORY */}
+      {/* CATEGORY · MRL Fase 9 · lista mock que replica el referente MRL
+          (~24 categorías genéricas con counts inflados en Products, 6 en
+          Materials). Al ser mock, las categorías del referente NO matchean
+          con los `manufacturer.categories[].name` reales del seed · click
+          en una filtra a vacío por design (empty state ya cubre el UX).
+          Sirve para simular la escala visual de la biblioteca del referente. */}
       <FilterSection label="Category" open={categoryOpen} onToggle={() => setCategoryOpen(o => !o)}>
-        {activeTab === 'materials' ? (
-          <label className="flex items-center gap-2 py-1 cursor-pointer group">
-            <input
-              type="radio"
-              name="category"
-              checked={selectedCategory === null}
-              onChange={() => onCategoryChange(null)}
-              className="w-3.5 h-3.5 border-border accent-primary"
-            />
-            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors flex-1">
-              Textiles
-            </span>
-            <span className="text-xs text-muted-foreground">({totalProducts})</span>
-          </label>
-        ) : (
-          // MRL Fase 6 · para cada categoría, sumar el count preferido:
-          // `mockCount` cuando cualquiera de las Category-instances lo trae seteado
-          // (override para display · Nielsen H2 real world) · sino cae al `.length`
-          // real. Se ocultan categorías cuyo total final es 0 (Nielsen H8 aesthetic ·
-          // reducir noise visual de "chairs (0)" que no llevan a nada).
-          allCategories
-            .map(cat => {
-              const matched = manufacturers.flatMap(m => m.categories.filter(c => c.name === cat))
-              const hasMock = matched.some(c => typeof c.mockCount === 'number')
-              const count = hasMock
-                ? matched.reduce((a, c) => a + (c.mockCount ?? c.products.length), 0)
-                : matched.reduce((a, c) => a + c.products.length, 0)
-              return { cat, count }
-            })
-            .filter(({ count }) => count > 0)
-            .map(({ cat, count }) => (
-              <CheckItem
-                key={cat}
-                label={cat}
-                count={count}
-                checked={selectedCategory === cat}
-                onChange={() => onCategoryChange(selectedCategory === cat ? null : cat)}
-              />
-            ))
-        )}
+        {(activeTab === 'products' ? MOCK_PRODUCT_CATEGORIES : MOCK_MATERIAL_CATEGORIES).map(({ name, count }) => (
+          <CheckItem
+            key={name}
+            label={name}
+            count={count}
+            checked={selectedCategory === name}
+            onChange={() => onCategoryChange(selectedCategory === name ? null : name)}
+          />
+        ))}
       </FilterSection>
 
       {/* COLOR */}
