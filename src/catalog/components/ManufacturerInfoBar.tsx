@@ -112,10 +112,12 @@ function ResourcesSection({ resources }: { resources: NonNullable<Manufacturer['
               href={r.href ?? '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-foreground/85 hover:text-foreground transition-colors group"
+              className="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 decoration-border decoration-1 hover:decoration-primary hover:decoration-2 transition-all"
             >
               <span className="truncate">{r.name}</span>
-              <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 group-hover:bg-primary/40 transition-colors shrink-0">
+                <ArrowTopRightOnSquareIcon className="w-3 h-3 text-foreground" strokeWidth={2.5} />
+              </span>
             </a>
           </li>
         ))}
@@ -163,18 +165,18 @@ function ContactsSection({ contacts }: { contacts: NonNullable<Manufacturer['con
             {c.email && (
               <a
                 href={`mailto:${c.email}`}
-                className="inline-flex items-center gap-1 text-xs text-foreground/75 hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground underline underline-offset-4 decoration-border decoration-1 hover:decoration-primary hover:decoration-2 transition-all"
               >
-                <EnvelopeIcon className="w-3 h-3 shrink-0" />
+                <EnvelopeIcon className="w-3.5 h-3.5 text-foreground/70 shrink-0" strokeWidth={2} />
                 <span className="truncate">{c.email}</span>
               </a>
             )}
             {c.phone && (
               <a
                 href={`tel:${c.phone}`}
-                className="mt-0.5 inline-flex items-center gap-1 text-xs text-foreground/75 hover:text-foreground transition-colors"
+                className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-foreground underline underline-offset-4 decoration-border decoration-1 hover:decoration-primary hover:decoration-2 transition-all"
               >
-                <PhoneIcon className="w-3 h-3 shrink-0" />
+                <PhoneIcon className="w-3.5 h-3.5 text-foreground/70 shrink-0" strokeWidth={2} />
                 <span>{c.phone}</span>
               </a>
             )}
