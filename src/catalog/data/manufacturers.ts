@@ -10,6 +10,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     bgColor: '#2d3748',
     textColor: '#ffffff',
     type: 'products',
+    tags: ['quickship', 'gsa'],
     heroImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80',
     filterOptions: ['Chairs', 'Sofas', 'Ottomans', 'Tables'],
     brandResources: [
@@ -230,6 +231,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     bgColor: '#1a202c',
     textColor: '#e2e8f0',
     type: 'products',
+    tags: ['gsa', 'cet', 'cil'],
     categories: [
       {
         id: 'seating',
@@ -317,6 +319,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     bgColor: '#003087',
     textColor: '#ffffff',
     type: 'products',
+    tags: ['quickship', 'cet'],
     categories: [
       {
         id: 'casegoods',
@@ -527,6 +530,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'materials',
     binderCount: 4,
     binderLabel: 'Camira — Fabrics',
+    tags: ['quickship'],
     categories: [
       {
         id: 'upholstery',
@@ -628,6 +632,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     bgColor: '#d4a15a',
     textColor: '#1c1917',
     type: 'materials',
+    tags: ['quickship'],
     categories: [
       {
         id: 'upholstery-1',
@@ -926,6 +931,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     size: 'md',
     tagline: 'Contract Seating',
+    tags: ['quickship'],
     categories: [],
   },
   {
@@ -936,6 +942,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     textColor: '#FFFFFF',
     type: 'products',
     size: 'lg',
+    tags: ['gsa', 'cet'],
     categories: [],
   },
   {
@@ -947,6 +954,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     size: 'md',
     tagline: 'CONTRACT',
+    tags: ['cet', 'cil'],
     categories: [],
   },
   {
@@ -968,6 +976,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     size: 'md',
     tagline: 'Systems & Storage',
+    tags: ['gsa'],
     categories: [],
   },
   {
@@ -991,6 +1000,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     size: 'lg',
     binderCount: 2,
+    tags: ['cet', 'cil'],
     categories: [],
   },
   {
@@ -1012,6 +1022,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     size: 'md',
     tagline: 'Powering Innovation',
+    tags: ['quickship', 'gsa'],
     categories: [],
   },
   {
@@ -1022,6 +1033,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     textColor: '#F5F0E8',
     type: 'products',
     size: 'lg',
+    tags: ['gsa', 'cet'],
     categories: [],
   },
 
@@ -1109,6 +1121,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     type: 'products',
     size: 'md',
     tagline: 'Executive Casegoods',
+    tags: ['cet'],
     categories: [],
   },
   {
@@ -1131,6 +1144,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     size: 'md',
     variant: 'wide',
     wideImageUrl: 'https://images.unsplash.com/photo-1554469384-e58fac16e23a?w=400&q=80',
+    tags: ['quickship'],
     categories: [],
   },
   {
@@ -1153,6 +1167,7 @@ export const MANUFACTURERS: Manufacturer[] = [
     size: 'md',
     tagline: 'Task Seating',
     binderCount: 2,
+    tags: ['cil'],
     categories: [],
   },
 

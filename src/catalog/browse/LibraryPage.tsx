@@ -25,6 +25,11 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
   // propagado tanto a FilterSidebar (checkbox) como a ShelfView (aplica el
   // filtro + renderiza el chip). Es de sesión, no persiste en localStorage.
   const [showMyBindersOnly, setShowMyBindersOnly] = useState(false)
+  // MRL Fase 8 (2026-07-10) · state de tags activos (quickship, gsa, cet, cil).
+  // Owned aquí porque tanto FilterSidebar (Tags + Binder Filters sections)
+  // como el filtro del shelf lo necesitan. OR logic · un manufacturer pasa
+  // si tiene AL MENOS UNO de los tags activos.
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set())
   // MRL Fase 6 · hook de persistence · lee `catalog-my-binders` de localStorage
   // + seed inicial de 3 IDs. Se propaga `myBinderIds` a ShelfView para filtrar.
   const { myBinderIds } = useMyBinders()
@@ -43,7 +48,11 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
     const matchesCategory =
       selectedCategory === null ||
       m.categories.some(c => c.name === selectedCategory)
-    return matchesSearch && matchesCategory
+    // MRL Fase 8 · OR logic entre tags · manufacturer pasa si tiene al menos
+    // uno de los tags activos. Cuando activeTags está vacío no filtra.
+    const matchesTags =
+      activeTags.size === 0 || (m.tags?.some(t => activeTags.has(t)) ?? false)
+    return matchesSearch && matchesCategory && matchesTags
   })
 
   return (
@@ -61,6 +70,8 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
         onViewModeChange={setViewMode}
         showMyBindersOnly={showMyBindersOnly}
         onMyBindersToggle={() => setShowMyBindersOnly(v => !v)}
+        activeTags={activeTags}
+        onTagsChange={setActiveTags}
       />
 
       {/* Main content */}

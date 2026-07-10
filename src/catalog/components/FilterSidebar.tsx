@@ -19,6 +19,11 @@ interface FilterSidebarProps {
   showMyBindersOnly?: boolean
   /** MRL Fase 6 · toggle del filtro "My Binders". */
   onMyBindersToggle?: () => void
+  /** MRL Fase 8 · Set de tags activos (quickship, gsa, cet, cil) owned por
+   *  LibraryPage · filtra el shelf por intersect con `manufacturer.tags`. */
+  activeTags?: Set<string>
+  /** MRL Fase 8 · setter de tags · reemplaza el set completo. */
+  onTagsChange?: (next: Set<string>) => void
 }
 
 const SWATCH_COLORS = [
@@ -74,18 +79,28 @@ export default function FilterSidebar({
   onViewModeChange,
   showMyBindersOnly = false,
   onMyBindersToggle,
+  activeTags,
+  onTagsChange,
 }: FilterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
   const [categoryOpen, setCategoryOpen] = useState(true)
   const [colorOpen, setColorOpen] = useState(false)
   const [binderOpen, setBinderOpen] = useState(true)
-  const [checkedTags, setCheckedTags] = useState<Set<string>>(new Set())
-  const [checkedBinders, setCheckedBinders] = useState<Set<string>>(new Set())
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
 
-  const toggleTag = (t: string) => setCheckedTags(prev => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n })
-  const toggleBinder = (t: string) => setCheckedBinders(prev => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n })
+  // MRL Fase 8 · el state de tags vive en LibraryPage · si el parent no
+  // provee `activeTags`/`onTagsChange` (backward compat), degradamos a
+  // no-op para no romper llamados existentes.
+  const currentTags = activeTags ?? new Set<string>()
+  const toggleTag = (t: string) => {
+    if (!onTagsChange) return
+    const n = new Set(currentTags)
+    if (n.has(t)) n.delete(t)
+    else n.add(t)
+    onTagsChange(n)
+  }
+  const hasTag = (t: string) => currentTags.has(t)
 
   const allCategories = Array.from(
     new Set(manufacturers.flatMap(m => m.categories.map(c => c.name)))
@@ -156,11 +171,10 @@ export default function FilterSidebar({
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Filter by</p>
         <button
           onClick={() => {
-            setCheckedTags(new Set())
-            setCheckedBinders(new Set())
             onCategoryChange(null)
             setSelectedColor(null)
             if (showMyBindersOnly && onMyBindersToggle) onMyBindersToggle()
+            if (onTagsChange) onTagsChange(new Set())
           }}
           className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -179,10 +193,12 @@ export default function FilterSidebar({
               checked={showMyBindersOnly}
               onChange={() => onMyBindersToggle?.()}
             />
-            <CheckItem label="QuickShip" checked={checkedTags.has('quickship')} onChange={() => toggleTag('quickship')} />
-            <CheckItem label="GSA" checked={checkedTags.has('gsa')} onChange={() => toggleTag('gsa')} />
-            <CheckItem label="CET Extension" checked={checkedTags.has('cet')} onChange={() => toggleTag('cet')} />
-            <CheckItem label="Commercial Interiors Library (CIL)" checked={checkedTags.has('cil')} onChange={() => toggleTag('cil')} />
+            {/* MRL Fase 8 · wire real al filtro por tags · Set compartido con
+                Binder Filters (mismo state, dos entry points UI del referente). */}
+            <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
+            <CheckItem label="GSA" checked={hasTag('gsa')} onChange={() => toggleTag('gsa')} />
+            <CheckItem label="CET Extension" checked={hasTag('cet')} onChange={() => toggleTag('cet')} />
+            <CheckItem label="Commercial Interiors Library (CIL)" checked={hasTag('cil')} onChange={() => toggleTag('cil')} />
           </>
         ) : (
           <>
@@ -191,6 +207,8 @@ export default function FilterSidebar({
               checked={showMyBindersOnly}
               onChange={() => onMyBindersToggle?.()}
             />
+            {/* Materials · solo QuickShip aplica (lead-time programs). */}
+            <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
           </>
         )}
       </FilterSection>
@@ -265,7 +283,8 @@ export default function FilterSidebar({
         )}
       </FilterSection>
 
-      {/* BINDER FILTERS */}
+      {/* BINDER FILTERS · duplicado del UI del referente · usa el mismo `activeTags`
+          state que Tags para que un click acá se refleje en ambos accordions. */}
       <FilterSection label="Binder Filters" open={binderOpen} onToggle={() => setBinderOpen(o => !o)}>
         {/* MRL Fase 6 · mismo wire real al hook (mirror del Tags · My Binders). */}
         <CheckItem
@@ -273,11 +292,11 @@ export default function FilterSidebar({
           checked={showMyBindersOnly}
           onChange={() => onMyBindersToggle?.()}
         />
-        <CheckItem label="QuickShip" checked={checkedBinders.has('quickship')} onChange={() => toggleBinder('quickship')} />
+        <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
         {activeTab === 'products' && (
           <>
-            <CheckItem label="GSA" checked={checkedBinders.has('gsa')} onChange={() => toggleBinder('gsa')} />
-            <CheckItem label="CET Extension" checked={checkedBinders.has('cet')} onChange={() => toggleBinder('cet')} />
+            <CheckItem label="GSA" checked={hasTag('gsa')} onChange={() => toggleTag('gsa')} />
+            <CheckItem label="CET Extension" checked={hasTag('cet')} onChange={() => toggleTag('cet')} />
           </>
         )}
       </FilterSection>
