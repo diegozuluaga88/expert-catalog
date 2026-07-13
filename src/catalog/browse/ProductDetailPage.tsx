@@ -1,16 +1,34 @@
+// MRL Product Detail Fase P2 (2026-07-10) · refactor a la estructura del
+// referente myresourcelibrary.com/library/{brand}/{category}/{product}.
+// Layout · max-w-7xl mx-auto + Breadcrumbs shared + hero grande + info panel
+// side-by-side. Sin el image-tab switcher (Images/Galleries) · imágenes y
+// galleries se combinan en un solo strip de thumbnails. Sin sidebar propio
+// (Diego decisión previa).
+//
+// Cambios vs versión anterior:
+// - Descartado el aside w-420px con image switcher + colorways · su contenido
+//   migra a la columna izq del grid principal.
+// - Breadcrumb inline reemplazado por src/components/Breadcrumbs.tsx.
+// - Se aplica `enrichProductForDetail(product)` para tener parts + options
+//   disponibles (consumidos por Fases P3-P6).
+// - Se mantienen las 6 tabs actuales (Overview/Specs/Perf/Cleaning/Docs/
+//   Symbols) tal cual en el info panel derecho (Diego decisión · Fase P1).
+// - Tab strip primaria Images/Parts/Options se agrega en Fase P3.
+
 import { useState } from 'react'
 import {
-  ChevronRightIcon, HomeIcon, ArrowTopRightOnSquareIcon,
+  ArrowTopRightOnSquareIcon,
   DocumentArrowDownIcon, ChevronDownIcon, ChevronUpIcon,
   PhotoIcon, Square3Stack3DIcon,
 } from '@heroicons/react/24/outline'
 import type { Manufacturer, Category, Product } from '../types'
 import ColorwaySwatch from '../components/ColorwaySwatch'
 import CatalogVerifyPill from '../../components/ocr/CatalogVerifyPill'
+import Breadcrumbs from '../../components/Breadcrumbs'
+import { enrichProductForDetail } from '../data/mockProductFallbacks'
 import { skuForProduct } from './catalogSku'
 
 type Tab = 'overview' | 'specs' | 'performance' | 'cleaning' | 'documents' | 'symbols'
-type ImageTab = 'images' | 'galleries'
 
 interface ProductDetailPageProps {
   manufacturer: Manufacturer
@@ -74,23 +92,25 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 }
 
 export default function ProductDetailPage({
-  manufacturer, category, product, onBack, onGoToLibrary, onGoToManufacturer
+  manufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer,
 }: ProductDetailPageProps) {
+  // Enrich · aplica mock parts + options si el producto no los trae. Consumido
+  // por las Fases P3-P6 (tab strip Images/Parts/Options).
+  const product = enrichProductForDetail(rawProduct)
+
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const [imageTab, setImageTab] = useState<ImageTab>('images')
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(
     product.colorways[0]?.code ?? null
   )
 
-  const hasGalleries = product.galleries && product.galleries.length > 0
+  // Combina images + galleries en un solo pool · el switcher se elimina en
+  // este refactor · el usuario ve todos los thumbnails abajo del hero.
+  const galleryPool = [...product.images, ...(product.galleries ?? [])]
+
   const hasSymbols = product.symbols && product.symbols.length > 0
   const hasStdFeatures = product.standardFeatures && product.standardFeatures.length > 0
   const hasOptFeatures = product.optionalFeatures && product.optionalFeatures.length > 0
-
-  const displayImages = imageTab === 'galleries' && hasGalleries
-    ? product.galleries!
-    : product.images
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -102,143 +122,102 @@ export default function ProductDetailPage({
   ]
 
   return (
-    <div className="min-h-[calc(100vh-96px)] bg-background flex flex-col">
-      {/* Breadcrumb */}
-      <div className="border-b border-border bg-card px-6 py-3">
-        <div className="flex items-center gap-1.5 text-sm flex-wrap">
-          <button
-            onClick={onGoToLibrary}
-            aria-label="Library"
-            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <HomeIcon className="w-4 h-4" />
-            <span>Library</span>
-          </button>
-          <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/50" />
-          <button onClick={onGoToManufacturer} className="text-muted-foreground hover:text-foreground transition-colors">
-            {manufacturer.name}
-          </button>
-          <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/50" />
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
-            {category.name}
-          </button>
-          <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/50" />
-          <span className="text-foreground font-medium">{product.name}</span>
-        </div>
-      </div>
+    <div className="min-h-[calc(100vh-96px)] bg-background">
+      <div className="max-w-7xl mx-auto px-6 py-6">
 
-      <div className="flex flex-1 min-h-0">
-        {/* Left: image panel */}
-        <div className="w-[420px] shrink-0 flex flex-col border-r border-border bg-card overflow-y-auto">
+        {/* Breadcrumb 4-nivel · reusa shared Breadcrumbs component. */}
+        <Breadcrumbs
+          items={[
+            { label: 'Library', onClick: onGoToLibrary },
+            { label: manufacturer.name, onClick: onGoToManufacturer },
+            { label: category.name, onClick: onBack },
+            { label: product.name, active: true },
+          ]}
+        />
 
-          {/* Images / Galleries tabs */}
-          <div className="flex border-b border-border">
-            <button
-              onClick={() => { setImageTab('images'); setSelectedImage(0) }}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-                imageTab === 'images'
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <PhotoIcon className="w-3.5 h-3.5" />
-              Images
-            </button>
-            {hasGalleries && (
-              <button
-                onClick={() => { setImageTab('galleries'); setSelectedImage(0) }}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-                  imageTab === 'galleries'
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Square3Stack3DIcon className="w-3.5 h-3.5" />
-                Galleries
-              </button>
+        {/* Hero + Info panel · 2 columnas en lg+, apiladas en mobile. */}
+        <div className="mt-6 grid gap-8 lg:grid-cols-2">
+
+          {/* ─── Columna izq · hero grande + thumbnails + colorways ─── */}
+          <div className="flex flex-col gap-4">
+            {/* Hero image · aspect-[4/3] · placeholder si no hay images. */}
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-border bg-muted">
+              {galleryPool[selectedImage] ? (
+                <img
+                  src={galleryPool[selectedImage]}
+                  alt={product.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <PhotoIcon className="w-16 h-16" />
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail strip · combina images + galleries. */}
+            {galleryPool.length > 1 && (
+              <div className="flex gap-2 flex-wrap">
+                {galleryPool.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    aria-label={`Image ${i + 1}`}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                      selectedImage === i ? 'border-primary' : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <img src={img} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
 
-          {/* Main image */}
-          <div className="aspect-square bg-muted overflow-hidden">
-            {displayImages[selectedImage] ? (
-              <img
-                src={displayImages[selectedImage]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-5xl text-muted-foreground">
-                <PhotoIcon className="w-16 h-16" />
+            {/* Colorways section */}
+            {product.colorways.length > 0 && (
+              <div className="rounded-lg border border-border bg-card/50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                    Colorways
+                    <span className="ml-1.5 text-muted-foreground font-normal">({product.colorways.length})</span>
+                  </p>
+                  {selectedSwatch && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {product.colorways.find(c => c.code === selectedSwatch)?.name}
+                    </span>
+                  )}
+                </div>
+                <ColorwaySwatch
+                  colorways={product.colorways}
+                  selected={selectedSwatch}
+                  onSelect={setSelectedSwatch}
+                />
               </div>
             )}
           </div>
 
-          {/* Thumbnail strip */}
-          {displayImages.length > 1 && (
-            <div className="flex gap-2 p-3 flex-wrap border-b border-border">
-              {displayImages.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  aria-label={`Image ${i + 1}`}
-                  className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
-                    selectedImage === i ? 'border-primary' : 'border-border hover:border-muted-foreground'
-                  }`}
-                >
-                  <img src={img} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+          {/* ─── Columna der · header + tab strip + content ─── */}
+          <div className="flex flex-col">
+            {/* Header · eyebrow + title + verify pill + CTA See Details */}
+            <div className="mb-5">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-1">
+                {manufacturer.name} · {category.name}
+              </p>
+              <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
+              <div className="mt-3 flex items-center gap-3 flex-wrap">
+                <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                  See Details
                 </button>
-              ))}
-            </div>
-          )}
-
-          {/* Colorways section */}
-          {product.colorways.length > 0 && (
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                  Colorways
-                  <span className="ml-1.5 text-muted-foreground font-normal">({product.colorways.length})</span>
-                </p>
-                {selectedSwatch && (
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {product.colorways.find(c => c.code === selectedSwatch)?.name}
-                  </span>
-                )}
-              </div>
-              <ColorwaySwatch
-                colorways={product.colorways}
-                selected={selectedSwatch}
-                onSelect={setSelectedSwatch}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Right: details panel */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="px-6 pt-5 pb-0 bg-background border-b border-border">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">
-                  {manufacturer.name} · {category.name}
-                </p>
-                <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
-                {/* Etapa 6a — verificación de catálogo (reusa CatalogVerifyPill de OCR) */}
-                <div className="mt-2 flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Catalog status:</span>
                   <CatalogVerifyPill sku={skuForProduct(product.id)} onUseReplacement={() => {}} />
                 </div>
               </div>
-              <button className="shrink-0 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity">
-                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                See Details
-              </button>
             </div>
 
-            {/* Content tabs */}
-            <div className="flex gap-0 flex-wrap">
+            {/* Content tabs · underline pattern · las 6 secciones actuales. */}
+            <div className="border-b border-border flex gap-0 flex-wrap">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
@@ -253,138 +232,139 @@ export default function ProductDetailPage({
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {/* Tab content · sin scroll interno (el layout completo scrollea). */}
+            <div className="py-5">
+              {activeTab === 'overview' && (
+                <div>
+                  <p className="text-sm text-foreground/85 leading-relaxed mb-6">
+                    {product.description}
+                  </p>
 
-            {activeTab === 'overview' && (
-              <div>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                  {product.description}
-                </p>
+                  {hasStdFeatures && (
+                    <FeatureList
+                      title="Standard Features"
+                      note="(*Selected models only)"
+                      items={product.standardFeatures!}
+                    />
+                  )}
 
-                {hasStdFeatures && (
-                  <FeatureList
-                    title="Standard Features"
-                    note="(*Selected models only)"
-                    items={product.standardFeatures!}
-                  />
-                )}
+                  {hasOptFeatures && (
+                    <FeatureList
+                      title="Optional Features"
+                      items={product.optionalFeatures!}
+                    />
+                  )}
 
-                {hasOptFeatures && (
-                  <FeatureList
-                    title="Optional Features"
-                    items={product.optionalFeatures!}
-                  />
-                )}
-
-                {!hasStdFeatures && !hasOptFeatures && Object.keys(product.specs).length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Key Specifications</h3>
-                    <InfoTable data={Object.fromEntries(Object.entries(product.specs).slice(0, 5))} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'specs' && (
-              Object.keys(product.specs).length > 0
-                ? <InfoTable data={product.specs} />
-                : <p className="text-sm text-muted-foreground">No specification data available.</p>
-            )}
-
-            {activeTab === 'performance' && (
-              Object.keys(product.performance).length > 0
-                ? <InfoTable data={product.performance} />
-                : <p className="text-sm text-muted-foreground">No performance data available.</p>
-            )}
-
-            {activeTab === 'cleaning' && (
-              <div>
-                {product.cleaning ? (
-                  <>
-                    <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                      <p className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">Cleaning Method</p>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{product.cleaning}</p>
+                  {!hasStdFeatures && !hasOptFeatures && Object.keys(product.specs).length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-3">Key Specifications</h3>
+                      <InfoTable data={Object.fromEntries(Object.entries(product.specs).slice(0, 5))} />
                     </div>
-                    <div className="bg-card border border-border rounded-lg p-4">
-                      <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">General Guidelines</p>
-                      <ul className="space-y-2">
-                        {[
-                          'Blot spills immediately — do not rub',
-                          'Test any cleaning agent in an inconspicuous area first',
-                          'Allow fabric to air dry completely before use',
-                          'For stubborn stains, consult a professional cleaner',
-                        ].map((tip, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                            <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground shrink-0" />
-                            {tip}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No cleaning instructions available.</p>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
 
-            {activeTab === 'documents' && (
-              <div>
-                {product.documents.length > 0 ? (
+              {activeTab === 'specs' && (
+                Object.keys(product.specs).length > 0
+                  ? <InfoTable data={product.specs} />
+                  : <p className="text-sm text-muted-foreground">No specification data available.</p>
+              )}
+
+              {activeTab === 'performance' && (
+                Object.keys(product.performance).length > 0
+                  ? <InfoTable data={product.performance} />
+                  : <p className="text-sm text-muted-foreground">No performance data available.</p>
+              )}
+
+              {activeTab === 'cleaning' && (
+                <div>
+                  {product.cleaning ? (
+                    <>
+                      <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                        <p className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">Cleaning Method</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{product.cleaning}</p>
+                      </div>
+                      <div className="bg-card border border-border rounded-lg p-4">
+                        <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">General Guidelines</p>
+                        <ul className="space-y-2">
+                          {[
+                            'Blot spills immediately — do not rub',
+                            'Test any cleaning agent in an inconspicuous area first',
+                            'Allow fabric to air dry completely before use',
+                            'For stubborn stains, consult a professional cleaner',
+                          ].map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                              <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground shrink-0" />
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No cleaning instructions available.</p>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'documents' && (
+                <div>
+                  {product.documents.length > 0 ? (
+                    <div className="space-y-2">
+                      {product.documents.map((doc, i) => (
+                        <button
+                          key={i}
+                          className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                            <DocumentArrowDownIcon className="w-5 h-5 text-destructive" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground uppercase">{doc.type}</p>
+                          </div>
+                          <ArrowTopRightOnSquareIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No documents available.</p>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'symbols' && hasSymbols && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Download CAD files, Revit families, and SketchUp models for use in your design software.
+                  </p>
                   <div className="space-y-2">
-                    {product.documents.map((doc, i) => (
+                    {product.symbols!.map((folder, i) => (
                       <button
                         key={i}
                         className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                          <DocumentArrowDownIcon className="w-5 h-5 text-destructive" />
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Square3Stack3DIcon className="w-5 h-5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground uppercase">{doc.type}</p>
+                          <p className="text-sm font-medium text-foreground">{folder.name}</p>
+                          {folder.files != null && (
+                            <p className="text-xs text-muted-foreground">{folder.files} file{folder.files !== 1 ? 's' : ''}</p>
+                          )}
                         </div>
-                        <ArrowTopRightOnSquareIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        <DocumentArrowDownIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No documents available.</p>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'symbols' && hasSymbols && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Download CAD files, Revit families, and SketchUp models for use in your design software.
-                </p>
-                <div className="space-y-2">
-                  {product.symbols!.map((folder, i) => (
-                    <button
-                      key={i}
-                      className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Square3Stack3DIcon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{folder.name}</p>
-                        {folder.files != null && (
-                          <p className="text-xs text-muted-foreground">{folder.files} file{folder.files !== 1 ? 's' : ''}</p>
-                        )}
-                      </div>
-                      <DocumentArrowDownIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                    </button>
-                  ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Tab strip primaria Images/Parts/Options · llega en Fase P3-P6. */}
       </div>
     </div>
   )
