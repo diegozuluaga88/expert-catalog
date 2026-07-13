@@ -39,9 +39,9 @@ interface MRLPromoCardProps {
 }
 
 const ASPECT: Record<MRLPromoVariant, string> = {
-  product: 'aspect-[4/5]',
-  event: 'aspect-[4/5]',
-  house: 'aspect-[4/3]',
+  product: 'aspect-square',
+  event: 'aspect-square',
+  house: 'aspect-[3/2]',
 }
 
 export default function MRLPromoCard({
@@ -58,21 +58,21 @@ export default function MRLPromoCard({
   if (variant === 'house') {
     return (
       <article
-        className={`relative flex flex-col justify-between overflow-hidden rounded-xl border border-primary bg-primary p-5 text-primary-foreground ${ASPECT.house}`}
+        className={`relative flex flex-col justify-between overflow-hidden rounded-xl border border-primary bg-primary p-4 text-primary-foreground ${ASPECT.house}`}
       >
         {eyebrow && (
-          <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
+          <div className="text-[9px] font-bold uppercase tracking-widest opacity-80">
             {eyebrow}
           </div>
         )}
-        <div className="flex flex-col gap-3">
-          <h3 className="text-lg font-bold leading-tight">{title}</h3>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-bold leading-tight">{title}</h3>
           {description && (
-            <p className="text-xs leading-relaxed opacity-80">{description}</p>
+            <p className="text-[11px] leading-relaxed opacity-80 line-clamp-2">{description}</p>
           )}
           <button
             type="button"
-            className="inline-flex w-fit items-center gap-1.5 rounded-full border border-primary-foreground/40 px-3.5 py-1.5 text-xs font-semibold hover:bg-primary-foreground/10 transition-colors"
+            className="inline-flex w-fit items-center gap-1 rounded-full border border-primary-foreground/40 px-2.5 py-1 text-[11px] font-semibold hover:bg-primary-foreground/10 transition-colors"
           >
             {ctaLabel ?? 'Tell me more'}
             <ArrowRight className="h-3 w-3" strokeWidth={2.5} />
@@ -137,27 +137,27 @@ export default function MRLPromoCard({
       )}
 
       {/* Content stack · anclado abajo, encima del gradient */}
-      <div className="relative z-10 flex h-full flex-col justify-end p-5 gap-2">
+      <div className="relative z-10 flex h-full flex-col justify-end p-4 gap-1.5">
         {eyebrow && (
           // Pill · fondo `background/85` en vez de `foreground/10` para
           // asegurar contraste del texto sobre cualquier zona de la imagen.
-          <span className="inline-flex w-fit items-center rounded-full bg-background/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-foreground backdrop-blur-sm ring-1 ring-border/60">
+          <span className="inline-flex w-fit items-center rounded-full bg-background/85 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground backdrop-blur-sm ring-1 ring-border/60">
             {eyebrow}
           </span>
         )}
-        <h3 className="text-base font-bold text-foreground leading-tight">{title}</h3>
+        <h3 className="text-sm font-bold text-foreground leading-tight">{title}</h3>
         {description && (
           // `text-foreground/75` (~75% del token) reemplaza a
           // `text-muted-foreground` (que baja a ~50% y no pasa AA en light
           // sobre gradient parcial). Aún se ve secundario vs title, pero
           // legible en ambos modos.
-          <p className="text-xs text-foreground/75 leading-relaxed line-clamp-2">
+          <p className="text-[11px] text-foreground/75 leading-snug line-clamp-2">
             {description}
           </p>
         )}
         <button
           type="button"
-          className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background hover:bg-foreground/85 transition-colors"
+          className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-foreground px-3 py-1 text-[11px] font-semibold text-background hover:bg-foreground/85 transition-colors"
         >
           {ctaLabel ?? (variant === 'event' ? 'Learn more' : 'Explore')}
           <ArrowRight className="h-3 w-3" strokeWidth={2.5} />

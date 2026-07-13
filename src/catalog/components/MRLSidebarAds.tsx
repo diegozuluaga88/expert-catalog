@@ -12,7 +12,7 @@ import MRLPromoCard from './MRLPromoCard'
 
 export default function MRLSidebarAds() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {/* Slot 1 · Event / campaign */}
       <MRLPromoCard
         variant="event"

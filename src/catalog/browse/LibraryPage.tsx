@@ -107,7 +107,7 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
           - xl:+ (evita reducir el main en pantallas medianas)
           Ancho `w-72` (288px) · scroll independiente. */}
       {viewMode === 'shelf' && (
-        <aside className="scrollbar-mrl hidden xl:block w-72 shrink-0 border-l border-border/60 bg-card/30 overflow-y-auto p-4">
+        <aside className="scrollbar-mrl hidden xl:block w-56 shrink-0 border-l border-border/60 bg-card/30 overflow-y-auto p-3">
           <MRLSidebarAds />
         </aside>
       )}
