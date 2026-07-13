@@ -209,17 +209,15 @@ export default function ProductDetailPage({
             )}
           </div>
 
-          {/* ─── Columna der · header + tab strip + content ─── */}
+          {/* ─── Columna der · header + description + tab strip + content ─── */}
           <div className="flex flex-col">
-            {/* Header · eyebrow + title + verify pill + CTA See Details */}
+            {/* Header · CTA + verify pill arriba (Fitts · action prominente),
+                title grande abajo (mirror del referente MRL · el nombre del
+                producto es el elemento visualmente más pesado). */}
             <div className="mb-5">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-1">
-                {manufacturer.name} · {category.name}
-              </p>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
-              <div className="mt-3 flex items-center gap-3 flex-wrap">
-                <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
-                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+              <div className="flex items-center gap-3 flex-wrap mb-4">
+                <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg hover:opacity-95 transition-all">
+                  <ArrowTopRightOnSquareIcon className="w-4 h-4" strokeWidth={2.5} />
                   See Details
                 </button>
                 <div className="flex items-center gap-2">
@@ -227,7 +225,21 @@ export default function ProductDetailPage({
                   <CatalogVerifyPill sku={skuForProduct(product.id)} onUseReplacement={() => {}} />
                 </div>
               </div>
+
+              <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold mb-1">
+                {manufacturer.name} · {category.name}
+              </p>
+              <h1 className="text-4xl font-bold text-foreground leading-tight tracking-tight">
+                {product.name}
+              </h1>
             </div>
+
+            {/* Description · siempre visible arriba de las tabs (referente).
+                Antes vivía dentro del tab Overview · movida acá para que el
+                user tenga contexto sin cambiar de tab (Nielsen H1 · visibility). */}
+            <p className="mb-6 text-sm text-foreground leading-relaxed">
+              {product.description}
+            </p>
 
             {/* Content tabs · underline pattern · las 6 secciones actuales. */}
             <div className="border-b border-border flex gap-0 flex-wrap">
@@ -250,10 +262,8 @@ export default function ProductDetailPage({
             <div className="py-5">
               {activeTab === 'overview' && (
                 <div>
-                  <p className="text-sm text-foreground/85 leading-relaxed mb-6">
-                    {product.description}
-                  </p>
-
+                  {/* Description movida arriba de las tabs (Fase P7) · el tab
+                      Overview ahora foca solo Features + fallback specs. */}
                   {hasStdFeatures && (
                     <FeatureList
                       title="Standard Features"
