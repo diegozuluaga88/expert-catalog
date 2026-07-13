@@ -261,28 +261,27 @@ export default function ProductDetailPage({
             {/* Description · siempre visible arriba de las tabs (referente).
                 Antes vivía dentro del tab Overview · movida acá para que el
                 user tenga contexto sin cambiar de tab (Nielsen H1 · visibility). */}
-            <p className="text-sm text-foreground leading-relaxed">
+            <p className="mb-6 text-sm text-foreground leading-relaxed">
               {product.description}
             </p>
+
+            {/* ═══ Tab bar UNIFICADA · Fase P10 · vive al lado de la imagen
+                (dentro del info panel derecho) como en el layout original.
+                Content se renderiza abajo full-width. Diego ask 2026-07-10. ═══ */}
+            <SegmentedTabs<Tab>
+              items={tabs}
+              value={activeTab}
+              onChange={setActiveTab}
+              variant="underline"
+              ariaLabel="Product content sections"
+            />
           </div>
         </div>
 
-        {/* ═══ Tab bar UNIFICADA · Fase P9 · integra las 6 tabs de contenido
-            (Overview/Specs/Performance/Cleaning/Documents/Symbols) con las
-            3 primary (Images/Parts/Options) en una sola navegación
-            full-width debajo del bloque hero+info. Elimina la duplicación
-            visual y evita al user preguntarse en qué barra buscar. ═══ */}
-        <section aria-label="Product details" className="mt-10">
-          <SegmentedTabs<Tab>
-            items={tabs}
-            value={activeTab}
-            onChange={setActiveTab}
-            variant="underline"
-            ariaLabel="Product content sections"
-          />
-
-          {/* Tab content · full-width abajo de la tab bar. */}
-          <div className="py-6">
+        {/* Tab content · full-width debajo del grid principal para que los
+            grids (Images 6-col, Parts 4-col, Options subtabs) tengan aire. */}
+        <section aria-label="Product details" className="mt-8">
+          <div className="py-2">
               {activeTab === 'overview' && (
                 <div>
                   {/* Description movida arriba de las tabs (Fase P7) · el tab
