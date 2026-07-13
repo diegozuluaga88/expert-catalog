@@ -31,6 +31,7 @@ import { skuForProduct } from './catalogSku'
 
 type Tab = 'overview' | 'specs' | 'performance' | 'cleaning' | 'documents' | 'symbols'
 type PrimaryTab = 'images' | 'parts' | 'options'
+type OptionsSubtab = 'bases' | 'frameColors' | 'glides'
 
 interface ProductDetailPageProps {
   manufacturer: Manufacturer
@@ -39,6 +40,14 @@ interface ProductDetailPageProps {
   onBack: () => void
   onGoToLibrary?: () => void
   onGoToManufacturer?: () => void
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+      <p className="text-sm text-foreground font-medium">{label}</p>
+    </div>
+  )
 }
 
 function InfoTable({ data }: { data: Record<string, string> }) {
@@ -102,6 +111,7 @@ export default function ProductDetailPage({
 
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('images')
+  const [optionsSubtab, setOptionsSubtab] = useState<OptionsSubtab>('bases')
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(
     product.colorways[0]?.code ?? null
@@ -463,11 +473,102 @@ export default function ProductDetailPage({
             )}
 
             {primaryTab === 'options' && (
-              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-                <p className="text-sm text-foreground font-medium">Options grid</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Bases · Frame Colors · Glide · subtabs + grids coming in Fase P6.
-                </p>
+              <div>
+                {/* Subtabs Bases · Frame Colors · Glide · pill variant. */}
+                <SegmentedTabs<OptionsSubtab>
+                  items={[
+                    { id: 'bases',       label: 'Bases',        count: product.options?.bases?.length ?? 0 },
+                    { id: 'frameColors', label: 'Frame Colors', count: product.options?.frameColors?.length ?? 0 },
+                    { id: 'glides',      label: 'Glide',        count: product.options?.glides?.length ?? 0 },
+                  ]}
+                  value={optionsSubtab}
+                  onChange={setOptionsSubtab}
+                  variant="pill"
+                  size="sm"
+                  ariaLabel="Product options"
+                  className="mb-6"
+                />
+
+                {/* Bases · card grid con imagen + label descriptivo */}
+                {optionsSubtab === 'bases' && (
+                  product.options?.bases && product.options.bases.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {product.options.bases.map(base => (
+                        <div key={base.id} className="flex flex-col">
+                          <div className="group relative aspect-square rounded-lg overflow-hidden bg-card border border-border transition-all hover:border-primary/60 hover:ring-2 hover:ring-primary/30">
+                            {base.image ? (
+                              <img
+                                src={base.image}
+                                alt={base.name}
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
+                            )}
+                          </div>
+                          <p className="mt-2 text-sm text-foreground text-center leading-snug">
+                            {base.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState label="No base options" />
+                  )
+                )}
+
+                {/* Frame Colors · swatch grid con background hex + label */}
+                {optionsSubtab === 'frameColors' && (
+                  product.options?.frameColors && product.options.frameColors.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {product.options.frameColors.map(fc => (
+                        <div key={fc.id} className="flex flex-col">
+                          <div
+                            className="group relative aspect-square rounded-lg overflow-hidden border border-border transition-all hover:border-primary/60 hover:ring-2 hover:ring-primary/30"
+                            style={{ backgroundColor: fc.hex }}
+                            aria-label={`${fc.name} · ${fc.hex}`}
+                            role="img"
+                          />
+                          <p className="mt-2 text-sm text-foreground text-center leading-snug">
+                            {fc.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState label="No frame colors" />
+                  )
+                )}
+
+                {/* Glide · idéntico shell que Bases */}
+                {optionsSubtab === 'glides' && (
+                  product.options?.glides && product.options.glides.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {product.options.glides.map(glide => (
+                        <div key={glide.id} className="flex flex-col">
+                          <div className="group relative aspect-square rounded-lg overflow-hidden bg-card border border-border transition-all hover:border-primary/60 hover:ring-2 hover:ring-primary/30">
+                            {glide.image ? (
+                              <img
+                                src={glide.image}
+                                alt={glide.name}
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
+                            )}
+                          </div>
+                          <p className="mt-2 text-sm text-foreground text-center leading-snug">
+                            {glide.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState label="No glide options" />
+                  )
+                )}
               </div>
             )}
           </div>
