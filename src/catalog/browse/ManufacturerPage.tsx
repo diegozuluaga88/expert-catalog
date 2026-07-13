@@ -14,6 +14,7 @@ import Breadcrumbs from '../../components/Breadcrumbs'
 import CategoryCard from '../components/CategoryCard'
 import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
 import ManufacturerHero from '../components/ManufacturerHero'
+import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 
 interface ManufacturerPageProps {
   manufacturer: Manufacturer
@@ -21,7 +22,10 @@ interface ManufacturerPageProps {
   onSelectCategory: (c: Category) => void
 }
 
-export default function ManufacturerPage({ manufacturer, onBack, onSelectCategory }: ManufacturerPageProps) {
+export default function ManufacturerPage({ manufacturer: raw, onBack, onSelectCategory }: ManufacturerPageProps) {
+  // Aplica fallbacks mock a los campos vacíos para consistencia visual entre
+  // brands populados y sparse (Diego ask · 2026-07-10). Determinístico por id.
+  const manufacturer = enrichManufacturerForDetail(raw)
   const blocks = manufacturer.descriptionBlocks
 
   return (
