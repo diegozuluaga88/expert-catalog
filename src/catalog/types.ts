@@ -169,6 +169,53 @@ export interface Product {
   drawingName2D?: string
   /** Fase P2.4 · Nombre/URL del drawing primario 3D · alineado con silver `drawingName3D`. */
   drawingName3D?: string
+
+  /** MRL Product Detail P1 (2026-07-10) · lista de partes/accesorios con SKU
+   *  code visible (mirror del tab PARTS del referente MRL). Populado via mock
+   *  fallback si undefined. */
+  parts?: ProductPart[]
+  /** MRL Product Detail P1 · options con sub-navegación (Bases · Frame Colors ·
+   *  Glide). Mirror del tab OPTIONS del referente. Populado via mock fallback
+   *  si undefined. */
+  options?: ProductOptions
+}
+
+/** MRL Product Detail P1 · una parte/accesorio del producto (SKU 9411,
+ *  9416 style del referente). */
+export interface ProductPart {
+  sku: string
+  name: string
+  /** Subline opcional bajo el SKU (ej. "Coated fabrics will be..."). */
+  subline?: string
+  /** Imagen del thumbnail · si undefined, la card usa placeholder. */
+  image?: string
+}
+
+/** MRL Product Detail P1 · options agrupadas en 3 subtabs del referente. */
+export interface ProductOptions {
+  bases?: ProductBaseOption[]
+  frameColors?: ProductFrameColorOption[]
+  glides?: ProductGlideOption[]
+}
+
+export interface ProductBaseOption {
+  id: string
+  name: string
+  image?: string
+}
+
+/** MRL Product Detail P1 · swatch de color para el subtab Frame Colors ·
+ *  reutiliza el shape de Colorway (name + hex). */
+export interface ProductFrameColorOption {
+  id: string
+  name: string
+  hex: string
+}
+
+export interface ProductGlideOption {
+  id: string
+  name: string
+  image?: string
 }
 
 /* ───────────────────────── Product Catalog (Figma, Etapa 8) ───────────────────────── */
