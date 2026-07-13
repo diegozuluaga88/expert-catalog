@@ -83,11 +83,14 @@ export default function SegmentedTabs<T extends string>({
     }
 
     // variant === 'underline' (default)
+    // flex-wrap · con muchas tabs (ProductDetailPage tiene 9) se apilan en
+    // una segunda fila en viewports chicos · antes usábamos overflow-x-auto
+    // que las escondía sin indicator (Diego report 2026-07-10).
     const padClass = size === 'sm' ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'
     return (
         <nav
             aria-label={ariaLabel}
-            className={`flex gap-0 border-b border-border overflow-x-auto ${className}`}
+            className={`flex flex-wrap gap-x-1 border-b border-border ${className}`}
             role="tablist"
         >
             {items.map(item => {
