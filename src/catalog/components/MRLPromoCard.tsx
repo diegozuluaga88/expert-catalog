@@ -65,11 +65,10 @@ export default function MRLPromoCard({
             {eyebrow}
           </div>
         )}
-        <div className="flex flex-col gap-2">
+        {/* House · Diego post-D6 · minimalist como el referente MRL ·
+            solo título grande + CTA. Descripción intencionalmente omitida. */}
+        <div className="flex flex-col gap-3">
           <h3 className="text-sm font-bold leading-tight">{title}</h3>
-          {description && (
-            <p className="text-[11px] leading-relaxed opacity-80 line-clamp-2">{description}</p>
-          )}
           <button
             type="button"
             className="inline-flex w-fit items-center gap-1 rounded-full border border-primary-foreground/40 px-2.5 py-1 text-[11px] font-semibold hover:bg-primary-foreground/10 transition-colors"
@@ -136,32 +135,16 @@ export default function MRLPromoCard({
         </div>
       )}
 
-      {/* Content stack · anclado abajo, encima del gradient */}
+      {/* Content stack · minimalista mirror del referente MRL (Diego
+          post-D6) · solo eyebrow pill + título. Sin descripción ni CTA
+          button · la card entera es clickable como en el referente. */}
       <div className="relative z-10 flex h-full flex-col justify-end p-4 gap-1.5">
         {eyebrow && (
-          // Pill · fondo `background/85` en vez de `foreground/10` para
-          // asegurar contraste del texto sobre cualquier zona de la imagen.
           <span className="inline-flex w-fit items-center rounded-full bg-background/85 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-foreground backdrop-blur-sm ring-1 ring-border/60">
             {eyebrow}
           </span>
         )}
         <h3 className="text-sm font-bold text-foreground leading-tight">{title}</h3>
-        {description && (
-          // `text-foreground/75` (~75% del token) reemplaza a
-          // `text-muted-foreground` (que baja a ~50% y no pasa AA en light
-          // sobre gradient parcial). Aún se ve secundario vs title, pero
-          // legible en ambos modos.
-          <p className="text-[11px] text-foreground/75 leading-snug line-clamp-2">
-            {description}
-          </p>
-        )}
-        <button
-          type="button"
-          className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-foreground px-3 py-1 text-[11px] font-semibold text-background hover:bg-foreground/85 transition-colors"
-        >
-          {ctaLabel ?? (variant === 'event' ? 'Learn more' : 'Explore')}
-          <ArrowRight className="h-3 w-3" strokeWidth={2.5} />
-        </button>
       </div>
     </article>
   )
