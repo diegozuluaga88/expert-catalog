@@ -135,6 +135,15 @@ export default function ProductDetailPage({
   const hasStdFeatures = product.standardFeatures && product.standardFeatures.length > 0
   const hasOptFeatures = product.optionalFeatures && product.optionalFeatures.length > 0
 
+  // Fase P11 · dos zonas de content según la naturaleza del tab:
+  // - content-tabs (Overview/Specs/etc) · text-heavy · vive en col der al
+  //   lado del hero · caben cómodos en ~50% del ancho.
+  // - resource-tabs (Images/Parts/Options) · grid-heavy · vive full-width
+  //   debajo del grid principal · necesitan aire horizontal para no
+  //   apretar los cards a 2 cols.
+  const RESOURCE_TABS: Tab[] = ['images', 'parts', 'options']
+  const isResourceTab = RESOURCE_TABS.includes(activeTab)
+
   // Tab bar unificada · content-first tabs primero (Overview/Specs/etc),
   // luego resources (Images/Parts/Options). Todas usan la misma UI · el
   // user encuentra todo en un solo strip sin duplicaciones visuales.
@@ -275,137 +284,144 @@ export default function ProductDetailPage({
               variant="underline"
               ariaLabel="Product content sections"
             />
-          </div>
-        </div>
 
-        {/* Tab content · full-width debajo del grid principal para que los
-            grids (Images 6-col, Parts 4-col, Options subtabs) tengan aire. */}
-        <section aria-label="Product details" className="mt-8">
-          <div className="py-2">
-              {activeTab === 'overview' && (
-                <div>
-                  {/* Description movida arriba de las tabs (Fase P7) · el tab
-                      Overview ahora foca solo Features + fallback specs. */}
-                  {hasStdFeatures && (
-                    <FeatureList
-                      title="Standard Features"
-                      note="(*Selected models only)"
-                      items={product.standardFeatures!}
-                    />
-                  )}
+            {/* Content de las 6 tabs originales (text-heavy) · queda al
+                lado del hero. Los resource-tabs (Images/Parts/Options)
+                caen a full-width abajo · P11. */}
+            {!isResourceTab && (
+              <div className="py-6">
+                {activeTab === 'overview' && (
+                  <div>
+                    {hasStdFeatures && (
+                      <FeatureList
+                        title="Standard Features"
+                        note="(*Selected models only)"
+                        items={product.standardFeatures!}
+                      />
+                    )}
 
-                  {hasOptFeatures && (
-                    <FeatureList
-                      title="Optional Features"
-                      items={product.optionalFeatures!}
-                    />
-                  )}
+                    {hasOptFeatures && (
+                      <FeatureList
+                        title="Optional Features"
+                        items={product.optionalFeatures!}
+                      />
+                    )}
 
-                  {!hasStdFeatures && !hasOptFeatures && Object.keys(product.specs).length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-3">Key Specifications</h3>
-                      <InfoTable data={Object.fromEntries(Object.entries(product.specs).slice(0, 5))} />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'specs' && (
-                Object.keys(product.specs).length > 0
-                  ? <InfoTable data={product.specs} />
-                  : <p className="text-sm text-muted-foreground">No specification data available.</p>
-              )}
-
-              {activeTab === 'performance' && (
-                Object.keys(product.performance).length > 0
-                  ? <InfoTable data={product.performance} />
-                  : <p className="text-sm text-muted-foreground">No performance data available.</p>
-              )}
-
-              {activeTab === 'cleaning' && (
-                <div>
-                  {product.cleaning ? (
-                    <>
-                      <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                        <p className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">Cleaning Method</p>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{product.cleaning}</p>
+                    {!hasStdFeatures && !hasOptFeatures && Object.keys(product.specs).length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-3">Key Specifications</h3>
+                        <InfoTable data={Object.fromEntries(Object.entries(product.specs).slice(0, 5))} />
                       </div>
-                      <div className="bg-card border border-border rounded-lg p-4">
-                        <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">General Guidelines</p>
-                        <ul className="space-y-2">
-                          {[
-                            'Blot spills immediately — do not rub',
-                            'Test any cleaning agent in an inconspicuous area first',
-                            'Allow fabric to air dry completely before use',
-                            'For stubborn stains, consult a professional cleaner',
-                          ].map((tip, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                              <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground shrink-0" />
-                              {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No cleaning instructions available.</p>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
 
-              {activeTab === 'documents' && (
-                <div>
-                  {product.documents.length > 0 ? (
+                {activeTab === 'specs' && (
+                  Object.keys(product.specs).length > 0
+                    ? <InfoTable data={product.specs} />
+                    : <p className="text-sm text-muted-foreground">No specification data available.</p>
+                )}
+
+                {activeTab === 'performance' && (
+                  Object.keys(product.performance).length > 0
+                    ? <InfoTable data={product.performance} />
+                    : <p className="text-sm text-muted-foreground">No performance data available.</p>
+                )}
+
+                {activeTab === 'cleaning' && (
+                  <div>
+                    {product.cleaning ? (
+                      <>
+                        <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                          <p className="text-sm font-semibold text-foreground uppercase tracking-wide mb-2">Cleaning Method</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{product.cleaning}</p>
+                        </div>
+                        <div className="bg-card border border-border rounded-lg p-4">
+                          <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">General Guidelines</p>
+                          <ul className="space-y-2">
+                            {[
+                              'Blot spills immediately — do not rub',
+                              'Test any cleaning agent in an inconspicuous area first',
+                              'Allow fabric to air dry completely before use',
+                              'For stubborn stains, consult a professional cleaner',
+                            ].map((tip, i) => (
+                              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground shrink-0" />
+                                {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No cleaning instructions available.</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'documents' && (
+                  <div>
+                    {product.documents.length > 0 ? (
+                      <div className="space-y-2">
+                        {product.documents.map((doc, i) => (
+                          <button
+                            key={i}
+                            className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
+                          >
+                            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                              <DocumentArrowDownIcon className="w-5 h-5 text-destructive" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                              <p className="text-xs text-muted-foreground uppercase">{doc.type}</p>
+                            </div>
+                            <ArrowTopRightOnSquareIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No documents available.</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'symbols' && hasSymbols && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Download CAD files, Revit families, and SketchUp models for use in your design software.
+                    </p>
                     <div className="space-y-2">
-                      {product.documents.map((doc, i) => (
+                      {product.symbols!.map((folder, i) => (
                         <button
                           key={i}
                           className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
                         >
-                          <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                            <DocumentArrowDownIcon className="w-5 h-5 text-destructive" />
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Square3Stack3DIcon className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
-                            <p className="text-xs text-muted-foreground uppercase">{doc.type}</p>
+                            <p className="text-sm font-medium text-foreground">{folder.name}</p>
+                            {folder.files != null && (
+                              <p className="text-xs text-muted-foreground">{folder.files} file{folder.files !== 1 ? 's' : ''}</p>
+                            )}
                           </div>
-                          <ArrowTopRightOnSquareIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          <DocumentArrowDownIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                         </button>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No documents available.</p>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'symbols' && hasSymbols && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Download CAD files, Revit families, and SketchUp models for use in your design software.
-                  </p>
-                  <div className="space-y-2">
-                    {product.symbols!.map((folder, i) => (
-                      <button
-                        key={i}
-                        className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
-                      >
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Square3Stack3DIcon className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">{folder.name}</p>
-                          {folder.files != null && (
-                            <p className="text-xs text-muted-foreground">{folder.files} file{folder.files !== 1 ? 's' : ''}</p>
-                          )}
-                        </div>
-                        <DocumentArrowDownIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                      </button>
-                    ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
+        {/* Resource tab content · full-width debajo del grid principal.
+            Solo se renderiza cuando el user está en Images/Parts/Options ·
+            los grids necesitan aire horizontal (Images 6-col, Parts 4-col). */}
+        {isResourceTab && (
+        <section aria-label="Product resources" className="mt-8">
+          <div className="py-2">
               {activeTab === 'images' && (
               galleryPool.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -586,6 +602,7 @@ export default function ProductDetailPage({
             )}
           </div>
         </section>
+        )}
       </div>
     </div>
   )
