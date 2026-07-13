@@ -25,10 +25,12 @@ import type { Manufacturer, Category, Product } from '../types'
 import ColorwaySwatch from '../components/ColorwaySwatch'
 import CatalogVerifyPill from '../../components/ocr/CatalogVerifyPill'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import SegmentedTabs from '../components/SegmentedTabs'
 import { enrichProductForDetail } from '../data/mockProductFallbacks'
 import { skuForProduct } from './catalogSku'
 
 type Tab = 'overview' | 'specs' | 'performance' | 'cleaning' | 'documents' | 'symbols'
+type PrimaryTab = 'images' | 'parts' | 'options'
 
 interface ProductDetailPageProps {
   manufacturer: Manufacturer
@@ -99,6 +101,7 @@ export default function ProductDetailPage({
   const product = enrichProductForDetail(rawProduct)
 
   const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('images')
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(
     product.colorways[0]?.code ?? null
@@ -364,7 +367,50 @@ export default function ProductDetailPage({
           </div>
         </div>
 
-        {/* Tab strip primaria Images/Parts/Options · llega en Fase P3-P6. */}
+        {/* ─── Tab strip primaria · Images/Parts/Options ─── */}
+        <section aria-label="Product resources" className="mt-12">
+          <SegmentedTabs<PrimaryTab>
+            items={[
+              { id: 'images',  label: 'Images',  count: galleryPool.length },
+              { id: 'parts',   label: 'Parts',   count: product.parts?.length ?? 0 },
+              { id: 'options', label: 'Options' },
+            ]}
+            value={primaryTab}
+            onChange={setPrimaryTab}
+            variant="underline"
+            ariaLabel="Product resources"
+          />
+
+          {/* Content stubs · reemplazados por grids reales en Fases P4-P6. */}
+          <div className="mt-6">
+            {primaryTab === 'images' && (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+                <p className="text-sm text-foreground font-medium">Images grid</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {galleryPool.length} images · full-grid layout coming in Fase P4.
+                </p>
+              </div>
+            )}
+
+            {primaryTab === 'parts' && (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+                <p className="text-sm text-foreground font-medium">Parts grid</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {product.parts?.length ?? 0} parts · card grid coming in Fase P5.
+                </p>
+              </div>
+            )}
+
+            {primaryTab === 'options' && (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+                <p className="text-sm text-foreground font-medium">Options grid</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Bases · Frame Colors · Glide · subtabs + grids coming in Fase P6.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   )
