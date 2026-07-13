@@ -411,14 +411,12 @@ export default function ProductDetailPage({
                     </div>
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Content de resource-tabs (Images/Parts/Options) también
-                dentro del col der bajo la tab bar · Diego ask P12. Grids
-                ajustados a menos cols porque el col der ocupa ~50% del
-                ancho: Images 2/3, Parts 2/3, Options subtabs 2/3. */}
-              {activeTab === 'images' && (
+                {/* Content de resource-tabs (Images/Parts/Options) también
+                    dentro del col der bajo la tab bar · Diego ask P12.
+                    Grids ajustados a menos cols porque el col der ocupa
+                    ~50%: Images 2/3, Parts 2/3, Options subtabs 2/3. */}
+                {activeTab === 'images' && (
               galleryPool.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {galleryPool.map((img, i) => {
