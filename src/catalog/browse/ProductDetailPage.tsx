@@ -418,12 +418,48 @@ export default function ProductDetailPage({
             )}
 
             {primaryTab === 'parts' && (
-              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-                <p className="text-sm text-foreground font-medium">Parts grid</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {product.parts?.length ?? 0} parts · card grid coming in Fase P5.
-                </p>
-              </div>
+              product.parts && product.parts.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {product.parts.map(part => (
+                    <div key={part.sku} className="flex flex-col">
+                      {/* Card shell · mirror del CategoryCard (Nielsen H4 · consistency) */}
+                      <div className="group relative aspect-square rounded-lg overflow-hidden bg-card border border-border transition-all hover:border-primary/60 hover:ring-2 hover:ring-primary/30">
+                        {part.image ? (
+                          <img
+                            src={part.image}
+                            alt={`Part ${part.sku}`}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            draggable={false}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted to-primary/20" />
+                        )}
+                      </div>
+
+                      {/* Label bloque · SKU tabular arriba + subline muted debajo.
+                          Diego decisión (Fase D1 MRL Detail) · mismo pattern que
+                          CategoryCard.cardSubtitle. */}
+                      <div className="mt-2 text-center">
+                        <p className="text-sm font-semibold text-foreground tabular-nums leading-snug">
+                          {part.sku}
+                        </p>
+                        {part.subline && (
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-snug line-clamp-2">
+                            {part.subline}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+                  <p className="text-sm text-foreground font-medium">No parts available</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This product doesn't list replacement parts.
+                  </p>
+                </div>
+              )
             )}
 
             {primaryTab === 'options' && (
