@@ -31,8 +31,13 @@ import { enrichProductForDetail } from '../data/mockProductFallbacks'
 import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 import { skuForProduct } from './catalogSku'
 
-type Tab = 'overview' | 'specs' | 'performance' | 'cleaning' | 'documents' | 'symbols'
-type PrimaryTab = 'images' | 'parts' | 'options'
+// MRL Product Detail P9 (2026-07-10) · Diego pidió integrar las 2 tab bars
+// (info-panel + primaria Images/Parts/Options) en una sola · unificamos
+// bajo un mismo tipo `Tab`. Ahora hay una única navegación tabular
+// full-width debajo del bloque hero+info.
+type Tab =
+  | 'overview' | 'specs' | 'performance' | 'cleaning' | 'documents' | 'symbols'
+  | 'images' | 'parts' | 'options'
 type OptionsSubtab = 'bases' | 'frameColors' | 'glides'
 
 interface ProductDetailPageProps {
@@ -116,7 +121,6 @@ export default function ProductDetailPage({
   const manufacturer = enrichManufacturerForDetail(rawManufacturer)
 
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('images')
   const [optionsSubtab, setOptionsSubtab] = useState<OptionsSubtab>('bases')
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(
@@ -131,13 +135,20 @@ export default function ProductDetailPage({
   const hasStdFeatures = product.standardFeatures && product.standardFeatures.length > 0
   const hasOptFeatures = product.optionalFeatures && product.optionalFeatures.length > 0
 
-  const tabs: { id: Tab; label: string }[] = [
+  // Tab bar unificada · content-first tabs primero (Overview/Specs/etc),
+  // luego resources (Images/Parts/Options). Todas usan la misma UI · el
+  // user encuentra todo en un solo strip sin duplicaciones visuales.
+  type TabItem = { id: Tab; label: string; count?: number }
+  const tabs: TabItem[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'specs', label: 'Specs' },
     { id: 'performance', label: 'Performance' },
     { id: 'cleaning', label: 'Cleaning' },
-    { id: 'documents', label: 'Documents' },
+    { id: 'documents', label: 'Documents', count: product.documents.length },
     ...(hasSymbols ? [{ id: 'symbols' as Tab, label: 'Symbols' }] : []),
+    { id: 'images', label: 'Images', count: galleryPool.length },
+    { id: 'parts', label: 'Parts', count: product.parts?.length ?? 0 },
+    { id: 'options', label: 'Options' },
   ]
 
   return (
@@ -250,29 +261,28 @@ export default function ProductDetailPage({
             {/* Description · siempre visible arriba de las tabs (referente).
                 Antes vivía dentro del tab Overview · movida acá para que el
                 user tenga contexto sin cambiar de tab (Nielsen H1 · visibility). */}
-            <p className="mb-6 text-sm text-foreground leading-relaxed">
+            <p className="text-sm text-foreground leading-relaxed">
               {product.description}
             </p>
+          </div>
+        </div>
 
-            {/* Content tabs · underline pattern · las 6 secciones actuales. */}
-            <div className="border-b border-border flex gap-0 flex-wrap">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-primary text-foreground'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+        {/* ═══ Tab bar UNIFICADA · Fase P9 · integra las 6 tabs de contenido
+            (Overview/Specs/Performance/Cleaning/Documents/Symbols) con las
+            3 primary (Images/Parts/Options) en una sola navegación
+            full-width debajo del bloque hero+info. Elimina la duplicación
+            visual y evita al user preguntarse en qué barra buscar. ═══ */}
+        <section aria-label="Product details" className="mt-10">
+          <SegmentedTabs<Tab>
+            items={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+            variant="underline"
+            ariaLabel="Product content sections"
+          />
 
-            {/* Tab content · sin scroll interno (el layout completo scrollea). */}
-            <div className="py-5">
+          {/* Tab content · full-width abajo de la tab bar. */}
+          <div className="py-6">
               {activeTab === 'overview' && (
                 <div>
                   {/* Description movida arriba de las tabs (Fase P7) · el tab
@@ -396,27 +406,8 @@ export default function ProductDetailPage({
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
 
-        {/* ─── Tab strip primaria · Images/Parts/Options ─── */}
-        <section aria-label="Product resources" className="mt-12">
-          <SegmentedTabs<PrimaryTab>
-            items={[
-              { id: 'images',  label: 'Images',  count: galleryPool.length },
-              { id: 'parts',   label: 'Parts',   count: product.parts?.length ?? 0 },
-              { id: 'options', label: 'Options' },
-            ]}
-            value={primaryTab}
-            onChange={setPrimaryTab}
-            variant="underline"
-            ariaLabel="Product resources"
-          />
-
-          {/* Content · grids reales por tab. */}
-          <div className="mt-6">
-            {primaryTab === 'images' && (
+              {activeTab === 'images' && (
               galleryPool.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {galleryPool.map((img, i) => {
@@ -450,7 +441,7 @@ export default function ProductDetailPage({
               )
             )}
 
-            {primaryTab === 'parts' && (
+              {activeTab === 'parts' && (
               product.parts && product.parts.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {product.parts.map(part => (
@@ -495,7 +486,7 @@ export default function ProductDetailPage({
               )
             )}
 
-            {primaryTab === 'options' && (
+              {activeTab === 'options' && (
               <div>
                 {/* Subtabs Bases · Frame Colors · Glide · pill variant. */}
                 <SegmentedTabs<OptionsSubtab>
