@@ -26,7 +26,9 @@ import ColorwaySwatch from '../components/ColorwaySwatch'
 import CatalogVerifyPill from '../../components/ocr/CatalogVerifyPill'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import SegmentedTabs from '../components/SegmentedTabs'
+import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
 import { enrichProductForDetail } from '../data/mockProductFallbacks'
+import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 import { skuForProduct } from './catalogSku'
 
 type Tab = 'overview' | 'specs' | 'performance' | 'cleaning' | 'documents' | 'symbols'
@@ -103,11 +105,15 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 }
 
 export default function ProductDetailPage({
-  manufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer,
+  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer,
 }: ProductDetailPageProps) {
   // Enrich · aplica mock parts + options si el producto no los trae. Consumido
   // por las Fases P3-P6 (tab strip Images/Parts/Options).
   const product = enrichProductForDetail(rawProduct)
+  // Enrich del manufacturer · reusa el mock fallback del MRL Detail para
+  // tener Brand Resources + Contacts + Links siempre presentes en el
+  // InfoBar del col izq (mirror del sidebar del referente).
+  const manufacturer = enrichManufacturerForDetail(rawManufacturer)
 
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('images')
@@ -207,6 +213,13 @@ export default function ProductDetailPage({
                 />
               </div>
             )}
+
+            {/* Brand info · Contacts / Resources / Links del brand, reusando
+                el componente del MRL Detail (Fase P8 · Diego consistency
+                ask · el user debe encontrar los mismos accesos que en la
+                brand page). Se skipea a null si el manufacturer no tiene
+                ninguna de las 4 secciones. */}
+            <ManufacturerInfoBar manufacturer={manufacturer} layout="stack" />
           </div>
 
           {/* ─── Columna der · header + description + tab strip + content ─── */}
