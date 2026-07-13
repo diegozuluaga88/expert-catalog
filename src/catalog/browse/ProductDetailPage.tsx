@@ -381,15 +381,40 @@ export default function ProductDetailPage({
             ariaLabel="Product resources"
           />
 
-          {/* Content stubs · reemplazados por grids reales en Fases P4-P6. */}
+          {/* Content · grids reales por tab. */}
           <div className="mt-6">
             {primaryTab === 'images' && (
-              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-                <p className="text-sm text-foreground font-medium">Images grid</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {galleryPool.length} images · full-grid layout coming in Fase P4.
-                </p>
-              </div>
+              galleryPool.length > 0 ? (
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {galleryPool.map((img, i) => {
+                    const active = selectedImage === i
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedImage(i)}
+                        aria-label={`View image ${i + 1} of ${product.name}`}
+                        aria-pressed={active}
+                        className={`group relative aspect-square rounded-lg overflow-hidden bg-card border transition-all ${
+                          active
+                            ? 'border-primary ring-2 ring-primary/30'
+                            : 'border-border hover:border-primary/60 hover:ring-2 hover:ring-primary/30'
+                        }`}
+                      >
+                        <img
+                          src={img}
+                          alt={`${product.name} · view ${i + 1}`}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          draggable={false}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
+                  <p className="text-sm text-foreground font-medium">No images available</p>
+                </div>
+              )
             )}
 
             {primaryTab === 'parts' && (
