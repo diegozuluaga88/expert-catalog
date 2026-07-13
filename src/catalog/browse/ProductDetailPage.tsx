@@ -285,11 +285,11 @@ export default function ProductDetailPage({
               ariaLabel="Product content sections"
             />
 
-            {/* Content de las 6 tabs originales (text-heavy) · queda al
-                lado del hero. Los resource-tabs (Images/Parts/Options)
-                caen a full-width abajo · P11. */}
-            {!isResourceTab && (
-              <div className="py-6">
+            {/* Content de TODAS las tabs · queda al lado del hero (dentro
+                del col der debajo de la tab bar). Diego ask · el content
+                de resource-tabs también acá para que no aparezca huérfano
+                debajo del col izq (Fase P12 · 2026-07-10). */}
+            <div className="py-6">
                 {activeTab === 'overview' && (
                   <div>
                     {hasStdFeatures && (
@@ -413,18 +413,14 @@ export default function ProductDetailPage({
                 )}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Resource tab content · full-width debajo del grid principal.
-            Solo se renderiza cuando el user está en Images/Parts/Options ·
-            los grids necesitan aire horizontal (Images 6-col, Parts 4-col). */}
-        {isResourceTab && (
-        <section aria-label="Product resources" className="mt-8">
-          <div className="py-2">
+            {/* Content de resource-tabs (Images/Parts/Options) también
+                dentro del col der bajo la tab bar · Diego ask P12. Grids
+                ajustados a menos cols porque el col der ocupa ~50% del
+                ancho: Images 2/3, Parts 2/3, Options subtabs 2/3. */}
               {activeTab === 'images' && (
               galleryPool.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {galleryPool.map((img, i) => {
                     const active = selectedImage === i
                     return (
@@ -458,7 +454,7 @@ export default function ProductDetailPage({
 
               {activeTab === 'parts' && (
               product.parts && product.parts.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {product.parts.map(part => (
                     <div key={part.sku} className="flex flex-col">
                       {/* Card shell · mirror del CategoryCard (Nielsen H4 · consistency) */}
@@ -521,7 +517,7 @@ export default function ProductDetailPage({
                 {/* Bases · card grid con imagen + label descriptivo */}
                 {optionsSubtab === 'bases' && (
                   product.options?.bases && product.options.bases.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {product.options.bases.map(base => (
                         <div key={base.id} className="flex flex-col">
                           <div className="group relative aspect-square rounded-lg overflow-hidden bg-card border border-border transition-all hover:border-primary/60 hover:ring-2 hover:ring-primary/30">
@@ -550,7 +546,7 @@ export default function ProductDetailPage({
                 {/* Frame Colors · swatch grid con background hex + label */}
                 {optionsSubtab === 'frameColors' && (
                   product.options?.frameColors && product.options.frameColors.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {product.options.frameColors.map(fc => (
                         <div key={fc.id} className="flex flex-col">
                           <div
@@ -573,7 +569,7 @@ export default function ProductDetailPage({
                 {/* Glide · idéntico shell que Bases */}
                 {optionsSubtab === 'glides' && (
                   product.options?.glides && product.options.glides.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {product.options.glides.map(glide => (
                         <div key={glide.id} className="flex flex-col">
                           <div className="group relative aspect-square rounded-lg overflow-hidden bg-card border border-border transition-all hover:border-primary/60 hover:ring-2 hover:ring-primary/30">
@@ -601,8 +597,7 @@ export default function ProductDetailPage({
               </div>
             )}
           </div>
-        </section>
-        )}
+        </div>
       </div>
     </div>
   )
