@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:lib --prefix packages/strata-ds && vite build",
+    "build": "node scripts/scan-security.mjs && npm run build:lib --prefix packages/strata-ds && vite build",
+    "scan:security": "node scripts/scan-security.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "sync:tokens": "node scripts/sync-tokens.mjs",
