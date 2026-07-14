@@ -11,6 +11,7 @@
 
 import { useState } from 'react'
 import { ArrowsPointingOutIcon, ArrowDownTrayIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PlayIcon } from '@heroicons/react/24/solid'
 import type { Manufacturer } from '../types'
 
 interface ManufacturerHeroProps {
@@ -68,6 +69,29 @@ export default function ManufacturerHero({ manufacturer }: ManufacturerHeroProps
               {manufacturer.heroTagline}
             </span>
           </div>
+        )}
+
+        {/* Video overlay · si el brand marca heroIsVideo, la portada se
+            renderiza como thumbnail de video con play icon central + duration
+            badge (mock del referente MRL · Artcobell/Tayco). Diego decisión
+            2026-07-10 · el video vive SOLO en el hero, no en category cards. */}
+        {manufacturer.heroIsVideo && hasImage && (
+          <>
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-foreground/25 group-hover/hero:bg-foreground/15 transition-colors pointer-events-none"
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-background/85 backdrop-blur-sm shadow-lg ring-1 ring-border transition-transform duration-300 group-hover/hero:scale-110">
+                <PlayIcon className="h-7 w-7 text-foreground translate-x-0.5" />
+              </span>
+            </div>
+            {manufacturer.heroDuration && (
+              <div className="absolute bottom-3 right-3 inline-flex items-center rounded bg-foreground/80 backdrop-blur-sm px-2 py-0.5 text-[11px] font-semibold text-background tabular-nums shadow-md">
+                {manufacturer.heroDuration}
+              </div>
+            )}
+          </>
         )}
       </div>
 

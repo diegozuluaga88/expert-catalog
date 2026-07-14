@@ -232,6 +232,22 @@ export function enrichManufacturerForDetail(m: Manufacturer): Manufacturer {
         enriched.heroImage = pickOne(HERO_POOL, m.id)
     }
 
+    // Post-P12 · algunos brands reciben overlay video en el hero (mirror
+    // del referente MRL · algunas library entries son video, otras foto).
+    // Determinístico · ~1 de cada 3 brands por hash. Solo si el editor
+    // no forzó ya un valor.
+    if (enriched.heroIsVideo === undefined) {
+        const h = hash(m.id)
+        if (h % 3 === 0) {
+            enriched.heroIsVideo = true
+            // Duración pseudo-random entre 00:30 y 03:59.
+            const secs = 30 + (h % 210)
+            const mm = Math.floor(secs / 60).toString().padStart(2, '0')
+            const ss = (secs % 60).toString().padStart(2, '0')
+            enriched.heroDuration = `${mm}:${ss}`
+        }
+    }
+
     // Categorías · padding hasta TARGET_CATEGORIES con mock, respetando
     // los nombres/imágenes reales del brand cuando existan. Además, cada
     // categoría se padea internamente hasta TARGET_PRODUCTS_PER_CAT

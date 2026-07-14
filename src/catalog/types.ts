@@ -280,13 +280,11 @@ export interface Category {
   /** MRL Detail Fase D1 · sublabel debajo del label principal
    *  (ej. "Planters & Receptacles" del referente ALLE designs). */
   cardSubtitle?: string
-  /** MRL Detail post-D6 (2026-07-10) · marca la category card como "video".
-   *  En variant='photo', renderiza el thumbnail (cardImage) + overlay play
-   *  icon centrado + duration badge esquina (mock display · replica los
-   *  video modules del referente tipo Artcobell / Tayco). */
+  /** DEPRECATED (2026-07-10) · las category cards siempre son imagen ·
+   *  el concepto video se movió al hero del manufacturer (Manufacturer.
+   *  heroIsVideo). Mantengo los campos para no romper seed antiguo · no
+   *  se consumen visualmente. */
   isVideo?: boolean
-  /** MRL Detail post-D6 · duración mock del video, formato "MM:SS".
-   *  Solo se muestra si `isVideo === true`. */
   videoDuration?: string
 }
 
@@ -324,6 +322,12 @@ export interface Manufacturer {
   /** MRL Detail Fase D1 (2026-07-10) · tagline overlay del hero en la
    *  ManufacturerPage (ej. "Seating for an evolving world."). */
   heroTagline?: string
+  /** MRL Detail post-P12 (2026-07-10) · si true, el hero se renderiza con
+   *  overlay play + duration badge (mock del referente MRL · Artcobell,
+   *  Tayco). La imagen real sigue siendo `heroImage` (thumbnail del video). */
+  heroIsVideo?: boolean
+  /** MRL Detail post-P12 · duración mock del video, formato "MM:SS". */
+  heroDuration?: string
   /** MRL Detail Fase D1 · descripción rich-text en secciones · si viene,
    *  reemplaza el render de `description` como único párrafo. Cada bloque
    *  opcionalmente tiene un heading inline (Nielsen H8 · scannable). */
