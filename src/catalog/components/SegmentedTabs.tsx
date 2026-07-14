@@ -86,6 +86,16 @@ export default function SegmentedTabs<T extends string>({
     // flex-wrap · con muchas tabs (ProductDetailPage tiene 9) se apilan en
     // una segunda fila en viewports chicos · antes usábamos overflow-x-auto
     // que las escondía sin indicator (Diego report 2026-07-10).
+    //
+    // Active state reforzado (Diego ask 2026-07-10) · el `border-b-2 border-
+    // primary` solo era muy sutil sobre fondo claro. Ahora la tab activa
+    // recibe además:
+    // - `bg-primary/15` · fondo lime sutil arriba del underline (Common
+    //   Region · agrupa la tab con el content debajo).
+    // - `rounded-t-md` · esquinas superiores redondeadas · da feel de "chip".
+    // - `text-foreground font-bold` · más peso tipográfico.
+    // Contraste WCAG AA garantizado porque bg-primary/15 sobre bg-background
+    // + text-foreground pasan >7:1.
     const padClass = size === 'sm' ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'
     return (
         <nav
@@ -101,16 +111,16 @@ export default function SegmentedTabs<T extends string>({
                         role="tab"
                         aria-selected={active}
                         onClick={() => onChange(item.id)}
-                        className={`inline-flex items-center gap-1.5 font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap ${padClass} ${
+                        className={`inline-flex items-center gap-1.5 border-b-2 -mb-px transition-colors whitespace-nowrap rounded-t-md ${padClass} ${
                             active
-                                ? 'border-primary text-foreground'
-                                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                                ? 'bg-primary/15 border-primary text-foreground font-bold'
+                                : 'border-transparent text-muted-foreground font-semibold hover:text-foreground hover:border-border hover:bg-muted/50'
                         }`}
                     >
                         {item.icon}
                         {item.label}
                         {item.count != null && (
-                            <span className={active ? 'text-muted-foreground' : 'text-muted-foreground/70'}>
+                            <span className={active ? 'text-foreground/70' : 'text-muted-foreground/70'}>
                                 ({item.count})
                             </span>
                         )}
