@@ -368,8 +368,10 @@ export default function ProductDetailPage({
                             key={i}
                             className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
                           >
-                            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                              <DocumentArrowDownIcon className="w-5 h-5 text-destructive" />
+                            {/* Icon pill · fondo destructive pisado + icon en
+                                destructive-foreground · a11y refuerzo (Diego 2026-07-10). */}
+                            <div className="w-10 h-10 rounded-lg bg-destructive flex items-center justify-center shrink-0 ring-1 ring-destructive/40">
+                              <DocumentArrowDownIcon className="w-5 h-5 text-destructive-foreground" strokeWidth={2.2} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
@@ -396,8 +398,13 @@ export default function ProductDetailPage({
                           key={i}
                           className="w-full flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all group text-left"
                         >
-                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Square3Stack3DIcon className="w-5 h-5 text-primary" />
+                          {/* Icon pill · fondo lime pisado + icon en foreground
+                              (Diego a11y ask 2026-07-10). Antes bg-primary/10 +
+                              text-primary tenía contraste ~2:1 · falla WCAG AA
+                              para iconos. Ahora bg-primary + text-foreground
+                              (bold sobre lime) pasa AAA. */}
+                          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0 ring-1 ring-primary/40">
+                            <Square3Stack3DIcon className="w-5 h-5 text-foreground" strokeWidth={2.2} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground">{folder.name}</p>
