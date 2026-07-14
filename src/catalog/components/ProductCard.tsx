@@ -28,19 +28,22 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           </div>
         )}
 
-        {/* Colorways count badge */}
+        {/* Colorways count badge · Diego a11y ask (2026-07-10):
+            border-white / text-white / bg-black eran raw · reemplazados
+            por tokens semánticos (background/foreground) que respetan DS
+            y hacen swap en dark mode. */}
         {product.colorways.length > 0 && (
           <div className="absolute bottom-2 right-2 flex items-center gap-0.5">
             {product.colorways.slice(0, 5).map(cw => (
               <div
                 key={cw.code}
-                className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-sm"
+                className="w-3.5 h-3.5 rounded-full border border-background/70 shadow-sm"
                 style={{ backgroundColor: cw.hex }}
                 title={cw.name}
               />
             ))}
             {product.colorways.length > 5 && (
-              <span className="text-[9px] text-white bg-black/40 rounded-full px-1 ml-0.5">
+              <span className="text-[9px] text-background bg-foreground/50 backdrop-blur-sm rounded-full px-1 ml-0.5">
                 +{product.colorways.length - 5}
               </span>
             )}
@@ -48,9 +51,13 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         )}
       </div>
 
-      {/* Info */}
+      {/* Info · Diego a11y ask · el hover en text-primary (lime) sobre
+          bg-card blanco tenía contraste bajo (WCAG AA fail). Cambio a
+          underline dashed con decoration-primary en hover · el text-
+          foreground queda siempre AAA y el lime aparece solo como signal
+          en el underline (donde el 2px sí pasa AA). */}
       <div className="px-3 py-2.5">
-        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+        <p className="text-sm font-semibold text-foreground group-hover:underline group-hover:decoration-primary group-hover:decoration-2 group-hover:underline-offset-4 transition-all truncate">
           {product.name}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">

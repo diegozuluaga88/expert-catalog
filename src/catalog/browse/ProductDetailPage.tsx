@@ -96,12 +96,12 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
       {items.length > LIMIT && (
         <button
           onClick={() => setExpanded(e => !e)}
-          className="mt-2 flex items-center gap-1 text-xs text-primary font-medium hover:opacity-80 transition-opacity"
+          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-4 hover:decoration-4 transition-all"
         >
           {expanded ? (
-            <><ChevronUpIcon className="w-3.5 h-3.5" /> Show less</>
+            <><ChevronUpIcon className="w-3.5 h-3.5" strokeWidth={2.5} /> Show less</>
           ) : (
-            <><ChevronDownIcon className="w-3.5 h-3.5" /> {items.length - LIMIT} more...</>
+            <><ChevronDownIcon className="w-3.5 h-3.5" strokeWidth={2.5} /> {items.length - LIMIT} more…</>
           )}
         </button>
       )}
