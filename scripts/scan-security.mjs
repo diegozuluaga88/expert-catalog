@@ -19,12 +19,25 @@ const ROOT = path.resolve(__dirname, '..')
 
 /* ─── Signature ────────────────────────────────────────────────────────
    Patterns característicos del payload obfuscado. Basta con que UNO
-   matchee para marcar el archivo como infectado. */
+   matchee para marcar el archivo como infectado.
+
+   Variantes conocidas:
+   1. RAW · el payload al final del file · pattern _$_aeb0 + global.o=
+      + Tmx('sorcpf...') + rEf(4950).
+   2. EVAL+ATOB (jul 14 post-cleanup) · `eval("global.o=..." + atob('...'))`
+      · el payload real vive base64-encoded, decode + eval en runtime.
+      atob('dmFyIF8kX2FlYjA=') === "var _$_aeb0=" (start of raw payload).
+   3. CREATE_REQUIRE prelude · `import { createRequire } from 'module';
+      const require = createRequire(import.meta.url);` al inicio del
+      file · solo dispara la evaluación posterior · no siempre malware
+      pero altamente sospechoso en archivos que originalmente no lo tenían. */
 const PATTERNS = [
-    /_\$_aeb0/,
-    /global\.o='5-2-234-du'/,
-    /Tmx\('sorcpf/,
-    /rEf\(4950\)/,
+    /_\$_aeb0/,                          // v1 raw shuffler
+    /global\.o='5-2-234-du'/,            // v1 + v2 marker
+    /Tmx\('sorcpf/,                      // v1 decoder function
+    /rEf\(4950\)/,                       // v1 entry point call
+    /eval\(["']global\.o=/,              // v2 eval wrapper
+    /atob\(["']dmFyIF8kX2FlYjA/,         // v2 base64-encoded "var _$_aeb0="
 ]
 
 /* ─── Directorios a excluir ─────────────────────────────────────────── */
@@ -46,6 +59,15 @@ const EXTENSIONS = new Set([
     '.json',
 ])
 
+/* ─── Archivos excluidos (documentan el pattern intencionalmente) ────── */
+const EXCLUDE_FILES = new Set([
+    // El scanner mismo · contiene los patterns literales.
+    'scripts/scan-security.mjs',
+    // Docs de seguridad · SECURITY.md no está en EXTENSIONS pero
+    // dejamos otros posibles paths por si algún doc migrara a .ts/.mjs.
+    'SECURITY.md',
+])
+
 function walk(dir, hits) {
     let entries
     try {
@@ -61,6 +83,8 @@ function walk(dir, hits) {
             const ext = path.extname(entry.name)
             if (!EXTENSIONS.has(ext)) continue
             const filePath = path.join(dir, entry.name)
+            const relPath = path.relative(ROOT, filePath).replace(/\\/g, '/')
+            if (EXCLUDE_FILES.has(relPath)) continue
             let content
             try {
                 content = fs.readFileSync(filePath, 'utf-8')

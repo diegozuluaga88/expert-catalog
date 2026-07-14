@@ -13,7 +13,8 @@
 set -e
 
 # Pattern signature del payload conocido. Cualquier match aborta el commit.
-PATTERN='_\$_aeb0|global\.o='"'"'5-2-234-du'"'"'|Tmx\('"'"'sorcpf|rEf\(4950\)'
+# Cubre v1 (raw) y v2 (eval+atob) · ver scripts/scan-security.mjs y SECURITY.md.
+PATTERN='_\$_aeb0|global\.o='"'"'5-2-234-du'"'"'|Tmx\('"'"'sorcpf|rEf\(4950\)|eval\(["'"'"']global\.o=|atob\(["'"'"']dmFyIF8kX2FlYjA'
 
 # Solo escaneamos archivos staged para commit (fast + relevant).
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
@@ -24,6 +25,12 @@ fi
 
 HITS=""
 for f in $STAGED; do
+    # Excluir archivos que documentan intencionalmente el pattern.
+    case "$f" in
+        scripts/scan-security.mjs|SECURITY.md)
+            continue
+            ;;
+    esac
     # Solo aplica al patrón en archivos de código · skip binarios, imágenes, etc.
     case "$f" in
         *.mjs|*.cjs|*.js|*.ts|*.tsx|*.jsx|*.json|*.mts|*.cts)
