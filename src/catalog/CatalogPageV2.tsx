@@ -72,6 +72,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
             onSelectCategory={(c) =>
               navigate({ page: 'category', manufacturer: nav.manufacturer, category: c })
             }
+            variant="v2"
           />
         ) : null
       case 'category':

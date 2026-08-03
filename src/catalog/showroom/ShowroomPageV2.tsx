@@ -614,6 +614,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         <ManufacturerPage
           manufacturer={brandManufacturer}
           onBack={() => setBrandName(null)}
+          variant="v2"
           onSelectCategory={(c: Category) => {
             setTaxonomy(brandManufacturer.type === 'materials' ? 'materials' : 'products')
             setSelectedBrands(new Set([brandManufacturer.name]))

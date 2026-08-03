@@ -13,6 +13,7 @@ import type { Manufacturer, Category } from '../types'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import CategoryCard from '../components/CategoryCard'
 import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
+import ManufacturerInfoBarV2 from '../components/ManufacturerInfoBarV2'
 import ManufacturerHero from '../components/ManufacturerHero'
 import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 
@@ -20,9 +21,13 @@ interface ManufacturerPageProps {
   manufacturer: Manufacturer
   onBack: () => void
   onSelectCategory: (c: Category) => void
+  /** F50 · Etapa 7 (P4) · cuando llega `'v2'` renderea la InfoBar nueva
+   *  con la sección "Your dealer relationship" al top. Si no llega, cae en
+   *  la InfoBar v1 legacy (regla · v1 100% intocada). */
+  variant?: 'v1' | 'v2'
 }
 
-export default function ManufacturerPage({ manufacturer: raw, onBack, onSelectCategory }: ManufacturerPageProps) {
+export default function ManufacturerPage({ manufacturer: raw, onBack, onSelectCategory, variant = 'v1' }: ManufacturerPageProps) {
   // Aplica fallbacks mock a los campos vacíos para consistencia visual entre
   // brands populados y sparse (Diego ask · 2026-07-10). Determinístico por id.
   const manufacturer = enrichManufacturerForDetail(raw)
@@ -89,7 +94,11 @@ export default function ManufacturerPage({ manufacturer: raw, onBack, onSelectCa
                 Diego ask (2026-07-10) · las acciones/enlaces se pierden si
                 están full-width al fondo · quedan más visibles acá bajo la
                 descripción. */}
-            <ManufacturerInfoBar manufacturer={manufacturer} layout="stack" />
+            {variant === 'v2' ? (
+              <ManufacturerInfoBarV2 manufacturer={manufacturer} layout="stack" />
+            ) : (
+              <ManufacturerInfoBar manufacturer={manufacturer} layout="stack" />
+            )}
           </div>
 
           {/* ─── Columna der · category grid al costado del hero ─── */}
