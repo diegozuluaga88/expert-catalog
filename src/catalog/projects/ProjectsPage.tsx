@@ -1,18 +1,13 @@
-// F50 · Etapa 10 (P2 Project Builder) · v2 · página raíz del sub-tab
-// "My Projects". Alterna entre:
-//   · Lista de proyectos (grid de cards con thumbnail del canvas)
-//   · Editor del canvas para un proyecto específico
-//
-// Persist local vía useProjects. Sin backend.
+// F50 · Etapa 10 (rewrite list-based) · v2 · página raíz del sub-tab
+// "My Projects". Alterna entre lista de proyectos y detail view.
 
 import { useState } from 'react'
-import { Plus, ArrowLeft, Trash2, Copy, Pencil, FolderKanban } from 'lucide-react'
+import { Plus, Trash2, Copy, Pencil, FolderKanban, Home } from 'lucide-react'
 import { Button, EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } from 'strata-design-system'
-import { useProjects, type Project } from './useProjects'
-import ProjectCanvas from './ProjectCanvas'
+import { useProjects, projectTotalUnits, projectTotalLines, type Project } from './useProjects'
+import ProjectDetailView from './ProjectDetailView'
 import CreateProjectModal from './CreateProjectModal'
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
-import type { Product } from '../types'
 import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 export default function ProjectsPage() {
@@ -23,10 +18,15 @@ export default function ProjectsPage() {
         renameProject,
         deleteProject,
         duplicateProject,
+        addRoom,
+        renameRoom,
+        removeRoom,
+        addZone,
+        renameZone,
+        removeZone,
         addItem,
         updateItem,
         removeItem,
-        clearItems,
     } = useProjects()
 
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
@@ -36,15 +36,20 @@ export default function ProjectsPage() {
 
     if (activeProject) {
         return (
-            <ProjectCanvas
+            <ProjectDetailView
                 project={activeProject}
                 allProducts={UNIFIED_PRODUCTS}
                 onBack={() => setActiveProjectId(null)}
-                onAddItem={(input) => addItem(activeProject.id, input)}
+                onRename={(name) => renameProject(activeProject.id, name)}
+                onAddRoom={(name) => addRoom(activeProject.id, name)}
+                onRenameRoom={(roomId, name) => renameRoom(activeProject.id, roomId, name)}
+                onRemoveRoom={(roomId) => removeRoom(activeProject.id, roomId)}
+                onAddZone={(roomId, name) => addZone(activeProject.id, roomId, name)}
+                onRenameZone={(roomId, zoneId, name) => renameZone(activeProject.id, roomId, zoneId, name)}
+                onRemoveZone={(roomId, zoneId) => removeZone(activeProject.id, roomId, zoneId)}
+                onAddItem={(roomId, zoneId, productId, qty) => addItem(activeProject.id, roomId, zoneId, productId, qty)}
                 onUpdateItem={(itemId, patch) => updateItem(activeProject.id, itemId, patch)}
                 onRemoveItem={(itemId) => removeItem(activeProject.id, itemId)}
-                onClearItems={() => clearItems(activeProject.id)}
-                onRename={(name) => renameProject(activeProject.id, name)}
             />
         )
     }
@@ -55,7 +60,7 @@ export default function ProjectsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">My Projects</h1>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                        Build spatial moodboards for your clients · drag products from the catalog to a canvas.
+                        Structure a project as rooms and zones, add products with quantity, export as BOQ.
                     </p>
                 </div>
                 <Button onClick={() => setCreateModalOpen(true)}>
@@ -71,7 +76,7 @@ export default function ProjectsPage() {
                     </EmptyStateIcon>
                     <EmptyStateTitle>No projects yet</EmptyStateTitle>
                     <EmptyStateDescription>
-                        Create your first project to start placing products in a free canvas layout.
+                        Create your first project to start structuring products by room and zone.
                     </EmptyStateDescription>
                 </EmptyState>
             ) : (
@@ -111,8 +116,8 @@ export default function ProjectsPage() {
             <CreateProjectModal
                 open={createModalOpen}
                 onClose={() => setCreateModalOpen(false)}
-                onCreate={(name, canvas) => {
-                    const created = createProject(name, canvas)
+                onCreate={(name) => {
+                    const created = createProject(name)
                     setCreateModalOpen(false)
                     setActiveProjectId(created.id)
                 }}
@@ -130,73 +135,59 @@ interface ProjectCardProps {
 }
 
 function ProjectCard({ project, onOpen, onRename, onDelete, onDuplicate }: ProjectCardProps) {
-    const { canvas, items, updatedAt } = project
-    // Thumbnail: proyecta los items del canvas a un mini-SVG proporcional.
-    const thumbAspect = canvas.width / canvas.height
-    const thumbHeight = 160
-    const thumbWidth = Math.round(thumbHeight * thumbAspect)
+    const totalUnits = projectTotalUnits(project)
+    const totalLines = projectTotalLines(project)
+    // Preview · muestra hasta 3 nombres de room como pills.
+    const previewRooms = project.rooms.slice(0, 3)
+    const overflow = Math.max(0, project.rooms.length - previewRooms.length)
     return (
         <article className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card hover:border-foreground/20 hover:shadow-sm transition-all">
             <button
                 type="button"
                 onClick={onOpen}
-                className="relative block w-full overflow-hidden bg-muted"
-                style={{ aspectRatio: `${canvas.width} / ${canvas.height}` }}
+                className="block w-full flex-1 p-4 text-left"
                 aria-label={`Open project ${project.name}`}
             >
-                <svg
-                    viewBox={`0 0 ${canvas.width} ${canvas.height}`}
-                    preserveAspectRatio="xMidYMid meet"
-                    className="h-full w-full"
-                >
-                    <rect width={canvas.width} height={canvas.height} fill="var(--color-muted, #f4f4f5)" />
-                    {items.map((it) => {
-                        const product = UNIFIED_PRODUCTS.find((p) => p.id === it.productId)
-                        return (
-                            <g key={it.id} transform={`translate(${it.x} ${it.y})`}>
-                                <rect
-                                    width={it.width}
-                                    height={it.height}
-                                    fill="var(--color-card, #fff)"
-                                    stroke="var(--color-border, #e4e4e7)"
-                                    strokeWidth={2}
-                                    rx={8}
-                                />
-                                {product && (
-                                    <image
-                                        href={product.images[0]}
-                                        x={0}
-                                        y={0}
-                                        width={it.width}
-                                        height={it.height}
-                                        preserveAspectRatio="xMidYMid slice"
-                                    />
-                                )}
-                            </g>
-                        )
-                    })}
-                </svg>
-            </button>
-            <div className="flex flex-col gap-1 p-3">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-3">
+                    <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <FolderKanban className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                    </div>
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-foreground">{project.name}</p>
                         <p className="text-[11px] text-muted-foreground">
-                            {items.length} {items.length === 1 ? 'item' : 'items'} · updated {new Date(updatedAt).toLocaleDateString()}
+                            {totalLines} {totalLines === 1 ? 'line' : 'lines'} · {totalUnits} {totalUnits === 1 ? 'unit' : 'units'} · updated {new Date(project.updatedAt).toLocaleDateString()}
                         </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        <IconButton onClick={onRename} label="Rename">
-                            <Pencil className="h-3 w-3" />
-                        </IconButton>
-                        <IconButton onClick={onDuplicate} label="Duplicate">
-                            <Copy className="h-3 w-3" />
-                        </IconButton>
-                        <IconButton onClick={onDelete} label="Delete" danger>
-                            <Trash2 className="h-3 w-3" />
-                        </IconButton>
-                    </div>
                 </div>
+                {project.rooms.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                        {previewRooms.map((room) => (
+                            <span
+                                key={room.id}
+                                className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-foreground"
+                            >
+                                <Home className="h-2.5 w-2.5" aria-hidden="true" />
+                                <span className="truncate max-w-[100px]">{room.name}</span>
+                            </span>
+                        ))}
+                        {overflow > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                +{overflow} more
+                            </span>
+                        )}
+                    </div>
+                )}
+            </button>
+            <div className="flex items-center justify-end gap-0.5 border-t border-border bg-muted/30 px-2 py-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <IconButton onClick={onRename} label="Rename">
+                    <Pencil className="h-3 w-3" />
+                </IconButton>
+                <IconButton onClick={onDuplicate} label="Duplicate">
+                    <Copy className="h-3 w-3" />
+                </IconButton>
+                <IconButton onClick={onDelete} label="Delete" danger>
+                    <Trash2 className="h-3 w-3" />
+                </IconButton>
             </div>
         </article>
     )

@@ -1,57 +1,50 @@
-// F50 · Etapa 10 (P2 Project Builder) · v2 · hook de proyectos.
+// F50 · Etapa 10 · v2 · REWRITE (list-based) · Diego ask ·
+// descartar el canvas free-form (SVG drag-drop) por overhead técnico
+// innecesario para el DS. Nuevo shape: Project = jerarquía
+// rooms > zones > items con qty.
 //
-// Un Project es un canvas 2D con productos colocados libremente. Sirve
-// como moodboard espacial para presentar visión de un proyecto al
-// cliente final (Reception area, Executive office, etc.). No pretende
-// ser un CAD · las proporciones son abstractas (canvas 1200×800 units).
+// Ideal para plan de proyecto tipo Bill of Quantities: dealer arma un
+// proyecto declarando qué rooms hay ("Reception", "Executive Office"),
+// dentro de cada room qué zones ("Waiting area", "Meeting corner") y
+// dentro de cada zone qué productos con qty. Después se exporta como
+// PDF/CSV al cliente o al fabricante.
 //
-// Data model · un Project tiene:
-//   · id, name, createdAt, updatedAt · metadata
-//   · canvas: { width, height, background } · superficie del layout
-//   · items: PlacedItem[] · productos colocados con posición/tamaño
-//
-// PlacedItem:
-//   · id · uid del placement (permite mismo producto varias veces)
-//   · productId · match contra UNIFIED_PRODUCTS
-//   · x, y · esquina superior izquierda
-//   · width, height · tamaño del item en el canvas
-//   · rotation · 0/90/180/270 (opcional · MVP no lo expone en toolbar)
-//
-// Persist por-cliente en localStorage. Cuando exista backend, este
-// módulo se vuelve wrapper del endpoint real (POST /projects, PUT
-// /projects/:id, etc.).
+// Persist por-cliente en localStorage. Cuando exista backend, el hook
+// se vuelve wrapper del endpoint (POST/PUT /projects) sin cambio de
+// signature.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTenant } from '../../TenantContext'
 
-export interface PlacedItem {
+export interface ProjectItem {
     id: string
     productId: string
-    x: number
-    y: number
-    width: number
-    height: number
-    rotation?: number
+    qty: number
+    notes?: string
+    addedAt: string
 }
 
-export interface ProjectCanvas {
-    width: number
-    height: number
-    background?: string
+export interface Zone {
+    id: string
+    name: string
+    items: ProjectItem[]
+}
+
+export interface Room {
+    id: string
+    name: string
+    zones: Zone[]
 }
 
 export interface Project {
     id: string
     name: string
-    canvas: ProjectCanvas
-    items: PlacedItem[]
+    rooms: Room[]
     createdAt: string
     updatedAt: string
 }
 
-const STORAGE_KEY_PREFIX = 'catalog-projects-'
-export const DEFAULT_CANVAS: ProjectCanvas = { width: 1200, height: 800 }
-export const DEFAULT_ITEM_SIZE = { width: 140, height: 140 }
+const STORAGE_KEY_PREFIX = 'catalog-projects-v2-'
 
 function loadProjects(tenantSlug: string): Project[] {
     try {
@@ -77,27 +70,53 @@ function generateId(prefix: string): string {
     return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
 }
 
-export interface AddItemInput {
-    productId: string
-    /** Posición opcional · si no viene, se agrega en el centro del canvas
-     *  con offset progresivo para no apilar exacto. */
-    x?: number
-    y?: number
-    width?: number
-    height?: number
+function touch(p: Project): Project {
+    return { ...p, updatedAt: new Date().toISOString() }
+}
+
+/** Total de items (sumando qty) de un proyecto entero. */
+export function projectTotalUnits(project: Project): number {
+    let total = 0
+    for (const room of project.rooms) {
+        for (const zone of room.zones) {
+            for (const item of zone.items) {
+                total += item.qty
+            }
+        }
+    }
+    return total
+}
+
+/** Cantidad de items distintos (líneas) en el proyecto. */
+export function projectTotalLines(project: Project): number {
+    let total = 0
+    for (const room of project.rooms) {
+        for (const zone of room.zones) {
+            total += zone.items.length
+        }
+    }
+    return total
 }
 
 export interface UseProjectsReturn {
     projects: Project[]
     getProject: (id: string) => Project | undefined
-    createProject: (name: string, canvas?: ProjectCanvas) => Project
+    createProject: (name: string) => Project
     renameProject: (id: string, name: string) => void
     deleteProject: (id: string) => void
     duplicateProject: (id: string) => Project | null
-    addItem: (projectId: string, input: AddItemInput) => PlacedItem | null
-    updateItem: (projectId: string, itemId: string, patch: Partial<PlacedItem>) => void
+
+    addRoom: (projectId: string, name: string) => Room | null
+    renameRoom: (projectId: string, roomId: string, name: string) => void
+    removeRoom: (projectId: string, roomId: string) => void
+
+    addZone: (projectId: string, roomId: string, name: string) => Zone | null
+    renameZone: (projectId: string, roomId: string, zoneId: string, name: string) => void
+    removeZone: (projectId: string, roomId: string, zoneId: string) => void
+
+    addItem: (projectId: string, roomId: string, zoneId: string, productId: string, qty?: number) => ProjectItem | null
+    updateItem: (projectId: string, itemId: string, patch: Partial<Pick<ProjectItem, 'qty' | 'notes'>>) => void
     removeItem: (projectId: string, itemId: string) => void
-    clearItems: (projectId: string) => void
 }
 
 export function useProjects(): UseProjectsReturn {
@@ -115,15 +134,16 @@ export function useProjects(): UseProjectsReturn {
 
     const getProject = useCallback((id: string) => projects.find((p) => p.id === id), [projects])
 
-    const touch = (p: Project): Project => ({ ...p, updatedAt: new Date().toISOString() })
-
-    const createProject = useCallback((name: string, canvas?: ProjectCanvas): Project => {
+    const createProject = useCallback((name: string): Project => {
         const now = new Date().toISOString()
+        // Seed con una room + zone default para no arrancar en un empty
+        // absoluto (el user puede renombrarlas o borrarlas).
+        const defaultZone: Zone = { id: generateId('zn'), name: 'Default', items: [] }
+        const defaultRoom: Room = { id: generateId('rm'), name: 'Room 1', zones: [defaultZone] }
         const project: Project = {
             id: generateId('prj'),
             name: name.trim() || 'Untitled project',
-            canvas: canvas ? { ...canvas } : { ...DEFAULT_CANVAS },
-            items: [],
+            rooms: [defaultRoom],
             createdAt: now,
             updatedAt: now,
         }
@@ -150,7 +170,15 @@ export function useProjects(): UseProjectsReturn {
                 ...src,
                 id: generateId('prj'),
                 name: `${src.name} copy`,
-                items: src.items.map((it) => ({ ...it, id: generateId('itm') })),
+                rooms: src.rooms.map((r) => ({
+                    ...r,
+                    id: generateId('rm'),
+                    zones: r.zones.map((z) => ({
+                        ...z,
+                        id: generateId('zn'),
+                        items: z.items.map((it) => ({ ...it, id: generateId('it') })),
+                    })),
+                })),
                 createdAt: now,
                 updatedAt: now,
             }
@@ -160,27 +188,141 @@ export function useProjects(): UseProjectsReturn {
         [projects],
     )
 
+    const addRoom = useCallback((projectId: string, name: string): Room | null => {
+        const trimmed = name.trim()
+        if (!trimmed) return null
+        let created: Room | null = null
+        setProjects((prev) =>
+            prev.map((p) => {
+                if (p.id !== projectId) return p
+                const newRoom: Room = {
+                    id: generateId('rm'),
+                    name: trimmed,
+                    zones: [{ id: generateId('zn'), name: 'Default', items: [] }],
+                }
+                created = newRoom
+                return touch({ ...p, rooms: [...p.rooms, newRoom] })
+            }),
+        )
+        return created
+    }, [])
+
+    const renameRoom = useCallback((projectId: string, roomId: string, name: string) => {
+        const trimmed = name.trim()
+        if (!trimmed) return
+        setProjects((prev) =>
+            prev.map((p) => {
+                if (p.id !== projectId) return p
+                return touch({
+                    ...p,
+                    rooms: p.rooms.map((r) => (r.id === roomId ? { ...r, name: trimmed } : r)),
+                })
+            }),
+        )
+    }, [])
+
+    const removeRoom = useCallback((projectId: string, roomId: string) => {
+        setProjects((prev) =>
+            prev.map((p) => {
+                if (p.id !== projectId) return p
+                return touch({ ...p, rooms: p.rooms.filter((r) => r.id !== roomId) })
+            }),
+        )
+    }, [])
+
+    const addZone = useCallback((projectId: string, roomId: string, name: string): Zone | null => {
+        const trimmed = name.trim()
+        if (!trimmed) return null
+        let created: Zone | null = null
+        setProjects((prev) =>
+            prev.map((p) => {
+                if (p.id !== projectId) return p
+                return touch({
+                    ...p,
+                    rooms: p.rooms.map((r) => {
+                        if (r.id !== roomId) return r
+                        const newZone: Zone = { id: generateId('zn'), name: trimmed, items: [] }
+                        created = newZone
+                        return { ...r, zones: [...r.zones, newZone] }
+                    }),
+                })
+            }),
+        )
+        return created
+    }, [])
+
+    const renameZone = useCallback((projectId: string, roomId: string, zoneId: string, name: string) => {
+        const trimmed = name.trim()
+        if (!trimmed) return
+        setProjects((prev) =>
+            prev.map((p) => {
+                if (p.id !== projectId) return p
+                return touch({
+                    ...p,
+                    rooms: p.rooms.map((r) => {
+                        if (r.id !== roomId) return r
+                        return {
+                            ...r,
+                            zones: r.zones.map((z) => (z.id === zoneId ? { ...z, name: trimmed } : z)),
+                        }
+                    }),
+                })
+            }),
+        )
+    }, [])
+
+    const removeZone = useCallback((projectId: string, roomId: string, zoneId: string) => {
+        setProjects((prev) =>
+            prev.map((p) => {
+                if (p.id !== projectId) return p
+                return touch({
+                    ...p,
+                    rooms: p.rooms.map((r) => {
+                        if (r.id !== roomId) return r
+                        return { ...r, zones: r.zones.filter((z) => z.id !== zoneId) }
+                    }),
+                })
+            }),
+        )
+    }, [])
+
     const addItem = useCallback(
-        (projectId: string, input: AddItemInput): PlacedItem | null => {
-            let created: PlacedItem | null = null
+        (projectId: string, roomId: string, zoneId: string, productId: string, qty = 1): ProjectItem | null => {
+            let created: ProjectItem | null = null
             setProjects((prev) =>
                 prev.map((p) => {
                     if (p.id !== projectId) return p
-                    // Cuando no llega posición, offset progresivo desde el
-                    // centro para no apilar en el mismo pixel.
-                    const offset = (p.items.length % 8) * 24
-                    const w = input.width ?? DEFAULT_ITEM_SIZE.width
-                    const h = input.height ?? DEFAULT_ITEM_SIZE.height
-                    const item: PlacedItem = {
-                        id: generateId('itm'),
-                        productId: input.productId,
-                        x: input.x ?? Math.round((p.canvas.width - w) / 2 + offset),
-                        y: input.y ?? Math.round((p.canvas.height - h) / 2 + offset),
-                        width: w,
-                        height: h,
-                    }
-                    created = item
-                    return touch({ ...p, items: [...p.items, item] })
+                    return touch({
+                        ...p,
+                        rooms: p.rooms.map((r) => {
+                            if (r.id !== roomId) return r
+                            return {
+                                ...r,
+                                zones: r.zones.map((z) => {
+                                    if (z.id !== zoneId) return z
+                                    // Si el producto ya existe en la zone, incrementa qty en vez de duplicar.
+                                    const existing = z.items.find((it) => it.productId === productId)
+                                    if (existing) {
+                                        created = { ...existing, qty: existing.qty + qty }
+                                        return {
+                                            ...z,
+                                            items: z.items.map((it) =>
+                                                it.id === existing.id ? { ...it, qty: it.qty + qty } : it,
+                                            ),
+                                        }
+                                    }
+                                    const newItem: ProjectItem = {
+                                        id: generateId('it'),
+                                        productId,
+                                        qty,
+                                        addedAt: new Date().toISOString(),
+                                    }
+                                    created = newItem
+                                    return { ...z, items: [...z.items, newItem] }
+                                }),
+                            }
+                        }),
+                    })
                 }),
             )
             return created
@@ -188,29 +330,42 @@ export function useProjects(): UseProjectsReturn {
         [],
     )
 
-    const updateItem = useCallback((projectId: string, itemId: string, patch: Partial<PlacedItem>) => {
+    const updateItem = useCallback(
+        (projectId: string, itemId: string, patch: Partial<Pick<ProjectItem, 'qty' | 'notes'>>) => {
+            setProjects((prev) =>
+                prev.map((p) => {
+                    if (p.id !== projectId) return p
+                    return touch({
+                        ...p,
+                        rooms: p.rooms.map((r) => ({
+                            ...r,
+                            zones: r.zones.map((z) => ({
+                                ...z,
+                                items: z.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
+                            })),
+                        })),
+                    })
+                }),
+            )
+        },
+        [],
+    )
+
+    const removeItem = useCallback((projectId: string, itemId: string) => {
         setProjects((prev) =>
             prev.map((p) => {
                 if (p.id !== projectId) return p
                 return touch({
                     ...p,
-                    items: p.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
+                    rooms: p.rooms.map((r) => ({
+                        ...r,
+                        zones: r.zones.map((z) => ({
+                            ...z,
+                            items: z.items.filter((it) => it.id !== itemId),
+                        })),
+                    })),
                 })
             }),
-        )
-    }, [])
-
-    const removeItem = useCallback((projectId: string, itemId: string) => {
-        setProjects((prev) =>
-            prev.map((p) =>
-                p.id !== projectId ? p : touch({ ...p, items: p.items.filter((it) => it.id !== itemId) }),
-            ),
-        )
-    }, [])
-
-    const clearItems = useCallback((projectId: string) => {
-        setProjects((prev) =>
-            prev.map((p) => (p.id !== projectId ? p : touch({ ...p, items: [] }))),
         )
     }, [])
 
@@ -222,17 +377,32 @@ export function useProjects(): UseProjectsReturn {
             renameProject,
             deleteProject,
             duplicateProject,
+            addRoom,
+            renameRoom,
+            removeRoom,
+            addZone,
+            renameZone,
+            removeZone,
             addItem,
             updateItem,
             removeItem,
-            clearItems,
         }),
-        [projects, getProject, createProject, renameProject, deleteProject, duplicateProject, addItem, updateItem, removeItem, clearItems],
+        [
+            projects,
+            getProject,
+            createProject,
+            renameProject,
+            deleteProject,
+            duplicateProject,
+            addRoom,
+            renameRoom,
+            removeRoom,
+            addZone,
+            renameZone,
+            removeZone,
+            addItem,
+            updateItem,
+            removeItem,
+        ],
     )
-}
-
-/** Snap a un grid de N units. Devuelve el valor snap-eado. */
-export function snapToGrid(value: number, grid: number): number {
-    if (grid <= 1) return value
-    return Math.round(value / grid) * grid
 }
