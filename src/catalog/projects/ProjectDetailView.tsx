@@ -377,6 +377,11 @@ export default function ProjectDetailView({
                                 onQtyChange={handleQtyChange}
                                 onEditNotes={handleItemNotes}
                                 onRemoveItem={handleRemoveItem}
+                                onDropProduct={(zoneId, productId) => {
+                                    onAddItem(room.id, zoneId, productId, 1)
+                                    const p = allProducts.find((x) => x.id === productId)
+                                    addToast('success', `${p?.name ?? 'Product'} added to ${findZoneName(room.id, zoneId)}`)
+                                }}
                             />
                         ))
                     )}
@@ -397,11 +402,11 @@ export default function ProjectDetailView({
                         <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Product picker</h3>
                         {targetZone ? (
                             <p className="mb-2 text-[11px] text-foreground">
-                                Adding to <span className="font-bold">{findZoneName(targetZone.roomId, targetZone.zoneId)}</span>
+                                Adding to <span className="font-bold">{findZoneName(targetZone.roomId, targetZone.zoneId)}</span> · or drag to any zone.
                             </p>
                         ) : (
                             <p className="mb-2 text-[11px] text-muted-foreground">
-                                Adds to the first zone by default · click a zone to change target.
+                                Drag any product to a zone · or click <Plus className="inline h-2.5 w-2.5" /> to add to the first zone.
                             </p>
                         )}
                         <div className="relative">
@@ -430,9 +435,16 @@ export default function ProjectDetailView({
                         ) : (
                             pickerResults.map((p) => (
                                 <li key={p.id}>
-                                    <div className="group flex items-center gap-2 rounded-lg border border-border bg-background p-1.5 hover:border-foreground/20 hover:bg-muted transition-colors">
+                                    <div
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData('application/x-product-id', p.id)
+                                            e.dataTransfer.effectAllowed = 'copy'
+                                        }}
+                                        className="group flex cursor-grab items-center gap-2 rounded-lg border border-border bg-background p-1.5 hover:border-foreground/20 hover:bg-muted transition-colors active:cursor-grabbing"
+                                    >
                                         <div className="h-8 w-8 shrink-0 overflow-hidden rounded bg-muted">
-                                            <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+                                            <img src={p.images[0]} alt={p.name} className="h-full w-full object-cover" loading="lazy" draggable={false} />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground truncate">{p.brand}</p>
@@ -442,7 +454,7 @@ export default function ProjectDetailView({
                                             type="button"
                                             onClick={() => handleAddItem(p)}
                                             aria-label={`Add ${p.name} to project`}
-                                            title="Add 1 unit to selected zone"
+                                            title="Add 1 unit to targeted zone · or drag to a specific zone"
                                             className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground opacity-0 transition-all hover:bg-primary hover:text-primary-foreground group-hover:opacity-100"
                                         >
                                             <Plus className="h-3 w-3" />
@@ -477,6 +489,7 @@ interface RoomCardProps {
     onQtyChange: (itemId: string, delta: number, currentQty: number) => void
     onEditNotes: (item: ProjectItem, productName: string) => void
     onRemoveItem: (item: ProjectItem, productName: string) => void
+    onDropProduct: (zoneId: string, productId: string) => void
 }
 
 function RoomCard({
@@ -494,6 +507,7 @@ function RoomCard({
     onQtyChange,
     onEditNotes,
     onRemoveItem,
+    onDropProduct,
 }: RoomCardProps) {
     const roomLines = room.zones.reduce((s, z) => s + z.items.length, 0)
     return (
@@ -546,6 +560,7 @@ function RoomCard({
                             onQtyChange={onQtyChange}
                             onEditNotes={onEditNotes}
                             onRemoveItem={onRemoveItem}
+                            onDropProduct={(productId) => onDropProduct(zone.id, productId)}
                         />
                     ))}
                     <div className="p-2">
@@ -576,6 +591,7 @@ interface ZoneSectionProps {
     onQtyChange: (itemId: string, delta: number, currentQty: number) => void
     onEditNotes: (item: ProjectItem, productName: string) => void
     onRemoveItem: (item: ProjectItem, productName: string) => void
+    onDropProduct: (productId: string) => void
 }
 
 function ZoneSection({
@@ -588,9 +604,44 @@ function ZoneSection({
     onQtyChange,
     onEditNotes,
     onRemoveItem,
+    onDropProduct,
 }: ZoneSectionProps) {
+    const [isDragOver, setIsDragOver] = useState(false)
+
+    const handleDragOver = (e: React.DragEvent) => {
+        // Solo aceptar el drop si el dataTransfer tiene el type esperado.
+        // Verificamos types (no getData porque no está permitido en dragover).
+        if (e.dataTransfer.types.includes('application/x-product-id')) {
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'copy'
+            if (!isDragOver) setIsDragOver(true)
+        }
+    }
+    const handleDragLeave = (e: React.DragEvent) => {
+        // Solo se limpia si el pointer sale del section container (no cuando
+        // pasa entre hijos del section).
+        if (e.currentTarget === e.target) setIsDragOver(false)
+    }
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault()
+        setIsDragOver(false)
+        const productId = e.dataTransfer.getData('application/x-product-id')
+        if (productId) onDropProduct(productId)
+    }
+
     return (
-        <section className={`p-3 ${isTarget ? 'bg-primary/5' : ''}`}>
+        <section
+            className={`p-3 transition-colors ${
+                isDragOver
+                    ? 'bg-primary/10 ring-2 ring-inset ring-primary'
+                    : isTarget
+                    ? 'bg-primary/5'
+                    : ''
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
             <header className="mb-2 flex items-center gap-2">
                 <button
                     type="button"
@@ -632,8 +683,16 @@ function ZoneSection({
             </header>
 
             {zone.items.length === 0 ? (
-                <p className="rounded-md border border-dashed border-border bg-background px-3 py-4 text-center text-[11px] text-muted-foreground">
-                    No items yet · use the product picker on the right {isTarget ? 'to add here' : '(click the zone name to target it)'}.
+                <p
+                    className={`rounded-md border border-dashed px-3 py-4 text-center text-[11px] transition-colors ${
+                        isDragOver
+                            ? 'border-primary bg-primary/5 text-foreground font-semibold'
+                            : 'border-border bg-background text-muted-foreground'
+                    }`}
+                >
+                    {isDragOver
+                        ? `Drop here to add to "${zone.name}"`
+                        : `No items yet · drag a product from the picker or click the zone name and use +.`}
                 </p>
             ) : (
                 <ul className="space-y-1">
