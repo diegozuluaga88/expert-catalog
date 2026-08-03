@@ -8,7 +8,6 @@ import CategoryPage from './browse/CategoryPage'
 import ProductDetailPage from './browse/ProductDetailPage'
 import ShowroomPageV2 from './showroom/ShowroomPageV2'
 import QuotesPageV2 from '../quote/QuotesPageV2'
-import MiniCartDrawer from '../quote/MiniCartDrawer'
 import { useQuote } from '../quote/QuoteContext'
 import { TabInfoTrigger,
   TAB_INFO_MRL,
@@ -24,12 +23,13 @@ import AddToProjectModal from './projects/AddToProjectModal'
 import { useProjects } from './projects/useProjects'
 import { useToast, ToastContainer } from '../components/AuthToast'
 // F50 · sample flow (MRL adapt · 2026-08-03) · v2 · agregar materiales
-// desde MRL al draft de sample requests. El slide-over de tracking vive
-// en ShowroomPageV2 · desde MRL solo agregamos al draft y notificamos.
+// desde MRL al draft de sample requests.
 import { useSampleRequests } from './browse/useSampleRequests'
-// F50 · sample flow (2026-08-03) · v2 · widget flotante siempre visible
-// en cualquier vista del catálogo v2 · replica el pattern del MiniCartDrawer.
-import SampleMiniDrawer from './components/SampleMiniDrawer'
+// F50 · sample flow (unificación 2026-08-03) · v2 · widget flotante
+// UNIFICADO que reemplaza a MiniCartDrawer + SampleMiniDrawer para evitar
+// que 2 drawers se monten al mismo bottom-right. Tabs internas Selection
+// y Samples · si solo hay uno con content, va directo sin tabs bar.
+import WorkspaceDrawer from './components/WorkspaceDrawer'
 import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
@@ -221,17 +221,15 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
         })()}
       </div>
 
-      {(mode === 'showroom' || mode === 'quotes') && (
-        <MiniCartDrawer onViewQuote={() => setMode('quotes')} />
-      )}
-
-      {/* F50 · sample flow (2026-08-03) · v2 · widget flotante siempre
-          visible en cualquier vista del catálogo v2 (MRL root, deep MRL,
-          Product Catalog, My Selection, My Projects). Offset condicional
-          para dejar espacio al MiniCartDrawer cuando ambos coexisten. */}
-      <SampleMiniDrawer
-        onOpenTracking={() => setSampleTrackingOpen(true)}
-        offsetBottom={mode === 'showroom' || mode === 'quotes' ? 88 : 24}
+      {/* F50 · sample flow (unificación 2026-08-03) · v2 · reemplaza al
+          MiniCartDrawer + SampleMiniDrawer por un solo widget flotante
+          con tabs internas Selection / Samples. Siempre visible en cualquier
+          vista v2 (MRL root, deep MRL, Product Catalog, My Selection,
+          My Projects). Auto-open cuando se agrega al cart (pattern del
+          MiniCartDrawer preservado). */}
+      <WorkspaceDrawer
+        onViewSelection={() => setMode('quotes')}
+        onOpenSampleTracking={() => setSampleTrackingOpen(true)}
       />
       <SampleTrackingSlideOver
         open={sampleTrackingOpen}
