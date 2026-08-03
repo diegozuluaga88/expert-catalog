@@ -92,6 +92,19 @@ export interface UseSampleRequestsReturn {
     advanceStatus: (id: string) => void
 }
 
+// F50 · Etapa 11 (P5 polish) · CustomEvent pub/sub para sincronizar el
+// state entre múltiples instancias del hook (bug pre-existente · dos
+// consumers del hook mantenían state independiente y perdían sync al
+// hacer transitions desde una instancia). Los consumers que quieran
+// disparar notificaciones al advance escuchan el evento en window.
+export const SAMPLE_STATUS_CHANGE_EVENT = 'catalog:sample-status-change'
+
+export interface SampleStatusChangeDetail {
+    request: SampleRequest
+    previousStatus: SampleRequestStatus
+    tenantSlug: string
+}
+
 export function useSampleRequests(): UseSampleRequestsReturn {
     const { currentTenant } = useTenant()
     // Deriva un slug estable del tenant activo · fallback a "default" si
@@ -109,6 +122,22 @@ export function useSampleRequests(): UseSampleRequestsReturn {
         saveRequests(tenantSlug, requests)
     }, [tenantSlug, requests])
 
+    // F50 · Etapa 11 · escucha cambios de status disparados por otras
+    // instancias del hook (bug pre-existente donde el badge count no se
+    // actualizaba al avanzar el status desde el SlideOver). Cuando llega
+    // un evento del mismo tenant, recarga el state desde localStorage.
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent<SampleStatusChangeDetail>).detail
+            if (!detail) return
+            if (detail.tenantSlug === tenantSlug) {
+                setRequests(loadRequests(tenantSlug))
+            }
+        }
+        window.addEventListener(SAMPLE_STATUS_CHANGE_EVENT, handler)
+        return () => window.removeEventListener(SAMPLE_STATUS_CHANGE_EVENT, handler)
+    }, [tenantSlug])
+
     const createRequest = useCallback((input: CreateSampleRequestInput): SampleRequest => {
         const newRequest: SampleRequest = {
             id: generateId(),
@@ -125,24 +154,45 @@ export function useSampleRequests(): UseSampleRequestsReturn {
     }, [])
 
     const advanceStatus = useCallback((id: string) => {
-        setRequests((prev) =>
-            prev.map((r) => {
+        setRequests((prev) => {
+            const next = prev.map((r) => {
                 if (r.id !== id) return r
                 if (r.status === 'pending') {
                     return {
                         ...r,
-                        status: 'shipped',
+                        status: 'shipped' as SampleRequestStatus,
                         shippedAt: new Date().toISOString(),
                         carrierTracking: `1Z${Math.random().toString(36).slice(2, 12).toUpperCase()}`,
                     }
                 }
                 if (r.status === 'shipped') {
-                    return { ...r, status: 'delivered', deliveredAt: new Date().toISOString() }
+                    return { ...r, status: 'delivered' as SampleRequestStatus, deliveredAt: new Date().toISOString() }
                 }
                 return r
-            }),
-        )
-    }, [])
+            })
+            // Fire pub/sub event · dispara toast rico + sincroniza el
+            // state entre otras instancias del hook. Se hace después del
+            // update local para que los listeners lean del localStorage
+            // ya persistido (persist ocurre en el useEffect).
+            const previous = prev.find((r) => r.id === id)
+            const updated = next.find((r) => r.id === id)
+            if (previous && updated && previous.status !== updated.status) {
+                // requestAnimationFrame para que la persistencia (useEffect
+                // que corre después del setState) tenga chance de escribir
+                // localStorage antes de que los listeners lo relean.
+                requestAnimationFrame(() => {
+                    saveRequests(tenantSlug, next)
+                    const detail: SampleStatusChangeDetail = {
+                        request: updated,
+                        previousStatus: previous.status,
+                        tenantSlug,
+                    }
+                    window.dispatchEvent(new CustomEvent(SAMPLE_STATUS_CHANGE_EVENT, { detail }))
+                })
+            }
+            return next
+        })
+    }, [tenantSlug])
 
     const pendingCount = requests.filter((r) => r.status !== 'delivered').length
 
