@@ -27,6 +27,10 @@ import { useToast, ToastContainer } from '../components/AuthToast'
 // desde MRL al draft de sample requests. El slide-over de tracking vive
 // en ShowroomPageV2 · desde MRL solo agregamos al draft y notificamos.
 import { useSampleRequests } from './browse/useSampleRequests'
+// F50 · sample flow (2026-08-03) · v2 · widget flotante siempre visible
+// en cualquier vista del catálogo v2 · replica el pattern del MiniCartDrawer.
+import SampleMiniDrawer from './components/SampleMiniDrawer'
+import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
@@ -59,6 +63,9 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   const [addToProjectProduct, setAddToProjectProduct] = useState<Product | null>(null)
   const { projects, createProject, addItem: addItemToProject } = useProjects()
   const { toasts, addToast, dismissToast } = useToast()
+  // F50 · sample flow (2026-08-03) · state del SampleTrackingSlideOver
+  // global · lo abren tanto el mini drawer como el widget del sidebar.
+  const [sampleTrackingOpen, setSampleTrackingOpen] = useState(false)
   // F50 · sample flow (MRL adapt) · agrega el material al draft y
   // muestra un toast. El "Review draft" abre el tab Product Catalog
   // (que tiene el slide-over de tracking · ShowroomPageV2 lo monta).
@@ -217,6 +224,22 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
       {(mode === 'showroom' || mode === 'quotes') && (
         <MiniCartDrawer onViewQuote={() => setMode('quotes')} />
       )}
+
+      {/* F50 · sample flow (2026-08-03) · v2 · widget flotante siempre
+          visible en cualquier vista del catálogo v2 (MRL root, deep MRL,
+          Product Catalog, My Selection, My Projects). Offset condicional
+          para dejar espacio al MiniCartDrawer cuando ambos coexisten. */}
+      <SampleMiniDrawer
+        onOpenTracking={() => setSampleTrackingOpen(true)}
+        offsetBottom={mode === 'showroom' || mode === 'quotes' ? 88 : 24}
+      />
+      <SampleTrackingSlideOver
+        open={sampleTrackingOpen}
+        onClose={() => setSampleTrackingOpen(false)}
+        onSubmitted={(count) => {
+          addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
+        }}
+      />
 
       {/* F50 · Etapa 10.d (MRL adapt) · v2 · modal Add-to-project global
           para el flujo MRL (CategoryPage · ProductDetailPage). Se abre
