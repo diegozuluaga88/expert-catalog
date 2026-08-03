@@ -59,6 +59,9 @@ import VisualSearchModal from '../search/VisualSearchModal'
 import { useSessionActivity } from '../search/useSessionActivity'
 // F50 · sweep DS · dialogs provider para reemplazar window.prompt/confirm.
 import { useDialogs } from '../../components/dialogs/DialogsContext'
+// F50 · Etapa 10.d · v2 · agregar productos del catálogo a un project.
+import { useProjects } from '../projects/useProjects'
+import AddToProjectModal from '../projects/AddToProjectModal'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -236,6 +239,9 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   // reranker mock del palette. Se dispara desde onOpen de las cards.
   const { recordView } = useSessionActivity()
   const { prompt, confirm } = useDialogs()
+  // F50 · Etapa 10.d · v2 · projects para el modal Add-to-project.
+  const { projects, createProject, addItem: addItemToProject } = useProjects()
+  const [addToProjectProduct, setAddToProjectProduct] = useState<Product | null>(null)
   useEffect(() => {
     const isEditableTarget = (t: EventTarget | null): boolean => {
       if (!(t instanceof HTMLElement)) return false
@@ -1552,6 +1558,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             onQuickAdd={handleQuickAdd}
                             onRequestSwatch={handleRequestSwatch}
                             onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
+                            onAddToProject={(prod) => setAddToProjectProduct(prod)}
                           />
                         ))}
                       </div>
@@ -1580,6 +1587,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   onQuickAdd={handleQuickAdd}
                   onRequestSwatch={handleRequestSwatch}
                   onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
+                  onAddToProject={(prod) => setAddToProjectProduct(prod)}
                 />
               ))}
             </div>
@@ -1827,6 +1835,25 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         onOpenProduct={(id) => {
           recordView(id)
           setDetailId(id)
+        }}
+      />
+
+      {/* F50 · Etapa 10.d · v2 · modal para enviar un producto del catálogo
+          a un project · room · zone. Muestra la lista plana de combos
+          existentes + botón "New project" que crea uno con room/zone
+          default y agrega el producto ahí. */}
+      <AddToProjectModal
+        open={addToProjectProduct !== null}
+        onClose={() => setAddToProjectProduct(null)}
+        productName={addToProjectProduct?.name ?? ''}
+        projects={projects}
+        onCreateProject={(name) => createProject(name)}
+        onAdd={(projectId, roomId, zoneId) => {
+          if (!addToProjectProduct) return
+          addItemToProject(projectId, roomId, zoneId, addToProjectProduct.id, 1)
+          const projectName = projects.find((p) => p.id === projectId)?.name ?? 'project'
+          addToast('success', `${addToProjectProduct.name} added to ${projectName}`)
+          setAddToProjectProduct(null)
         }}
       />
 

@@ -1,4 +1,4 @@
-import { Star, Heart, Sparkles, Plus, Sliders, Ban, History, MapPin, Package } from 'lucide-react'
+import { Star, Heart, Sparkles, Plus, Sliders, Ban, History, MapPin, Package, FolderPlus } from 'lucide-react'
 import type { ItemStatus, Product } from '../types'
 import { resolveInternalSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs } from '../data/catalogs'
@@ -52,6 +52,9 @@ interface ProductCatalogCardV2Props {
   onRequestSwatch?: (product: Product) => void
   /** Opcional (Showroom Etapa 9): abrir el detalle rico al clic en imagen/nombre. */
   onOpen?: (product: Product) => void
+  /** F50 · Etapa 10.d · agregar el producto a un project via modal. Si el
+   *  prop no llega, el botón no se renderea (fallback seguro para v1). */
+  onAddToProject?: (product: Product) => void
 }
 
 export default function ProductCatalogCardV2({
@@ -64,6 +67,7 @@ export default function ProductCatalogCardV2({
   onQuickAdd,
   onRequestSwatch,
   onOpen,
+  onAddToProject,
 }: ProductCatalogCardV2Props) {
   // Reactive itemStatus · re-rendea cuando se sincroniza el catalog asociado
   const catalogs = useCatalogs()
@@ -270,6 +274,17 @@ export default function ProductCatalogCardV2({
             </button>
           ) : product.isMaterial && onRequestSwatch ? (
             <div className="inline-flex gap-1">
+              {onAddToProject && (
+                <button
+                  type="button"
+                  onClick={() => onAddToProject(product)}
+                  title="Add to a project"
+                  aria-label="Add to a project"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onConfigure(product)}
@@ -290,6 +305,17 @@ export default function ProductCatalogCardV2({
             </div>
           ) : (
             <div className="inline-flex gap-1">
+              {onAddToProject && (
+                <button
+                  type="button"
+                  onClick={() => onAddToProject(product)}
+                  title="Add to a project"
+                  aria-label="Add to a project"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onConfigure(product)}
