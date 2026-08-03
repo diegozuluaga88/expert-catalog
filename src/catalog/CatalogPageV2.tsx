@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LibraryBig, Store, FileText, FolderKanban } from 'lucide-react'
+import { LibraryBig, Store, FileText, FolderKanban, Sparkles } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
 import LibraryPage from './browse/LibraryPageV2'
@@ -31,12 +31,22 @@ import { useSampleRequests } from './browse/useSampleRequests'
 // y Samples · si solo hay uno con content, va directo sin tabs bar.
 import WorkspaceDrawer from './components/WorkspaceDrawer'
 import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
+// F51 · A.1 · P6 Inspiration Gallery · nuevo sub-tab greenfield con
+// installations + hotspot tagging + upload flow local (sin backend).
+import InspirationGalleryPage from './inspiration/InspirationGalleryPage'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
 // opciones. Base para las próximas iteraciones del refactor (Quick Wins,
 // Critical fixes) que ya no tocan v1.
-type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects'
+
+// F51 · A.1 · P6 Inspiration Gallery · feature flag. Si Jeff confirma
+// que la feature "out for this round" (§11 Q1 del reporte diagnostic),
+// basta con setear esto en false para esconder el tab y su ruta. El
+// código queda dormido, no se borra.
+const INSPIRATION_ENABLED = true
+
+type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects' | 'inspiration'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
 
 interface BrowseNav {
@@ -283,6 +293,15 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                 <FolderKanban className="h-4 w-4" />
                 My Projects
               </button>
+              {/* F51 · A.1 · P6 Inspiration Gallery · sub-tab greenfield.
+                  Detrás del feature flag INSPIRATION_ENABLED para poder
+                  esconderlo con 1 línea si Jeff confirma "out". */}
+              {INSPIRATION_ENABLED && (
+                <button type="button" onClick={() => setMode('inspiration')} className={tabClass(mode === 'inspiration')}>
+                  <Sparkles className="h-4 w-4" />
+                  Inspiration
+                </button>
+              )}
             </div>
           )
           const hideTopBar = mode === 'showroom'
@@ -295,6 +314,16 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                 <QuotesPageV2 onBack={() => setMode('showroom')} />
               ) : mode === 'projects' ? (
                 <ProjectsPage />
+              ) : mode === 'inspiration' && INSPIRATION_ENABLED ? (
+                <InspirationGalleryPage
+                  onNavigateToProduct={({ manufacturer, category, product }) => {
+                    // F51 · A.1 · jump del hotspot al binder del producto ·
+                    // navega a la vista MRL deep (ProductDetailPage) para
+                    // ver el producto en su binder original.
+                    setMode('browse')
+                    setNav({ page: 'product', manufacturer, category, product })
+                  }}
+                />
               ) : (
                 <ShowroomPageV2 headerAside={modeTabBar} />
               )}
