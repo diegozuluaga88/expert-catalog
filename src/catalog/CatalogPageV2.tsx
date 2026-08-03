@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LibraryBig, Store, FileText, FolderKanban } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
@@ -66,10 +66,24 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   // F50 · sample flow (2026-08-03) · state del SampleTrackingSlideOver
   // global · lo abren tanto el mini drawer como el widget del sidebar.
   const [sampleTrackingOpen, setSampleTrackingOpen] = useState(false)
+  // F50 · Add-another-material · el ShowroomPageV2 publica su taxonomy
+  // actual via CustomEvent 'expert-hub:showroom-taxonomy-changed'. Lo
+  // usamos para saber si el user ya está en la vista de materiales y
+  // renderizar botón directo (en vez del dropdown) en el slide-over.
+  const [showroomTaxonomy, setShowroomTaxonomy] = useState<'products' | 'materials' | 'spaces'>('products')
   // F50 · sample flow (MRL adapt) · agrega el material al draft y
   // muestra un toast. El "Review draft" abre el tab Product Catalog
   // (que tiene el slide-over de tracking · ShowroomPageV2 lo monta).
-  const { addToDraft: addSampleToDraft } = useSampleRequests()
+  // F50 · Add-another-material · draftItems se watchea para auto-reabrir
+  // el slide-over cuando el user hizo click en "Add another material" y
+  // luego agregó un nuevo material al draft.
+  const { addToDraft: addSampleToDraft, draftItems: sampleDraftItems } = useSampleRequests()
+  // Flag transitorio · se setea cuando el user hace click en "Browse ..."
+  // desde el slide-over y se limpia cuando el effect detecta que
+  // draftItems.length aumentó (o cuando el user vuelve a abrir el
+  // slide-over manualmente).
+  const reopenSampleDrawerRef = useRef(false)
+  const draftItemsCountRef = useRef(sampleDraftItems.length)
   const handleRequestSampleFromMRL = (product: Product) => {
     const firstColor = product.colorways?.[0]
     addSampleToDraft({
@@ -93,6 +107,74 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
     window.addEventListener('expert-hub:open-quotes', handler)
     return () => window.removeEventListener('expert-hub:open-quotes', handler)
   }, [])
+
+  // F50 · Add-another-material · sync de la taxonomy del ShowroomPageV2
+  // via CustomEvent. Se dispara al mount y en cada cambio de taxonomy.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ taxonomy?: 'products' | 'materials' | 'spaces' }>).detail
+      if (detail?.taxonomy) setShowroomTaxonomy(detail.taxonomy)
+    }
+    window.addEventListener('expert-hub:showroom-taxonomy-changed', handler)
+    return () => window.removeEventListener('expert-hub:showroom-taxonomy-changed', handler)
+  }, [])
+
+  // F50 · Add-another-material · si el user vino del slide-over al catálogo
+  // via "Browse ...", auto-reabre el slide-over apenas agregue al draft.
+  useEffect(() => {
+    const prev = draftItemsCountRef.current
+    draftItemsCountRef.current = sampleDraftItems.length
+    if (reopenSampleDrawerRef.current && sampleDraftItems.length > prev) {
+      setSampleTrackingOpen(true)
+      reopenSampleDrawerRef.current = false
+    }
+  }, [sampleDraftItems.length])
+
+  // F50 · Add-another-material · callbacks del dropdown. Cierran el
+  // slide-over, navegan si hace falta, y setean el reopen-flag. Son
+  // idempotent · si el user YA está en la vista destino, solo cierran el
+  // slide-over y lo dejan donde estaba (no resetean nav ni disparan el
+  // event de taxonomy). Esto es lo que respeta el "continue browsing" en
+  // vez de re-navegar al root.
+  const handleBrowseCatalogForSamples = () => {
+    reopenSampleDrawerRef.current = true
+    setSampleTrackingOpen(false)
+    if (mode !== 'showroom') {
+      setMode('showroom')
+      // Pequeño defer para que ShowroomPageV2 monte y su listener quede
+      // activo antes de dispararle el event de taxonomy.
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('expert-hub:set-showroom-taxonomy', {
+          detail: { taxonomy: 'materials' },
+        }))
+      }, 50)
+    } else if (showroomTaxonomy !== 'materials') {
+      // Ya está en showroom pero en otra taxonomy · switchear a materials.
+      window.dispatchEvent(new CustomEvent('expert-hub:set-showroom-taxonomy', {
+        detail: { taxonomy: 'materials' },
+      }))
+    }
+    // Si ya está en showroom + materials · solo se cierra el slide-over.
+  }
+  const handleBrowseMRLForSamples = () => {
+    reopenSampleDrawerRef.current = true
+    setSampleTrackingOpen(false)
+    if (mode !== 'browse') {
+      setMode('browse')
+      setNav({ page: 'library' })
+    }
+    // Si ya está en browse (cualquier deep MRL page), no toca el nav ·
+    // el user se queda donde estaba explorando.
+  }
+
+  // F50 · Add-another-material · contexto actual del user para que el
+  // slide-over decida: dropdown vs botón directo. Si el user ya está en
+  // MRL o en Product Catalog · Materials, botón directo "Continue
+  // browsing" en vez del dropdown.
+  const sampleBrowseContext: 'catalog-materials' | 'catalog-other' | 'mrl' | 'other' =
+    mode === 'browse' ? 'mrl'
+    : mode === 'showroom' ? (showroomTaxonomy === 'materials' ? 'catalog-materials' : 'catalog-other')
+    : 'other'
 
   const tabClass = (active: boolean) =>
     `flex items-center gap-2 h-9 px-4 rounded-full text-sm font-semibold transition-colors ${
@@ -237,6 +319,9 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
         onSubmitted={(count) => {
           addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
         }}
+        onBrowseCatalog={handleBrowseCatalogForSamples}
+        onBrowseMRL={handleBrowseMRLForSamples}
+        currentContext={sampleBrowseContext}
       />
 
       {/* F50 · Etapa 10.d (MRL adapt) · v2 · modal Add-to-project global

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { useQuote } from '../../quote/QuoteContext'
 import { useSampleRequests, type SampleRequest } from '../browse/useSampleRequests'
-import { formatPrice } from '../data/catalogues'
+import CartContent from '../../quote/CartContent'
 
 interface WorkspaceDrawerProps {
     /** Callback para navegar al sub-tab My Selection (QuotesPageV2). */
@@ -80,8 +80,6 @@ export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking 
 
     const cartHasItems = !!(activeDraft && activeDraft.items.length > 0)
     const cartUnits = activeDraft?.items.reduce((s, it) => s + it.qty, 0) ?? 0
-    const cartTotalPrice = activeDraft?.items.reduce((s, it) => s + it.totalPrice, 0) ?? 0
-    const cartLines = activeDraft?.items.length ?? 0
 
     const draftUnits = draftItems.reduce((s, it) => s + it.qty, 0)
     const pending = requests.filter((r) => r.status === 'pending')
@@ -190,16 +188,14 @@ export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking 
                 </div>
             )}
 
-            {/* Content · Selection */}
+            {/* Content · Selection · reusa el content COMPLETO del cart
+                (items list con qty stepper + edit variants + delete inline
+                + clear all + footer con totals + View Selection CTA) que
+                antes vivía en el MiniCartDrawer. Se preserva el mismo look
+                and feel que el user ya conocía. */}
             {(activeTab === 'selection' || !showTabs) && cartHasItems && (
-                <SelectionSummary
-                    activeDraftName={activeDraft?.name ?? 'Draft'}
-                    tenantName={activeDraft?.buyerInfo.tenant.name}
-                    justAddedCount={lastAdded?.itemCount ?? 0}
-                    isJustAdded={!!lastAdded}
-                    cartUnits={cartUnits}
-                    cartLines={cartLines}
-                    cartTotalPrice={cartTotalPrice}
+                <CartContent
+                    justAddedIds={lastAdded ? new Set(lastAdded.addedItems.map((i) => i.id)) : undefined}
                     onViewSelection={() => {
                         onViewSelection()
                         handleClose()
@@ -246,56 +242,6 @@ function TabButton({ active, onClick, label, count }: { active: boolean; onClick
                 {count}
             </span>
         </button>
-    )
-}
-
-/* ─── Selection summary tab ─────────────────────────────────────── */
-
-interface SelectionSummaryProps {
-    activeDraftName: string
-    tenantName?: string
-    justAddedCount: number
-    isJustAdded: boolean
-    cartUnits: number
-    cartLines: number
-    cartTotalPrice: number
-    onViewSelection: () => void
-}
-
-function SelectionSummary({ activeDraftName, tenantName, isJustAdded, cartUnits, cartLines, cartTotalPrice, onViewSelection }: SelectionSummaryProps) {
-    return (
-        <div className="px-4 py-3 space-y-3">
-            <div>
-                <p className="text-[11px] text-muted-foreground">
-                    {isJustAdded ? 'Added to' : 'Current draft'}
-                </p>
-                <p className="text-sm font-bold text-foreground truncate">
-                    {activeDraftName}
-                </p>
-                {tenantName && (
-                    <span className="mt-0.5 inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-foreground">
-                        {tenantName}
-                    </span>
-                )}
-            </div>
-
-            <div className="rounded-md border border-border bg-muted/30 p-2.5">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Selection total</div>
-                <div className="text-lg font-bold text-foreground tabular-nums">{formatPrice(cartTotalPrice)}</div>
-                <div className="text-[10px] text-muted-foreground">
-                    {cartUnits} {cartUnits === 1 ? 'unit' : 'units'} · {cartLines} {cartLines === 1 ? 'line' : 'lines'}
-                </div>
-            </div>
-
-            <button
-                type="button"
-                onClick={onViewSelection}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-                View Selection
-                <ArrowUpRight className="h-3 w-3" />
-            </button>
-        </div>
     )
 }
 

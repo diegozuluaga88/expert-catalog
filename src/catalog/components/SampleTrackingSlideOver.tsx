@@ -11,7 +11,8 @@
 // (sections claras: qué falta enviar vs qué está en camino).
 
 import { useState } from 'react'
-import { Package, Truck, CheckCircle2, X, ExternalLink, Plus, Minus, Send, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Package, Truck, CheckCircle2, X, ExternalLink, Plus, Minus, Send, MapPin, Pencil, Trash2, ChevronDown, Store, LibraryBig } from 'lucide-react'
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
     SlideOver,
     SlideOverHeader,
@@ -34,9 +35,21 @@ interface SampleTrackingSlideOverProps {
     onClose: () => void
     /** Toast callback opcional para notificar submit batch al padre. */
     onSubmitted?: (count: number) => void
+    /** F50 · Add-another-material · navega al Product Catalog con taxonomy
+     *  = Materials pre-seteado. El consumer cierra el slide-over y setea el
+     *  reopen-flag para que se re-abra cuando el user agregue al draft. */
+    onBrowseCatalog?: () => void
+    /** F50 · Add-another-material · navega al MRL Library. Idem reopen-flag. */
+    onBrowseMRL?: () => void
+    /** F50 · Add-another-material · contexto actual del user cuando se abrió
+     *  el slide-over. Si ya está en una vista de materiales, en vez de un
+     *  dropdown con 2 opciones se muestra un botón directo que solo cierra
+     *  el slide-over (y mantiene el contexto). Si viene de otra vista
+     *  (My Selection · My Projects) sí se muestra el dropdown para elegir. */
+    currentContext?: 'catalog-materials' | 'catalog-other' | 'mrl' | 'other'
 }
 
-export default function SampleTrackingSlideOver({ open, onClose, onSubmitted }: SampleTrackingSlideOverProps) {
+export default function SampleTrackingSlideOver({ open, onClose, onSubmitted, onBrowseCatalog, onBrowseMRL, currentContext = 'other' }: SampleTrackingSlideOverProps) {
     const {
         requests,
         draftItems,
@@ -227,6 +240,105 @@ export default function SampleTrackingSlideOver({ open, onClose, onSubmitted }: 
                                         </p>
                                     )}
                                 </div>
+
+                                {/* F50 · Add-another-material · si el user ya
+                                    está en una vista de materiales (MRL o
+                                    Product Catalog · Materials), botón
+                                    directo que solo cierra el slide-over
+                                    (mantiene el contexto donde estaba). Si
+                                    viene de otra vista, dropdown con 2
+                                    opciones para elegir. El auto-reopen del
+                                    slide-over cuando el user agrega al
+                                    draft lo maneja el CatalogPageV2 vía
+                                    reopen-flag. */}
+                                {(() => {
+                                    if (!onBrowseCatalog && !onBrowseMRL) return null
+
+                                    // Ya está en una vista de materiales · botón directo
+                                    if (currentContext === 'catalog-materials' && onBrowseCatalog) {
+                                        return (
+                                            <button
+                                                type="button"
+                                                onClick={onBrowseCatalog}
+                                                className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-background/60 px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-muted hover:text-foreground"
+                                            >
+                                                <Store className="h-3.5 w-3.5" />
+                                                Continue browsing Product Catalog
+                                            </button>
+                                        )
+                                    }
+                                    if (currentContext === 'mrl' && onBrowseMRL) {
+                                        return (
+                                            <button
+                                                type="button"
+                                                onClick={onBrowseMRL}
+                                                className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-background/60 px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-muted hover:text-foreground"
+                                            >
+                                                <LibraryBig className="h-3.5 w-3.5" />
+                                                Continue browsing MRL Library
+                                            </button>
+                                        )
+                                    }
+
+                                    // Otra vista · dropdown con las 2 opciones
+                                    return (
+                                        <div className="mb-2">
+                                            <Menu as="div" className="relative w-full">
+                                                <MenuButton
+                                                    type="button"
+                                                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-background/60 px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-muted hover:text-foreground"
+                                                >
+                                                    <Plus className="h-3.5 w-3.5" />
+                                                    Add another material
+                                                    <ChevronDown className="h-3 w-3" />
+                                                </MenuButton>
+                                                <MenuItems
+                                                    anchor="bottom"
+                                                    className="z-[100] mt-1 w-[--button-width] origin-top rounded-md border border-border bg-card p-1 shadow-lg ring-1 ring-black/5 focus:outline-none"
+                                                >
+                                                    {onBrowseCatalog && (
+                                                        <MenuItem>
+                                                            {({ focus }) => (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={onBrowseCatalog}
+                                                                    className={`flex w-full items-start gap-2 rounded px-2 py-2 text-left text-xs transition-colors ${
+                                                                        focus ? 'bg-muted' : ''
+                                                                    }`}
+                                                                >
+                                                                    <Store className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                                                                    <span className="min-w-0 flex-1">
+                                                                        <span className="block font-semibold text-foreground">Browse Product Catalog</span>
+                                                                        <span className="block text-[10px] text-muted-foreground">Materials tab · grid con filtros</span>
+                                                                    </span>
+                                                                </button>
+                                                            )}
+                                                        </MenuItem>
+                                                    )}
+                                                    {onBrowseMRL && (
+                                                        <MenuItem>
+                                                            {({ focus }) => (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={onBrowseMRL}
+                                                                    className={`flex w-full items-start gap-2 rounded px-2 py-2 text-left text-xs transition-colors ${
+                                                                        focus ? 'bg-muted' : ''
+                                                                    }`}
+                                                                >
+                                                                    <LibraryBig className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                                                                    <span className="min-w-0 flex-1">
+                                                                        <span className="block font-semibold text-foreground">Browse MRL Library</span>
+                                                                        <span className="block text-[10px] text-muted-foreground">Manufacturers de materials</span>
+                                                                    </span>
+                                                                </button>
+                                                            )}
+                                                        </MenuItem>
+                                                    )}
+                                                </MenuItems>
+                                            </Menu>
+                                        </div>
+                                    )
+                                })()}
 
                                 <Button
                                     onClick={handleSubmitDraft}

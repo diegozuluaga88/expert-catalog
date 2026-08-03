@@ -230,6 +230,29 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   useEffect(() => {
     resetCatalogs()
   }, [])
+  // F50 · Add-another-material · escucha el evento del CatalogPageV2 cuando el
+  // user hizo click en "Browse Product Catalog" desde el SampleTrackingSlideOver.
+  // Setea la taxonomía a Materials sin pasar por el confirmSwitch (el user ya
+  // eligió explícitamente ir a materials).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ taxonomy?: Taxonomy }>).detail
+      if (detail?.taxonomy && detail.taxonomy !== taxonomy) {
+        setTaxonomy(detail.taxonomy)
+      }
+    }
+    window.addEventListener('expert-hub:set-showroom-taxonomy', handler)
+    return () => window.removeEventListener('expert-hub:set-showroom-taxonomy', handler)
+  }, [taxonomy])
+  // F50 · Add-another-material · publica la taxonomy actual para que
+  // CatalogPageV2 sepa si el user ya está en Materials (y renderice el
+  // botón "Continue browsing" en vez del dropdown). Se dispara al mount
+  // y en cada cambio.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('expert-hub:showroom-taxonomy-changed', {
+      detail: { taxonomy },
+    }))
+  }, [taxonomy])
   const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set())
   const [selectedPrices, setSelectedPrices] = useState<Set<string>>(new Set())
   // F50 · Wave 2 (extensión) · rango custom de precios que coexiste con los
