@@ -57,6 +57,8 @@ import { Share2, LayoutGrid, Palette, Tag, Wand2 } from 'lucide-react'
 import SearchCommandPalette from '../search/SearchCommandPalette'
 import VisualSearchModal from '../search/VisualSearchModal'
 import { useSessionActivity } from '../search/useSessionActivity'
+// F50 · sweep DS · dialogs provider para reemplazar window.prompt/confirm.
+import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -233,6 +235,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   // Session activity tracker · registra vistas de productos para el
   // reranker mock del palette. Se dispara desde onOpen de las cards.
   const { recordView } = useSessionActivity()
+  const { prompt, confirm } = useDialogs()
   useEffect(() => {
     const isEditableTarget = (t: EventTarget | null): boolean => {
       if (!(t instanceof HTMLElement)) return false
@@ -968,9 +971,14 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            const nextName = window.prompt('Rename collection', c.name)
-                            if (nextName && nextName.trim()) renameCollection(c.id, nextName)
+                          onClick={async () => {
+                            const nextName = await prompt({
+                              title: 'Rename collection',
+                              label: 'Collection name',
+                              initialValue: c.name,
+                              submitLabel: 'Save',
+                            })
+                            if (nextName) renameCollection(c.id, nextName)
                           }}
                           aria-label={`Rename ${c.name}`}
                           title="Rename collection"
@@ -980,8 +988,14 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Delete "${c.name}"? Products stay in the catalog.`)) {
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: `Delete "${c.name}"?`,
+                              description: 'Products stay in the catalog. Only the collection grouping is removed.',
+                              confirmLabel: 'Delete collection',
+                              danger: true,
+                            })
+                            if (ok) {
                               if (activeCollectionFilter === c.id) setActiveCollectionFilter(null)
                               deleteCollection(c.id)
                             }
@@ -999,9 +1013,14 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
               )}
               <button
                 type="button"
-                onClick={() => {
-                  const name = window.prompt('New collection name')
-                  if (name && name.trim()) createCollection(name)
+                onClick={async () => {
+                  const name = await prompt({
+                    title: 'New collection',
+                    label: 'Collection name',
+                    placeholder: 'e.g. Lounge Chairs',
+                    submitLabel: 'Create collection',
+                  })
+                  if (name) createCollection(name)
                 }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >

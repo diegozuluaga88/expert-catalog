@@ -13,6 +13,7 @@ import ProjectCanvas from './ProjectCanvas'
 import CreateProjectModal from './CreateProjectModal'
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 import type { Product } from '../types'
+import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 export default function ProjectsPage() {
     const {
@@ -31,6 +32,7 @@ export default function ProjectsPage() {
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
     const [createModalOpen, setCreateModalOpen] = useState(false)
     const activeProject = activeProjectId ? getProject(activeProjectId) : undefined
+    const { prompt, confirm } = useDialogs()
 
     if (activeProject) {
         return (
@@ -79,14 +81,23 @@ export default function ProjectsPage() {
                             key={p.id}
                             project={p}
                             onOpen={() => setActiveProjectId(p.id)}
-                            onRename={() => {
-                                const name = window.prompt('Rename project', p.name)
-                                if (name && name.trim()) renameProject(p.id, name)
+                            onRename={async () => {
+                                const name = await prompt({
+                                    title: 'Rename project',
+                                    label: 'Project name',
+                                    initialValue: p.name,
+                                    submitLabel: 'Save',
+                                })
+                                if (name) renameProject(p.id, name)
                             }}
-                            onDelete={() => {
-                                if (window.confirm(`Delete "${p.name}"? This can't be undone.`)) {
-                                    deleteProject(p.id)
-                                }
+                            onDelete={async () => {
+                                const ok = await confirm({
+                                    title: `Delete "${p.name}"?`,
+                                    description: "This action can't be undone.",
+                                    confirmLabel: 'Delete',
+                                    danger: true,
+                                })
+                                if (ok) deleteProject(p.id)
                             }}
                             onDuplicate={() => {
                                 const copy = duplicateProject(p.id)

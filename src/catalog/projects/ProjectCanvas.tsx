@@ -18,6 +18,7 @@ import type { Project, PlacedItem, AddItemInput } from './useProjects'
 import { snapToGrid, DEFAULT_ITEM_SIZE } from './useProjects'
 import type { Product } from '../types'
 import { useToast, ToastContainer } from '../../components/AuthToast'
+import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 const GRID_SIZE = 20
 
@@ -48,6 +49,7 @@ export default function ProjectCanvas({
     const [snap, setSnap] = useState(true)
     const [pickerQuery, setPickerQuery] = useState('')
     const { toasts, addToast, dismissToast } = useToast()
+    const { prompt, confirm } = useDialogs()
 
     // Deselecciona al Escape · Delete borra el item seleccionado
     useEffect(() => {
@@ -199,9 +201,14 @@ export default function ProjectCanvas({
                 <div className="h-6 w-px bg-border" />
                 <button
                     type="button"
-                    onClick={() => {
-                        const next = window.prompt('Rename project', name)
-                        if (next && next.trim()) onRename(next)
+                    onClick={async () => {
+                        const next = await prompt({
+                            title: 'Rename project',
+                            label: 'Project name',
+                            initialValue: name,
+                            submitLabel: 'Save',
+                        })
+                        if (next) onRename(next)
                     }}
                     className="rounded-md px-2 py-1 text-sm font-bold text-foreground hover:bg-muted transition-colors"
                     title="Click to rename"
@@ -227,9 +234,15 @@ export default function ProjectCanvas({
                     </button>
                     <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                             if (items.length === 0) return
-                            if (window.confirm('Clear all items from the canvas?')) {
+                            const ok = await confirm({
+                                title: 'Clear all items from the canvas?',
+                                description: `${items.length} ${items.length === 1 ? 'item' : 'items'} will be removed. The project itself stays.`,
+                                confirmLabel: 'Clear canvas',
+                                danger: true,
+                            })
+                            if (ok) {
                                 onClearItems()
                                 setSelectedId(null)
                             }

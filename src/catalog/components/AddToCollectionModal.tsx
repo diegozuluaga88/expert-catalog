@@ -13,6 +13,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import { X, Check, FolderPlus, Trash2 } from 'lucide-react'
 import { Button, Input } from 'strata-design-system'
 import type { Collection } from '../browse/useCollections'
+import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 interface AddToCollectionModalProps {
     open: boolean
@@ -39,6 +40,7 @@ export default function AddToCollectionModal({
 }: AddToCollectionModalProps) {
     const [newName, setNewName] = useState('')
     const [creatingIntent, setCreatingIntent] = useState(false)
+    const { confirm } = useDialogs()
 
     useEffect(() => {
         if (!open) {
@@ -153,10 +155,14 @@ export default function AddToCollectionModal({
                                                 {onDeleteCollection && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            if (window.confirm(`Delete "${c.name}"? Products stay in the catalog.`)) {
-                                                                onDeleteCollection(c.id)
-                                                            }
+                                                        onClick={async () => {
+                                                            const ok = await confirm({
+                                                                title: `Delete "${c.name}"?`,
+                                                                description: 'Products stay in the catalog. Only the collection grouping is removed.',
+                                                                confirmLabel: 'Delete collection',
+                                                                danger: true,
+                                                            })
+                                                            if (ok) onDeleteCollection(c.id)
                                                         }}
                                                         aria-label={`Delete ${c.name}`}
                                                         title="Delete collection"

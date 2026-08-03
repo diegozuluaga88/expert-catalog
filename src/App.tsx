@@ -10,6 +10,9 @@ import CatalogPageV2 from "./catalog/CatalogPageV2"
 // la URL trae `?share=...&sig=...`. NO requiere login (patrón "send to
 // end client"). Se intercala antes del login-check del App.
 import CollectionShareView from "./catalog/browse/CollectionShareView"
+// F50 · sweep DS · provider global de prompt/confirm modales DS-compliant.
+// Reemplaza los window.prompt/window.confirm nativos.
+import { DialogsProvider } from "./components/dialogs/DialogsContext"
 import Transactions from "./Transactions"
 import OrderDetail from "./OrderDetail"
 import AckDetail from "./AckDetail"
@@ -155,6 +158,7 @@ function App() {
 
   return (
     <CatalogVersionProvider>
+      <DialogsProvider>
       <div className="min-h-screen bg-background text-foreground">
         {renderPage()}
         <SessionExpiryModal
@@ -176,6 +180,7 @@ function App() {
             También scoped al catalog ya que es relevante solo en ese contexto. */}
         {currentPage === 'catalog' && <EditQuoteItemPanel />}
       </div>
+      </DialogsProvider>
     </CatalogVersionProvider>
   )
 }
