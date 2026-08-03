@@ -64,8 +64,15 @@ interface SearchCommandPaletteProps {
     onOpenBrand: (brandName: string) => void
     /** Se llama al elegir una categoría de los resultados. */
     onOpenCategory: (category: string) => void
-    /** Se llama para abrir el visual search stub. */
-    onOpenVisualSearch: () => void
+    /** Se llama para abrir el visual search stub. Cuando `showVisualSearch`
+     *  es false, este handler no se invoca (el botón cámara se oculta). */
+    onOpenVisualSearch?: () => void
+    /** F50 · Etapa 9 (extensión MRL) · si false, oculta el botón cámara de
+     *  visual search. Default true. Se pasa false desde LibraryPageV2 porque
+     *  el visual search apunta a productos y el MRL indexa por fabricante. */
+    showVisualSearch?: boolean
+    /** Placeholder personalizable. Default apropiado para Product Catalog. */
+    placeholder?: string
 }
 
 const MAX_PER_GROUP = 5
@@ -81,6 +88,8 @@ export default function SearchCommandPalette({
     onOpenBrand,
     onOpenCategory,
     onOpenVisualSearch,
+    showVisualSearch = true,
+    placeholder = 'Search products, brands, categories · try "chairs under $500 quickship"',
 }: SearchCommandPaletteProps) {
     const [query, setQuery] = useState('')
     const { history, push: pushHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory()
@@ -227,19 +236,21 @@ export default function SearchCommandPalette({
                                             else handleApplyFreeText()
                                         }
                                     }}
-                                    placeholder='Search products, brands, categories · try "chairs under $500 quickship"'
+                                    placeholder={placeholder}
                                     className="flex-1 bg-transparent py-4 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
                                     aria-label="Search catalog"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={onOpenVisualSearch}
-                                    aria-label="Visual search (upload an image)"
-                                    title="Visual search · upload an image to find similar products"
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                                >
-                                    <Camera className="h-4 w-4" />
-                                </button>
+                                {showVisualSearch && onOpenVisualSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={onOpenVisualSearch}
+                                        aria-label="Visual search (upload an image)"
+                                        title="Visual search · upload an image to find similar products"
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                    >
+                                        <Camera className="h-4 w-4" />
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={onClose}

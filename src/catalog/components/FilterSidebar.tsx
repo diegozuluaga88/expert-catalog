@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { PanelLeft, PanelLeftClose } from 'lucide-react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
@@ -25,6 +25,11 @@ interface FilterSidebarProps {
   activeTags?: Set<string>
   /** MRL Fase 8 · setter de tags · reemplaza el set completo. */
   onTagsChange?: (next: Set<string>) => void
+  /** F50 · Etapa 9-ext · v2 · slot opcional que se renderea al top del
+   *  sidebar (arriba del search de manufacturers). v1 no lo pasa · v2
+   *  aterriza aquí el botón "AI search" para tenerlo visible sin quitar
+   *  el input clásico. Solo visible cuando el sidebar no está collapsed. */
+  topSlot?: ReactNode
 }
 
 const SWATCH_COLORS = [
@@ -82,6 +87,7 @@ export default function FilterSidebar({
   onMyBindersToggle,
   activeTags,
   onTagsChange,
+  topSlot,
 }: FilterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
@@ -121,6 +127,13 @@ export default function FilterSidebar({
 
       {!collapsed && (
         <>
+      {/* F50 · Etapa 9-ext · v2 · slot opcional al top del sidebar. En v1
+          nadie lo pasa · en v2 aterriza el botón "AI search". */}
+      {topSlot && (
+        <div className="px-4 pt-3 pb-2 border-b border-border">
+          {topSlot}
+        </div>
+      )}
       {/* Search + View mode · reubicados desde la toolbar de LibraryPage (espejo de Product Catalog) */}
       <div className="px-4 py-3 border-b border-border space-y-2">
         <div className="relative">

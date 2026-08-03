@@ -9,7 +9,7 @@
 //     search, tags) es idéntica a v1.
 
 import { useState, useEffect } from 'react'
-import { PackageSearch, Menu as MenuIcon, X as XIcon } from 'lucide-react'
+import { PackageSearch, Menu as MenuIcon, X as XIcon, Wand2 } from 'lucide-react'
 import { Dialog as HeadlessDialog } from '@headlessui/react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufacturers'
@@ -20,6 +20,10 @@ import MRLSidebarAds from '../components/MRLSidebarAds'
 import { useMyBinders } from './useMyBinders'
 import { ToastContainer, useToast } from '../../components/AuthToast'
 import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } from 'strata-design-system'
+// F50 · Etapa 9-ext · v2 · command palette compartido con el Product Catalog.
+// En el MRL busca sobre brands + categorías + tags (sin productos, sin visual
+// search, sin reranker de precios porque no aplica al indexar por fabricante).
+import SearchCommandPalette from '../search/SearchCommandPalette'
 
 interface LibraryPageV2Props {
   onSelectManufacturer: (m: Manufacturer) => void
@@ -54,6 +58,26 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   // sidebar es siempre visible; en mobile se oculta y aparece un botón
   // hamburger que abre este drawer full-height desde la izquierda.
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
+  // F50 · Etapa 9-ext · v2 · command palette del MRL. Reusa el mismo
+  // componente que el Product Catalog · sin productos, sin visual search.
+  const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
+  useEffect(() => {
+    const isEditableTarget = (t: EventTarget | null): boolean => {
+      if (!(t instanceof HTMLElement)) return false
+      const tag = t.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+      if (t.isContentEditable) return true
+      return false
+    }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && !isEditableTarget(e.target)) {
+        e.preventDefault()
+        setSearchPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_VIEW, viewMode)
@@ -73,6 +97,22 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
     return matchesSearch && matchesCategory && matchesTags
   })
 
+  // F50 · Etapa 9-ext · v2 · botón "AI search" que vive en el topSlot del
+  // FilterSidebar. Se declara antes del node del sidebar para pasarlo como
+  // prop.
+  const aiSearchButton = (
+    <button
+      type="button"
+      onClick={() => setSearchPaletteOpen(true)}
+      className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      title="Open AI-assisted search · shortcut: /"
+    >
+      <Wand2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+      <span className="flex-1 text-left">AI search</span>
+      <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px] font-mono">/</kbd>
+    </button>
+  )
+
   // F50 · Wave 5 · v2 · el FilterSidebar se referencia una vez y se renderea
   // en dos lugares (desktop inline + mobile Dialog). Solo uno visible por
   // breakpoint.
@@ -91,6 +131,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
       onMyBindersToggle={() => setShowMyBindersOnly(v => !v)}
       activeTags={activeTags}
       onTagsChange={setActiveTags}
+      topSlot={aiSearchButton}
     />
   )
 
@@ -181,6 +222,33 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
           <MRLSidebarAds />
         </aside>
       )}
+
+      {/* F50 · Etapa 9-ext · v2 · AI search palette del MRL library. Sin
+          productos, sin visual (el índice del MRL es por fabricante · no
+          tiene sentido subir imagen para buscar brands). Aplica category
+          + tags al filtro del sidebar cuando el user acepta la interpretación. */}
+      <SearchCommandPalette
+        open={searchPaletteOpen}
+        onClose={() => setSearchPaletteOpen(false)}
+        products={[]}
+        manufacturers={baseList}
+        showVisualSearch={false}
+        placeholder='Search brands, categories · try "quickship chairs"'
+        onApplyStructuredFilters={(f) => {
+          if (f.text !== undefined) setSearch(f.text)
+          if (f.tags && f.tags.length > 0) setActiveTags(new Set(f.tags))
+          // f.category no aplica directamente al MRL (que agrupa brands, no
+          // productos) · como fallback lo pusheo al search plain text.
+          if (f.category && (f.text ?? '') === '') setSearch(f.category)
+        }}
+        onApplyFreeText={(t) => setSearch(t)}
+        onOpenProduct={() => { /* no-op · MRL no tiene detail de producto */ }}
+        onOpenBrand={(name) => {
+          const brand = baseList.find((m) => m.name === name)
+          if (brand) onSelectManufacturer(brand)
+        }}
+        onOpenCategory={(cat) => setSelectedCategory(cat)}
+      />
 
       {/* Toast container · muestra feedback de My Binders toggle */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
