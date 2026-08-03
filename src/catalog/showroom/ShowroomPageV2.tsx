@@ -40,7 +40,7 @@ import CustomPriceRange, { type PriceRangeValue } from '../components/CustomPric
 // F50 · Wave 4 · v2 · Sample request modal + tracking slide-over + toast.
 import SampleRequestModal from '../components/SampleRequestModal'
 import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
-import { useSampleRequests } from '../browse/useSampleRequests'
+import { useSampleRequests, SAMPLE_STATUS_CHANGE_EVENT, type SampleStatusChangeDetail } from '../browse/useSampleRequests'
 import { useToast, ToastContainer } from '../../components/AuthToast'
 import { Package as PackageIcon, Menu as MenuIcon, X as XIcon, Folder as FolderIcon } from 'lucide-react'
 // F50 · Wave 5 · v2 · Dialog de HeadlessUI para el drawer mobile de filtros.
@@ -188,6 +188,35 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       onClick: () => setTrackingOpen(true),
     })
   }
+  // F50 · Etapa 11 (P5 polish) · v2 · notifications ricas cuando el
+  // status de una sample request cambia. Escucha el CustomEvent global
+  // que dispara useSampleRequests.advanceStatus. Dispara toast con action
+  // "View tracking" que abre el slide-over. Mensaje distinto según la
+  // transición (shipped vs delivered).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<SampleStatusChangeDetail>).detail
+      if (!detail) return
+      const { request, previousStatus } = detail
+      const name = request.productName
+      if (previousStatus === 'pending' && request.status === 'shipped') {
+        const trackingHint = request.carrierTracking ? ` · tracking ${request.carrierTracking}` : ''
+        addToast('success', `Swatch shipped · ${name}${trackingHint}`, {
+          label: 'View tracking',
+          onClick: () => setTrackingOpen(true),
+        })
+      } else if (previousStatus === 'shipped' && request.status === 'delivered') {
+        addToast('info', `${name} swatch delivered · check your mail.`, {
+          label: 'View tracking',
+          onClick: () => setTrackingOpen(true),
+        })
+      }
+    }
+    window.addEventListener(SAMPLE_STATUS_CHANGE_EVENT, handler)
+    return () => window.removeEventListener(SAMPLE_STATUS_CHANGE_EVENT, handler)
+    // addToast es estable desde el hook · setTrackingOpen también.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Diego ask · sync simulations son ephemeral · reset al montar la page (refleja
   // que esto es una demo · no hay backend que persista los cambios cross-navegación)
   useEffect(() => {
