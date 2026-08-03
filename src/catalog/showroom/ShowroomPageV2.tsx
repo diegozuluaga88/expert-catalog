@@ -38,7 +38,6 @@ import GridDensitySelector, { gridClassesFor, loadGridDensity, saveGridDensity, 
 // F50 · Wave 2 (extensión post-approval) · Custom price range · v2.
 import CustomPriceRange, { type PriceRangeValue } from '../components/CustomPriceRange'
 // F50 · Wave 4 · v2 · Sample request modal + tracking slide-over + toast.
-import SampleRequestModal from '../components/SampleRequestModal'
 import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
 import { useSampleRequests, SAMPLE_STATUS_CHANGE_EVENT, type SampleStatusChangeDetail } from '../browse/useSampleRequests'
 import { useToast, ToastContainer } from '../../components/AuthToast'
@@ -174,17 +173,25 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   // oculta y aparece un botón hamburger que abre este drawer.
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
 
-  // F50 · Wave 4 · sample request · modal + tracking slide-over + toast.
-  const [swatchModalProduct, setSwatchModalProduct] = useState<Product | null>(null)
+  // F50 · Wave 4 (refactor 2026-08-03) · sample request pattern "My Selection" ·
+  // click en "Request sample" agrega al DRAFT (sin modal). El user revisa el
+  // draft en el SampleTrackingSlideOver y hace submit batch desde ahí.
   const [trackingOpen, setTrackingOpen] = useState(false)
   const { toasts, addToast, dismissToast } = useToast()
-  const { pendingCount: sampleRequestsPending } = useSampleRequests()
+  const { pendingCount: sampleRequestsPending, addToDraft } = useSampleRequests()
   const handleRequestSwatch = (product: Product) => {
-    setSwatchModalProduct(product)
-  }
-  const handleSwatchSubmitted = (productName: string) => {
-    addToast('success', `Swatch requested · ${productName} · you'll be notified when it ships.`, {
-      label: 'View tracking',
+    const firstColor = product.colorways?.[0]
+    addToDraft({
+      productId: product.id,
+      productName: product.name,
+      productBrand: product.brand,
+      productImage: product.images[0],
+      colorwayName: firstColor?.name,
+      colorwayHex: firstColor?.hex,
+      qty: 1,
+    })
+    addToast('success', `${product.name} added to sample draft.`, {
+      label: 'Review draft',
       onClick: () => setTrackingOpen(true),
     })
   }
@@ -201,12 +208,12 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       const name = request.productName
       if (previousStatus === 'pending' && request.status === 'shipped') {
         const trackingHint = request.carrierTracking ? ` · tracking ${request.carrierTracking}` : ''
-        addToast('success', `Swatch shipped · ${name}${trackingHint}`, {
+        addToast('success', `Sample shipped · ${name}${trackingHint}`, {
           label: 'View tracking',
           onClick: () => setTrackingOpen(true),
         })
       } else if (previousStatus === 'shipped' && request.status === 'delivered') {
-        addToast('info', `${name} swatch delivered · check your mail.`, {
+        addToast('info', `${name} sample delivered · check your mail.`, {
           label: 'View tracking',
           onClick: () => setTrackingOpen(true),
         })
@@ -1781,17 +1788,16 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         onCancel={() => setPendingTaxonomy(null)}
       />
 
-      {/* F50 · Wave 4 · Sample request modal (3 pasos) + tracking slide-over
-          + toast de confirmación. */}
-      <SampleRequestModal
-        open={swatchModalProduct !== null}
-        onClose={() => setSwatchModalProduct(null)}
-        product={swatchModalProduct}
-        onSubmitted={handleSwatchSubmitted}
-      />
+      {/* F50 · Wave 4 (refactor 2026-08-03) · sample tracking slide-over
+          con secciones Draft (arriba) + Sent (abajo · pending/shipped/
+          delivered). Reemplaza el modal 3-step que existía · el flow
+          nuevo agrega al draft con 1 click y submitea batch desde acá. */}
       <SampleTrackingSlideOver
         open={trackingOpen}
         onClose={() => setTrackingOpen(false)}
+        onSubmitted={(count) => {
+          addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
+        }}
       />
 
       {/* F50 · Wave 6 · v2 · Add-to-collection modal · se abre al click del

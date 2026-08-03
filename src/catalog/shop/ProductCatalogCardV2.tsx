@@ -297,10 +297,10 @@ export default function ProductCatalogCardV2({
               <button
                 type="button"
                 onClick={() => onRequestSwatch(product)}
-                title="Request a physical swatch of this material"
+                title="Request a physical sample of this material"
                 className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                <Package className="h-3.5 w-3.5" /> Request swatch
+                <Package className="h-3.5 w-3.5" /> Request sample
               </button>
             </div>
           ) : (

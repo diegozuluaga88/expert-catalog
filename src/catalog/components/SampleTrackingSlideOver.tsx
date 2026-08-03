@@ -1,18 +1,17 @@
-// F50 · Wave 4.c · v2 · Vista de tracking de solicitudes de muestra.
+// F50 · Etapa 4 (refactor 2026-08-03) · v2 · Vista de sample requests
+// con pattern "My Selection" · Draft arriba (batch en construcción) +
+// Sent abajo (samples ya enviados con tracking).
 //
-// Slide-over que muestra las solicitudes de muestra activas del dealer,
-// agrupadas por status (pending / shipped / delivered). Cada solicitud
-// tiene su chip de status, la dirección de envío, y (cuando aplica) el
-// número de tracking del carrier.
+// Diego ask · en vez del modal 3-step de submit directo, el user va
+// agregando materiales al draft desde el catálogo con 1 click, y desde
+// este panel ajusta qty por material, valida el ship-to global, y hace
+// submit batch.
 //
-// Como el backend real de tracking todavía no existe, este slide-over
-// también expone un botón "Simulate" que avanza el status manualmente
-// (pending → shipped → delivered). En producción esto llegaría vía polling
-// o notificaciones push · el botón se remueve cuando exista backend.
-//
-// Skills · Nielsen H1 (visibility of system status) + Norman Feedback.
+// Skills · Nielsen H1 (Visibility of status) + Refactoring UI · Hierarchy
+// (sections claras: qué falta enviar vs qué está en camino).
 
-import { Package, Truck, CheckCircle2, X, ExternalLink } from 'lucide-react'
+import { useState } from 'react'
+import { Package, Truck, CheckCircle2, X, ExternalLink, Plus, Minus, Send, MapPin, Pencil, Trash2 } from 'lucide-react'
 import {
     SlideOver,
     SlideOverHeader,
@@ -23,75 +22,232 @@ import {
     EmptyStateIcon,
     EmptyStateTitle,
     EmptyStateDescription,
+    Input,
+    Field,
+    Label,
 } from 'strata-design-system'
-import { useSampleRequests, type SampleRequest, type SampleRequestStatus } from '../browse/useSampleRequests'
+import { useSampleRequests, type SampleRequest, type SampleRequestStatus, type DraftSampleItem, type SampleRequestShipTo } from '../browse/useSampleRequests'
+import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 interface SampleTrackingSlideOverProps {
     open: boolean
     onClose: () => void
+    /** Toast callback opcional para notificar submit batch al padre. */
+    onSubmitted?: (count: number) => void
 }
 
-export default function SampleTrackingSlideOver({ open, onClose }: SampleTrackingSlideOverProps) {
-    const { requests, deleteRequest, advanceStatus } = useSampleRequests()
+export default function SampleTrackingSlideOver({ open, onClose, onSubmitted }: SampleTrackingSlideOverProps) {
+    const {
+        requests,
+        draftItems,
+        draftShipTo,
+        updateDraftQty,
+        removeFromDraft,
+        clearDraft,
+        updateDraftShipTo,
+        submitDraft,
+        deleteRequest,
+        advanceStatus,
+    } = useSampleRequests()
+    const { confirm } = useDialogs()
 
-    // Agrupa las requests por status · orden preferido: pending → shipped → delivered
+    const [editingShipTo, setEditingShipTo] = useState(false)
+    const [draftShipToLocal, setDraftShipToLocal] = useState<SampleRequestShipTo>(draftShipTo)
+
+    // Cuando cambia el draftShipTo externo, sincroniza el local (si no se
+    // está editando activamente).
+    if (!editingShipTo && (
+        draftShipToLocal.line1 !== draftShipTo.line1 ||
+        draftShipToLocal.city !== draftShipTo.city ||
+        draftShipToLocal.state !== draftShipTo.state ||
+        draftShipToLocal.zip !== draftShipTo.zip
+    )) {
+        setDraftShipToLocal(draftShipTo)
+    }
+
+    // Agrupa los requests por status
     const pending = requests.filter((r) => r.status === 'pending')
     const shipped = requests.filter((r) => r.status === 'shipped')
     const delivered = requests.filter((r) => r.status === 'delivered')
+
+    const draftUnits = draftItems.reduce((s, it) => s + it.qty, 0)
+    const canSubmit = draftItems.length > 0 &&
+        draftShipTo.line1.trim() && draftShipTo.city.trim() &&
+        draftShipTo.state.trim() && draftShipTo.zip.trim()
+
+    const handleSubmitDraft = () => {
+        const created = submitDraft()
+        onSubmitted?.(created.length)
+    }
+
+    const handleClearDraft = async () => {
+        if (draftItems.length === 0) return
+        const ok = await confirm({
+            title: `Clear the sample draft?`,
+            description: `${draftItems.length} ${draftItems.length === 1 ? 'material' : 'materials'} (${draftUnits} ${draftUnits === 1 ? 'unit' : 'units'}) will be removed from the draft. This can't be undone.`,
+            confirmLabel: 'Clear draft',
+            danger: true,
+        })
+        if (ok) clearDraft()
+    }
 
     return (
         <SlideOver open={open} onClose={onClose}>
             <SlideOverHeader onClose={onClose}>
                 <SlideOverTitle>Sample requests</SlideOverTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                    {requests.length === 0
-                        ? 'You have no active swatch requests.'
-                        : `${pending.length} pending · ${shipped.length} shipped · ${delivered.length} delivered`}
+                    {draftItems.length === 0 && requests.length === 0
+                        ? "You haven't requested any samples yet."
+                        : `${draftItems.length > 0 ? `${draftUnits} in draft · ` : ''}${pending.length} pending · ${shipped.length} shipped · ${delivered.length} delivered`}
                 </p>
             </SlideOverHeader>
 
             <SlideOverBody>
-                {requests.length === 0 ? (
+                {draftItems.length === 0 && requests.length === 0 ? (
                     <EmptyState>
                         <EmptyStateIcon>
                             <Package className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
                         </EmptyStateIcon>
                         <EmptyStateTitle>No sample requests yet</EmptyStateTitle>
                         <EmptyStateDescription>
-                            Browse Materials in the Product Catalog and click "Request swatch" on any material card.
+                            Browse Materials in the Product Catalog and click "Request sample" on any material card to build your draft.
                         </EmptyStateDescription>
                     </EmptyState>
                 ) : (
                     <div className="space-y-6">
+                        {/* ─── DRAFT (top) ────────────────────────────── */}
+                        {draftItems.length > 0 && (
+                            <section className="rounded-xl border-2 border-dashed border-foreground/30 bg-muted/30 p-3">
+                                <header className="mb-3 flex items-center justify-between gap-2">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-foreground">Draft · not sent yet</h3>
+                                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                            {draftItems.length} {draftItems.length === 1 ? 'material' : 'materials'} · {draftUnits} {draftUnits === 1 ? 'sample' : 'samples'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleClearDraft}
+                                        title="Clear draft"
+                                        className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                </header>
+
+                                <ul className="mb-3 space-y-2">
+                                    {draftItems.map((item) => (
+                                        <DraftRow
+                                            key={item.id}
+                                            item={item}
+                                            onQtyChange={(q) => updateDraftQty(item.id, q)}
+                                            onRemove={() => removeFromDraft(item.id)}
+                                        />
+                                    ))}
+                                </ul>
+
+                                {/* Ship-to global */}
+                                <div className="mb-3 rounded-md border border-border bg-card p-2.5">
+                                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <MapPin className="h-3 w-3" aria-hidden="true" />
+                                            Ship to
+                                        </span>
+                                        {!editingShipTo && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditingShipTo(true)}
+                                                className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                                <Pencil className="h-3 w-3" />
+                                                Edit
+                                            </button>
+                                        )}
+                                    </div>
+                                    {editingShipTo ? (
+                                        <div className="space-y-2">
+                                            <Field>
+                                                <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Street address</Label>
+                                                <Input
+                                                    value={draftShipToLocal.line1}
+                                                    onChange={(e) => setDraftShipToLocal({ ...draftShipToLocal, line1: e.target.value })}
+                                                    className="text-sm"
+                                                />
+                                            </Field>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <Field>
+                                                    <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">City</Label>
+                                                    <Input
+                                                        value={draftShipToLocal.city}
+                                                        onChange={(e) => setDraftShipToLocal({ ...draftShipToLocal, city: e.target.value })}
+                                                        className="text-sm"
+                                                    />
+                                                </Field>
+                                                <Field>
+                                                    <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">State</Label>
+                                                    <Input
+                                                        value={draftShipToLocal.state}
+                                                        onChange={(e) => setDraftShipToLocal({ ...draftShipToLocal, state: e.target.value })}
+                                                        className="text-sm"
+                                                    />
+                                                </Field>
+                                                <Field>
+                                                    <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Zip</Label>
+                                                    <Input
+                                                        value={draftShipToLocal.zip}
+                                                        onChange={(e) => setDraftShipToLocal({ ...draftShipToLocal, zip: e.target.value })}
+                                                        className="text-sm"
+                                                    />
+                                                </Field>
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setDraftShipToLocal(draftShipTo)
+                                                        setEditingShipTo(false)
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    onClick={() => {
+                                                        updateDraftShipTo(draftShipToLocal)
+                                                        setEditingShipTo(false)
+                                                    }}
+                                                >
+                                                    Save address
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-foreground leading-snug">
+                                            {draftShipTo.line1}<br />
+                                            {draftShipTo.city}, {draftShipTo.state} {draftShipTo.zip}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <Button
+                                    onClick={handleSubmitDraft}
+                                    disabled={!canSubmit || editingShipTo}
+                                    className="w-full"
+                                >
+                                    <Send className="mr-1.5 h-4 w-4" />
+                                    Submit {draftUnits} {draftUnits === 1 ? 'sample' : 'samples'}
+                                </Button>
+                            </section>
+                        )}
+
+                        {/* ─── SENT (below) ───────────────────────────── */}
                         {pending.length > 0 && (
-                            <StatusGroup
-                                title="Pending"
-                                count={pending.length}
-                                status="pending"
-                                requests={pending}
-                                onDelete={deleteRequest}
-                                onAdvance={advanceStatus}
-                            />
+                            <StatusGroup title="Pending" count={pending.length} status="pending" requests={pending} onDelete={deleteRequest} onAdvance={advanceStatus} />
                         )}
                         {shipped.length > 0 && (
-                            <StatusGroup
-                                title="Shipped"
-                                count={shipped.length}
-                                status="shipped"
-                                requests={shipped}
-                                onDelete={deleteRequest}
-                                onAdvance={advanceStatus}
-                            />
+                            <StatusGroup title="Shipped" count={shipped.length} status="shipped" requests={shipped} onDelete={deleteRequest} onAdvance={advanceStatus} />
                         )}
                         {delivered.length > 0 && (
-                            <StatusGroup
-                                title="Delivered"
-                                count={delivered.length}
-                                status="delivered"
-                                requests={delivered}
-                                onDelete={deleteRequest}
-                                onAdvance={advanceStatus}
-                            />
+                            <StatusGroup title="Delivered" count={delivered.length} status="delivered" requests={delivered} onDelete={deleteRequest} onAdvance={advanceStatus} />
                         )}
                     </div>
                 )}
@@ -105,6 +261,72 @@ export default function SampleTrackingSlideOver({ open, onClose }: SampleTrackin
         </SlideOver>
     )
 }
+
+/* ─── Draft row ─────────────────────────────────────────────────── */
+
+interface DraftRowProps {
+    item: DraftSampleItem
+    onQtyChange: (qty: number) => void
+    onRemove: () => void
+}
+
+function DraftRow({ item, onQtyChange, onRemove }: DraftRowProps) {
+    return (
+        <li className="group flex items-center gap-3 rounded-lg border border-border bg-card p-2.5">
+            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
+                <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
+            </div>
+            <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground truncate">{item.productBrand}</p>
+                <p className="text-xs font-bold text-foreground truncate">{item.productName}</p>
+                {item.colorwayName && (
+                    <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                        {item.colorwayHex && (
+                            <span
+                                className="inline-block h-2.5 w-2.5 rounded-sm border border-border"
+                                style={{ backgroundColor: item.colorwayHex }}
+                                aria-hidden="true"
+                            />
+                        )}
+                        <span>{item.colorwayName}</span>
+                    </div>
+                )}
+            </div>
+            {/* Qty stepper */}
+            <div className="inline-flex items-center gap-0.5 rounded-md border border-border">
+                <button
+                    type="button"
+                    onClick={() => onQtyChange(item.qty - 1)}
+                    disabled={item.qty <= 1}
+                    aria-label="Decrease qty"
+                    className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                    <Minus className="h-3 w-3" />
+                </button>
+                <span className="min-w-[24px] text-center text-xs font-bold tabular-nums text-foreground">{item.qty}</span>
+                <button
+                    type="button"
+                    onClick={() => onQtyChange(item.qty + 1)}
+                    aria-label="Increase qty"
+                    className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                    <Plus className="h-3 w-3" />
+                </button>
+            </div>
+            <button
+                type="button"
+                onClick={onRemove}
+                aria-label={`Remove ${item.productName} from draft`}
+                title="Remove from draft"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+            >
+                <Trash2 className="h-3 w-3" />
+            </button>
+        </li>
+    )
+}
+
+/* ─── Sent groups (mismo pattern anterior) ──────────────────────── */
 
 interface StatusGroupProps {
     title: string
@@ -184,13 +406,9 @@ function RequestRow({ request, onDelete, onAdvance }: RequestRowProps) {
                     </div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>
-                            {formatTimestamp(request)}
-                        </span>
+                        <span>{formatTimestamp(request)}</span>
                         <span>·</span>
-                        <span>
-                            {request.shipTo.city}, {request.shipTo.state} {request.shipTo.zip}
-                        </span>
+                        <span>{request.shipTo.city}, {request.shipTo.state} {request.shipTo.zip}</span>
                     </div>
 
                     {request.status === 'shipped' && request.carrierTracking && (
