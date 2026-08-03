@@ -21,6 +21,7 @@ import {
   DocumentArrowDownIcon, ChevronDownIcon, ChevronUpIcon,
   PhotoIcon, Square3Stack3DIcon,
 } from '@heroicons/react/24/outline'
+import { FolderPlus } from 'lucide-react'
 import type { Manufacturer, Category, Product } from '../types'
 import ColorwaySwatch from '../components/ColorwaySwatch'
 import CatalogVerifyPill from '../../components/ocr/CatalogVerifyPill'
@@ -47,6 +48,9 @@ interface ProductDetailPageProps {
   onBack: () => void
   onGoToLibrary?: () => void
   onGoToManufacturer?: () => void
+  /** F50 · Etapa 10.d (MRL adapt) · v2 · si llega, muestra un botón
+   *  "Add to project" al lado del CTA principal. Fallback seguro v1. */
+  onAddToProject?: (p: Product) => void
 }
 
 function EmptyState({ label }: { label: string }) {
@@ -110,7 +114,7 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 }
 
 export default function ProductDetailPage({
-  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer,
+  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject,
 }: ProductDetailPageProps) {
   // Enrich · aplica mock parts + options si el producto no los trae. Consumido
   // por las Fases P3-P6 (tab strip Images/Parts/Options).
@@ -253,6 +257,19 @@ export default function ProductDetailPage({
                   <ArrowTopRightOnSquareIcon className="w-4 h-4" strokeWidth={2.5} />
                   See Details
                 </button>
+                {/* F50 · Etapa 10.d (MRL adapt) · botón secundario Add to
+                    project · outline para no competir con el CTA primary. */}
+                {onAddToProject && (
+                  <button
+                    type="button"
+                    onClick={() => onAddToProject(product)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent transition-colors"
+                    title="Add this product to a project"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    Add to project
+                  </button>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Catalog status:</span>
                   <CatalogVerifyPill sku={skuForProduct(product.id)} onUseReplacement={() => {}} />

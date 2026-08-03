@@ -17,6 +17,12 @@ import { TabInfoTrigger,
 } from './TabInfoTooltip'
 // F50 · Etapa 10 (P2 Project Builder) · v2 · nuevo sub-tab "My Projects".
 import ProjectsPage from './projects/ProjectsPage'
+// F50 · Etapa 10.d (MRL adapt) · v2 · modal Add-to-project accesible desde
+// las páginas del MRL (CategoryPage · ProductDetailPage). ShowroomPageV2
+// mantiene su propio wire independiente.
+import AddToProjectModal from './projects/AddToProjectModal'
+import { useProjects } from './projects/useProjects'
+import { useToast, ToastContainer } from '../components/AuthToast'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
@@ -43,6 +49,12 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   const navigate = (state: BrowseNav) => setNav(state)
   const { activeDrafts } = useQuote()
   const totalCartUnits = activeDrafts.reduce((s, d) => s + d.items.reduce((s2, it) => s2 + it.qty, 0), 0)
+  // F50 · Etapa 10.d (MRL adapt) · v2 · state + hooks del modal
+  // Add-to-project · sirve a CategoryPage y ProductDetailPage. El
+  // ShowroomPageV2 tiene su propio wire (independiente).
+  const [addToProjectProduct, setAddToProjectProduct] = useState<Product | null>(null)
+  const { projects, createProject, addItem: addItemToProject } = useProjects()
+  const { toasts, addToast, dismissToast } = useToast()
 
   // Listen for "open-quotes" event from MiniCartDrawer · navega al tab dentro
   useEffect(() => {
@@ -92,6 +104,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                 product: p,
               })
             }
+            onAddToProject={(p) => setAddToProjectProduct(p)}
           />
         ) : null
       case 'product':
@@ -107,6 +120,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
             onGoToManufacturer={() =>
               navigate({ page: 'manufacturer', manufacturer: nav.manufacturer })
             }
+            onAddToProject={(p) => setAddToProjectProduct(p)}
           />
         ) : null
       default:
@@ -177,6 +191,26 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
       {(mode === 'showroom' || mode === 'quotes') && (
         <MiniCartDrawer onViewQuote={() => setMode('quotes')} />
       )}
+
+      {/* F50 · Etapa 10.d (MRL adapt) · v2 · modal Add-to-project global
+          para el flujo MRL (CategoryPage · ProductDetailPage). Se abre
+          cuando setAddToProjectProduct recibe un product · onAdd hace
+          addItemToProject y muestra un toast. */}
+      <AddToProjectModal
+        open={addToProjectProduct !== null}
+        onClose={() => setAddToProjectProduct(null)}
+        productName={addToProjectProduct?.name ?? ''}
+        projects={projects}
+        onCreateProject={(name) => createProject(name)}
+        onAdd={(projectId, roomId, zoneId) => {
+          if (!addToProjectProduct) return
+          addItemToProject(projectId, roomId, zoneId, addToProjectProduct.id, 1)
+          const projectName = projects.find((p) => p.id === projectId)?.name ?? 'project'
+          addToast('success', `${addToProjectProduct.name} added to ${projectName}`)
+          setAddToProjectProduct(null)
+        }}
+      />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </>
   )
 }

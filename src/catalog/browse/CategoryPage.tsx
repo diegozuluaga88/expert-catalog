@@ -8,9 +8,12 @@ interface CategoryPageProps {
   onBack: () => void
   onGoToLibrary?: () => void
   onSelectProduct: (p: Product) => void
+  /** F50 · Etapa 10.d (MRL adapt) · v2 · si llega, cada ProductCard
+   *  suma el botón overlay "Add to project". Fallback seguro para v1. */
+  onAddToProject?: (p: Product) => void
 }
 
-export default function CategoryPage({ manufacturer, category, onBack, onGoToLibrary, onSelectProduct }: CategoryPageProps) {
+export default function CategoryPage({ manufacturer, category, onBack, onGoToLibrary, onSelectProduct, onAddToProject }: CategoryPageProps) {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
       {/* Breadcrumb */}
@@ -49,7 +52,12 @@ export default function CategoryPage({ manufacturer, category, onBack, onGoToLib
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {category.products.map(product => (
-              <ProductCard key={product.id} product={product} onClick={() => onSelectProduct(product)} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => onSelectProduct(product)}
+                onAddToProject={onAddToProject}
+              />
             ))}
           </div>
         )}

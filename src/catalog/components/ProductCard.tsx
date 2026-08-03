@@ -1,19 +1,29 @@
+import { FolderPlus } from 'lucide-react'
 import type { Product } from '../types'
 
 interface ProductCardProps {
   product: Product
   onClick: () => void
+  /** F50 · Etapa 10.d (MRL adapt) · v2 · si llega, aparece un botón
+   *  FolderPlus overlay top-right (visible al hover) que abre el modal
+   *  "Add to project". stopPropagation para no gatillar el onClick de
+   *  la card. Fallback seguro para v1 · si no llega, no se renderea. */
+  onAddToProject?: (product: Product) => void
 }
 
-export default function ProductCard({ product, onClick }: ProductCardProps) {
+export default function ProductCard({ product, onClick, onAddToProject }: ProductCardProps) {
   const thumb = product.images[0]
 
   return (
-    <button
-      onClick={onClick}
-      aria-label={`View ${product.name} details`}
-      className="group text-left w-full bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200"
+    <div
+      className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200"
     >
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`View ${product.name} details`}
+        className="text-left w-full"
+      >
       {/* Image area */}
       <div className="relative aspect-[4/3] bg-muted overflow-hidden">
         {thumb ? (
@@ -64,6 +74,25 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           {product.description}
         </p>
       </div>
-    </button>
+      </button>
+
+      {/* F50 · Etapa 10.d (MRL adapt) · botón overlay Add-to-project ·
+          top-right del card · visible en hover. stopPropagation para no
+          disparar el onClick de la card (que abre el detail). */}
+      {onAddToProject && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAddToProject(product)
+          }}
+          aria-label={`Add ${product.name} to a project`}
+          title="Add to a project"
+          className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+        >
+          <FolderPlus className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
   )
 }
