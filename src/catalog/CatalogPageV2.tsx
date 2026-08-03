@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LibraryBig, Store, FileText } from 'lucide-react'
+import { LibraryBig, Store, FileText, FolderKanban } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
 import LibraryPage from './browse/LibraryPageV2'
@@ -15,12 +15,14 @@ import { TabInfoTrigger,
   TAB_INFO_PRODUCT_CATALOG,
   TAB_INFO_MY_SELECTION,
 } from './TabInfoTooltip'
+// F50 · Etapa 10 (P2 Project Builder) · v2 · nuevo sub-tab "My Projects".
+import ProjectsPage from './projects/ProjectsPage'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
 // opciones. Base para las próximas iteraciones del refactor (Quick Wins,
 // Critical fixes) que ya no tocan v1.
-type CatalogMode = 'browse' | 'showroom' | 'quotes'
+type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
 
 interface BrowseNav {
@@ -147,6 +149,11 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                 )}
                 <TabInfoTrigger content={TAB_INFO_MY_SELECTION} align="end" />
               </button>
+              {/* F50 · Etapa 10 (P2 Project Builder) · v2 · sub-tab "My Projects". */}
+              <button type="button" onClick={() => setMode('projects')} className={tabClass(mode === 'projects')}>
+                <FolderKanban className="h-4 w-4" />
+                My Projects
+              </button>
             </div>
           )
           const hideTopBar = mode === 'showroom'
@@ -157,6 +164,8 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                 renderBrowse()
               ) : mode === 'quotes' ? (
                 <QuotesPageV2 onBack={() => setMode('showroom')} />
+              ) : mode === 'projects' ? (
+                <ProjectsPage />
               ) : (
                 <ShowroomPageV2 headerAside={modeTabBar} />
               )}
