@@ -212,26 +212,165 @@ const SEED: DealerRelationship[] = [
     },
 ]
 
+/* ─── F51 · A.4 · Overrides layer + update-requests inbox ───────────
+ *
+ * Los reps ya no ven un mockup disabled · pueden aplicar bulk updates
+ * que persisten en localStorage como "overrides" sobre el SEED. Al
+ * leer, mergemos SEED + overrides · así todos los consumers (MyDealerInfo
+ * del dealer · RepDashboard del rep) ven la misma info actualizada.
+ *
+ * Los dealers pueden pedir a su rep que refresque su info (botón "Ask
+ * to update" en MyDealerInfoPage) · esas requests se guardan en un
+ * inbox global que el rep lee desde su dashboard.
+ * ─────────────────────────────────────────────────────────────────── */
+
+const OVERRIDES_KEY = 'dealer-rel-overrides-v1'
+const UPDATE_REQUESTS_KEY = 'dealer-info-update-requests-v1'
+
+type OverrideValue = Partial<Pick<DealerRelationship,
+    'discountTier' | 'freightTerms' | 'notes' | 'creditLimitUsd' | 'lastUpdatedAt'
+>>
+type OverridesMap = Record<string, OverrideValue>
+
+function overrideKey(dealerSlug: string, manufacturerSlug: string) {
+    return `${dealerSlug}__${manufacturerSlug}`
+}
+
+function loadOverrides(): OverridesMap {
+    try {
+        const raw = localStorage.getItem(OVERRIDES_KEY)
+        if (!raw) return {}
+        const parsed = JSON.parse(raw)
+        return parsed && typeof parsed === 'object' ? parsed as OverridesMap : {}
+    } catch {
+        return {}
+    }
+}
+
+function saveOverrides(map: OverridesMap) {
+    try {
+        localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map))
+    } catch { /* noop */ }
+}
+
+function applyOverrideToRel(rel: DealerRelationship, overrides: OverridesMap): DealerRelationship {
+    const ov = overrides[overrideKey(rel.dealerSlug, rel.manufacturerSlug)]
+    return ov ? { ...rel, ...ov } : rel
+}
+
+/** Aplica un patch a una relación específica y lo persiste como override.
+ *  El SEED no se muta · el merge se aplica al leer. Se dispara el evento
+ *  DEALER_REL_CHANGE_EVENT para que consumers refresquen. */
+export function applyRelationshipOverride(
+    dealerSlug: string,
+    manufacturerSlug: string,
+    patch: OverrideValue,
+): void {
+    const map = loadOverrides()
+    const k = overrideKey(dealerSlug, manufacturerSlug)
+    map[k] = { ...(map[k] ?? {}), ...patch, lastUpdatedAt: new Date().toISOString() }
+    saveOverrides(map)
+    try {
+        window.dispatchEvent(new CustomEvent(DEALER_REL_CHANGE_EVENT))
+    } catch { /* SSR · noop */ }
+}
+
+/** Descarta todos los overrides del rep (útil para el "revert" en testing). */
+export function clearAllOverrides(): void {
+    saveOverrides({})
+    try {
+        window.dispatchEvent(new CustomEvent(DEALER_REL_CHANGE_EVENT))
+    } catch { /* SSR · noop */ }
+}
+
+export const DEALER_REL_CHANGE_EVENT = 'catalog:dealer-rel-change'
+
+/* Update-requests inbox · el dealer pide, el rep resuelve */
+
+export interface UpdateRequest {
+    dealerSlug: string
+    manufacturerSlug: string
+    requestedAt: string
+}
+
+function loadUpdateRequests(): UpdateRequest[] {
+    try {
+        const raw = localStorage.getItem(UPDATE_REQUESTS_KEY)
+        if (!raw) return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed as UpdateRequest[] : []
+    } catch {
+        return []
+    }
+}
+
+function saveUpdateRequests(list: UpdateRequest[]) {
+    try {
+        localStorage.setItem(UPDATE_REQUESTS_KEY, JSON.stringify(list))
+    } catch { /* noop */ }
+}
+
+export const UPDATE_REQUESTS_CHANGE_EVENT = 'catalog:dealer-update-request-change'
+
+/** Dealer registra la petición · el rep la ve en su inbox. */
+export function submitUpdateRequest(dealerSlug: string, manufacturerSlug: string): void {
+    const list = loadUpdateRequests()
+    list.push({ dealerSlug, manufacturerSlug, requestedAt: new Date().toISOString() })
+    saveUpdateRequests(list)
+    try {
+        window.dispatchEvent(new CustomEvent(UPDATE_REQUESTS_CHANGE_EVENT))
+    } catch { /* noop */ }
+}
+
+/** Devuelve las requests para dealers que este rep atiende. */
+export function getUpdateRequestsForRep(repEmail: string): UpdateRequest[] {
+    const rels = getRelationshipsForRep(repEmail)
+    const dealerManufacturerPairs = new Set(
+        rels.map((r) => overrideKey(r.dealerSlug, r.manufacturerSlug)),
+    )
+    return loadUpdateRequests()
+        .filter((r) => dealerManufacturerPairs.has(overrideKey(r.dealerSlug, r.manufacturerSlug)))
+}
+
+/** Rep resolvió una request · la remueve del inbox. */
+export function clearUpdateRequest(dealerSlug: string, manufacturerSlug: string): void {
+    const filtered = loadUpdateRequests().filter(
+        (r) => !(r.dealerSlug === dealerSlug && r.manufacturerSlug === manufacturerSlug),
+    )
+    saveUpdateRequests(filtered)
+    try {
+        window.dispatchEvent(new CustomEvent(UPDATE_REQUESTS_CHANGE_EVENT))
+    } catch { /* noop */ }
+}
+
 /** Devuelve la relación del dealer con el manufacturer, o null si no existe. */
 export function getDealerRelationship(
     dealerTenant: string,
     manufacturerId: string,
 ): DealerRelationship | null {
     const dealerSlug = toDealerSlug(dealerTenant)
-    return SEED.find(
+    const found = SEED.find(
         (r) => r.dealerSlug === dealerSlug && r.manufacturerSlug === manufacturerId,
-    ) ?? null
+    )
+    if (!found) return null
+    return applyOverrideToRel(found, loadOverrides())
 }
 
 /** Devuelve todas las relaciones de un dealer (útil para el rep dashboard mock). */
 export function getRelationshipsForDealer(dealerTenant: string): DealerRelationship[] {
     const dealerSlug = toDealerSlug(dealerTenant)
-    return SEED.filter((r) => r.dealerSlug === dealerSlug)
+    const overrides = loadOverrides()
+    return SEED
+        .filter((r) => r.dealerSlug === dealerSlug)
+        .map((r) => applyOverrideToRel(r, overrides))
 }
 
 /** Devuelve todas las relaciones que un rep primario atiende (mock del rep dashboard). */
 export function getRelationshipsForRep(repEmail: string): DealerRelationship[] {
-    return SEED.filter((r) => r.primaryRep.email.toLowerCase() === repEmail.toLowerCase())
+    const overrides = loadOverrides()
+    return SEED
+        .filter((r) => r.primaryRep.email.toLowerCase() === repEmail.toLowerCase())
+        .map((r) => applyOverrideToRel(r, overrides))
 }
 
 /** Formato humano · "2 days ago", "1 month ago", etc. */

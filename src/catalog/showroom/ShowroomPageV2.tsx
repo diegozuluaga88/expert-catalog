@@ -182,7 +182,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   const { pendingCount: sampleRequestsPending, addToDraft } = useSampleRequests()
   const handleRequestSwatch = (product: Product) => {
     const firstColor = product.colorways?.[0]
-    addToDraft({
+    // F51 · A.3 · guard "finishes only" · el producto del showroom está
+    // enriched con `isMaterial` desde UNIFIED_PRODUCTS. Pasamos el flag
+    // al hook · si NO es finish, addToDraft devuelve null y avisamos.
+    const created = addToDraft({
       productId: product.id,
       productName: product.name,
       productBrand: product.brand,
@@ -190,7 +193,12 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       colorwayName: firstColor?.name,
       colorwayHex: firstColor?.hex,
       qty: 1,
+      isMaterial: product.isMaterial === true,
     })
+    if (!created) {
+      addToast('info', `Sample requests are for finishes only · ${product.name} is not a finish.`)
+      return
+    }
     addToast('success', `${product.name} added to sample draft.`, {
       label: 'Review draft',
       onClick: () => setTrackingOpen(true),

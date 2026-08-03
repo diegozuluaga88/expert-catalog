@@ -132,6 +132,12 @@ export interface AddToDraftInput {
     colorwayName?: string
     colorwayHex?: string
     qty?: number
+    /** F51 · A.3 · guard "finishes only" del PRD nuevo · si el caller sabe
+     *  que el producto NO es un finish (isMaterial===false explícito), el
+     *  hook rechaza el add. Un caller que no derive la señal (undefined)
+     *  no dispara el guard · esto preserva el behavior legacy pero permite
+     *  que los CTAs bien-informados enforce el policy. */
+    isMaterial?: boolean
 }
 
 export interface UseSampleRequestsReturn {
@@ -145,7 +151,9 @@ export interface UseSampleRequestsReturn {
     pendingCount: number
 
     /* Draft APIs */
-    addToDraft: (input: AddToDraftInput) => DraftSampleItem
+    /** Agrega un item al draft. Devuelve el item creado, o `null` si el
+     *  guard "finishes only" rechazó (input.isMaterial === false). */
+    addToDraft: (input: AddToDraftInput) => DraftSampleItem | null
     updateDraftQty: (itemId: string, qty: number) => void
     removeFromDraft: (itemId: string) => void
     clearDraft: () => void
@@ -232,7 +240,20 @@ export function useSampleRequests(): UseSampleRequestsReturn {
 
     /* ─── Draft APIs ─────────────────────────────────────────────── */
 
-    const addToDraft = useCallback((input: AddToDraftInput): DraftSampleItem => {
+    const addToDraft = useCallback((input: AddToDraftInput): DraftSampleItem | null => {
+        // F51 · A.3 · guard "finishes only" del PRD nuevo · rechaza el add
+        // cuando el caller explícitamente marca el producto como no-finish.
+        // Warn en consola para que un dev que agregue un CTA de sample sin
+        // el guard UI lo detecte durante desarrollo.
+        if (input.isMaterial === false) {
+            if (typeof console !== 'undefined') {
+                console.warn(
+                    '[useSampleRequests] Rejected addToDraft for non-finish product ' +
+                    `"${input.productName}" (${input.productId}) · samples are for finishes only.`,
+                )
+            }
+            return null
+        }
         const qty = input.qty ?? 1
         let created: DraftSampleItem | null = null
         setDraftItems((prev) => {

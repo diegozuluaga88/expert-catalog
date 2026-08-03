@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LibraryBig, Store, FileText, FolderKanban, Sparkles } from 'lucide-react'
+import { LibraryBig, Store, FileText, FolderKanban, Sparkles, Handshake } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
 import LibraryPage from './browse/LibraryPageV2'
@@ -34,6 +34,9 @@ import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
 // F51 · A.1 · P6 Inspiration Gallery · nuevo sub-tab greenfield con
 // installations + hotspot tagging + upload flow local (sin backend).
 import InspirationGalleryPage from './inspiration/InspirationGalleryPage'
+// F51 · A.2 · P4 Internal Info · left-tab dedicado con TODA la info del
+// dealer (todos sus manufacturers en un solo lugar).
+import MyDealerInfoPage from './dealerinfo/MyDealerInfoPage'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
@@ -46,7 +49,7 @@ import InspirationGalleryPage from './inspiration/InspirationGalleryPage'
 // código queda dormido, no se borra.
 const INSPIRATION_ENABLED = true
 
-type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects' | 'inspiration'
+type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects' | 'inspiration' | 'dealer-info'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
 
 interface BrowseNav {
@@ -96,7 +99,15 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   const draftItemsCountRef = useRef(sampleDraftItems.length)
   const handleRequestSampleFromMRL = (product: Product) => {
     const firstColor = product.colorways?.[0]
-    addSampleToDraft({
+    // F51 · A.3 · derivamos isMaterial del manufacturer del nav actual ·
+    // los productos del MRL vienen sin el flag `isMaterial` que sí tiene
+    // UNIFIED_PRODUCTS del Product Catalog. Si el manufacturer produce
+    // materials o both, todos sus productos son finishes por definición.
+    // Si el guard rechaza, avisamos al user con un toast informativo.
+    const treatAsMaterial = product.isMaterial === true
+      || nav.manufacturer?.type === 'materials'
+      || nav.manufacturer?.type === 'both'
+    const created = addSampleToDraft({
       productId: product.id,
       productName: product.name,
       productBrand: product.brand,
@@ -104,7 +115,12 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
       colorwayName: firstColor?.name,
       colorwayHex: firstColor?.hex,
       qty: 1,
+      isMaterial: treatAsMaterial,
     })
+    if (!created) {
+      addToast('info', `Sample requests are for finishes only · ${product.name} is not a finish.`)
+      return
+    }
     addToast('success', `${product.name} added to sample draft.`, {
       label: 'Review in Product Catalog',
       onClick: () => setMode('showroom'),
@@ -302,6 +318,11 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                   Inspiration
                 </button>
               )}
+              {/* F51 · A.2 · P4 Internal Info · left-tab dedicado. */}
+              <button type="button" onClick={() => setMode('dealer-info')} className={tabClass(mode === 'dealer-info')}>
+                <Handshake className="h-4 w-4" />
+                My Dealer Info
+              </button>
             </div>
           )
           const hideTopBar = mode === 'showroom'
@@ -324,6 +345,8 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                     setNav({ page: 'product', manufacturer, category, product })
                   }}
                 />
+              ) : mode === 'dealer-info' ? (
+                <MyDealerInfoPage />
               ) : (
                 <ShowroomPageV2 headerAside={modeTabBar} />
               )}
