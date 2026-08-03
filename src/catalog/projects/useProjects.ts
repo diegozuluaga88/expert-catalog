@@ -90,7 +90,7 @@ export interface AddItemInput {
 export interface UseProjectsReturn {
     projects: Project[]
     getProject: (id: string) => Project | undefined
-    createProject: (name: string) => Project
+    createProject: (name: string, canvas?: ProjectCanvas) => Project
     renameProject: (id: string, name: string) => void
     deleteProject: (id: string) => void
     duplicateProject: (id: string) => Project | null
@@ -117,12 +117,12 @@ export function useProjects(): UseProjectsReturn {
 
     const touch = (p: Project): Project => ({ ...p, updatedAt: new Date().toISOString() })
 
-    const createProject = useCallback((name: string): Project => {
+    const createProject = useCallback((name: string, canvas?: ProjectCanvas): Project => {
         const now = new Date().toISOString()
         const project: Project = {
             id: generateId('prj'),
             name: name.trim() || 'Untitled project',
-            canvas: { ...DEFAULT_CANVAS },
+            canvas: canvas ? { ...canvas } : { ...DEFAULT_CANVAS },
             items: [],
             createdAt: now,
             updatedAt: now,

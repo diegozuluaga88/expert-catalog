@@ -10,6 +10,7 @@ import { Plus, ArrowLeft, Trash2, Copy, Pencil, FolderKanban } from 'lucide-reac
 import { Button, EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } from 'strata-design-system'
 import { useProjects, type Project } from './useProjects'
 import ProjectCanvas from './ProjectCanvas'
+import CreateProjectModal from './CreateProjectModal'
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 import type { Product } from '../types'
 
@@ -28,15 +29,8 @@ export default function ProjectsPage() {
     } = useProjects()
 
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+    const [createModalOpen, setCreateModalOpen] = useState(false)
     const activeProject = activeProjectId ? getProject(activeProjectId) : undefined
-
-    const handleCreate = () => {
-        const name = window.prompt('New project name')
-        if (name && name.trim()) {
-            const created = createProject(name)
-            setActiveProjectId(created.id)
-        }
-    }
 
     if (activeProject) {
         return (
@@ -62,7 +56,7 @@ export default function ProjectsPage() {
                         Build spatial moodboards for your clients · drag products from the catalog to a canvas.
                     </p>
                 </div>
-                <Button onClick={handleCreate}>
+                <Button onClick={() => setCreateModalOpen(true)}>
                     <Plus className="mr-1.5 h-4 w-4" />
                     New project
                 </Button>
@@ -102,6 +96,16 @@ export default function ProjectsPage() {
                     ))}
                 </div>
             )}
+
+            <CreateProjectModal
+                open={createModalOpen}
+                onClose={() => setCreateModalOpen(false)}
+                onCreate={(name, canvas) => {
+                    const created = createProject(name, canvas)
+                    setCreateModalOpen(false)
+                    setActiveProjectId(created.id)
+                }}
+            />
         </div>
     )
 }
