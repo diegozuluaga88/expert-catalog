@@ -1,18 +1,45 @@
 // F50 · Etapa 10.c (P2 Project Builder) · v2 · editor del canvas.
 //
-// SVG-based canvas con drag nativo (mousedown/mousemove/mouseup) para no
-// depender de librerías extra. Features:
+// SVG-based canvas con drag nativo (pointer events) para no depender de
+// librerías extra. Features:
 //   · Grid background con snap-to-grid opcional (toggle en toolbar)
-//   · Items drag-around con puntero
-//   · Click en item lo selecciona · Delete key remueve
-//   · Product picker panel a la derecha con búsqueda · click agrega al
-//     centro, o drag desde el panel al canvas para posicionar
-//   · Toolbar con: back, rename, snap toggle, clear, export PNG (mock),
-//     share link
-//   · Persist automático (cada acción va contra useProjects)
+//   · Checkbox en cada item para multi-select (Diego ask · más obvio
+//     que Ctrl+click)
+//   · Multi-drag · al arrastrar un item seleccionado, todos los del set
+//     se mueven con el mismo delta
+//   · Floating bulk actions bar cuando hay 1+ items seleccionados:
+//     Delete + Duplicate + Align (6 opciones) + Distribute (2 opciones,
+//     disabled si <3 items)
+//   · Drag out del canvas · si el pointer suelta afuera del SVG bounds
+//     habiendo movido >40px, abre modal de confirm para borrar los items
+//     arrastrados
+//   · Keyboard: Delete/Backspace borra selección · Esc deselecciona
+//   · Product picker panel a la derecha con búsqueda · drag desde row
+//     al canvas o click + para add al centro
+//   · Toolbar con: back, rename, snap toggle, clear, export SVG (mock
+//     PNG), share link (mock)
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Grid3x3, Trash2, Download, Share2, Search, X, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+    ArrowLeft,
+    Grid3x3,
+    Trash2,
+    Download,
+    Share2,
+    Search,
+    X,
+    Plus,
+    Copy,
+    AlignStartVertical,
+    AlignCenterVertical,
+    AlignEndVertical,
+    AlignStartHorizontal,
+    AlignCenterHorizontal,
+    AlignEndHorizontal,
+    AlignHorizontalDistributeCenter,
+    AlignVerticalDistributeCenter,
+    Check,
+} from 'lucide-react'
 import { Button, Input } from 'strata-design-system'
 import type { Project, PlacedItem, AddItemInput } from './useProjects'
 import { snapToGrid, DEFAULT_ITEM_SIZE } from './useProjects'
@@ -21,6 +48,7 @@ import { useToast, ToastContainer } from '../../components/AuthToast'
 import { useDialogs } from '../../components/dialogs/DialogsContext'
 
 const GRID_SIZE = 20
+const DRAG_OUT_MIN_MOVE = 40
 
 interface ProjectCanvasProps {
     project: Project
@@ -45,31 +73,45 @@ export default function ProjectCanvas({
 }: ProjectCanvasProps) {
     const { canvas, items, name } = project
     const svgRef = useRef<SVGSVGElement>(null)
-    const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [snap, setSnap] = useState(true)
     const [pickerQuery, setPickerQuery] = useState('')
+    const [isDraggingOut, setIsDraggingOut] = useState(false)
     const { toasts, addToast, dismissToast } = useToast()
     const { prompt, confirm } = useDialogs()
 
-    // Deselecciona al Escape · Delete borra el item seleccionado
+    // Set helpers
+    const isSelected = (id: string) => selectedIds.has(id)
+    const toggleSelected = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+    const selectOnly = (id: string) => setSelectedIds(new Set([id]))
+    const clearSelection = () => setSelectedIds(new Set())
+
+    // Deselecciona con Escape · Delete/Backspace borra selección
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (!selectedId) return
+            if (selectedIds.size === 0) return
+            const t = e.target as HTMLElement | null
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
             if (e.key === 'Escape') {
-                setSelectedId(null)
+                clearSelection()
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
-                const t = e.target as HTMLElement | null
-                if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-                onRemoveItem(selectedId)
-                setSelectedId(null)
+                e.preventDefault()
+                handleDeleteSelected()
             }
         }
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
-    }, [selectedId, onRemoveItem])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedIds])
 
-    // Convierte coordenadas de mouse (client px) a coordenadas del canvas
-    // (unidades del viewBox). Necesario porque el SVG se escala responsivo.
+    // Convierte coordenadas de mouse a coordenadas del canvas
     const clientToCanvas = useCallback((clientX: number, clientY: number): { x: number; y: number } => {
         const svg = svgRef.current
         if (!svg) return { x: 0, y: 0 }
@@ -82,41 +124,132 @@ export default function ProjectCanvas({
         }
     }, [canvas.width, canvas.height])
 
-    // Drag de un item existente · pointerdown en el item → track move → up
-    const dragRef = useRef<{ itemId: string; offsetX: number; offsetY: number } | null>(null)
+    // Chequea si el pointer está fuera de los bounds del SVG (client space)
+    const isPointerOutsideSvg = useCallback((clientX: number, clientY: number): boolean => {
+        const svg = svgRef.current
+        if (!svg) return false
+        const rect = svg.getBoundingClientRect()
+        return clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom
+    }, [])
+
+    // Drag state · tracker de items siendo movidos + start point para
+    // calcular delta y detectar "moved enough" para drag-out.
+    interface DragState {
+        itemIds: string[]      // ids que se mueven juntos (multi-drag)
+        anchorId: string       // item que el user tomó (para calcular delta)
+        offsetX: number        // dif entre pointer y anchor.x al start
+        offsetY: number        // idem y
+        originalPositions: Map<string, { x: number; y: number }>
+        startClientX: number
+        startClientY: number
+        totalMoved: number     // Manhattan distance acumulado
+    }
+    const dragRef = useRef<DragState | null>(null)
+
     const startDrag = (e: React.PointerEvent, item: PlacedItem) => {
         e.stopPropagation()
-        setSelectedId(item.id)
+        // Si el ítem tomado no está en la selección, hacé single-select
+        // (reemplaza set). Si está, mantené la selección multi para drag
+        // conjunto.
+        let itemIds: string[]
+        if (selectedIds.has(item.id)) {
+            itemIds = Array.from(selectedIds)
+        } else {
+            selectOnly(item.id)
+            itemIds = [item.id]
+        }
         const canvasPt = clientToCanvas(e.clientX, e.clientY)
+        const originalPositions = new Map<string, { x: number; y: number }>()
+        for (const id of itemIds) {
+            const it = items.find((i) => i.id === id)
+            if (it) originalPositions.set(id, { x: it.x, y: it.y })
+        }
         dragRef.current = {
-            itemId: item.id,
+            itemIds,
+            anchorId: item.id,
             offsetX: canvasPt.x - item.x,
             offsetY: canvasPt.y - item.y,
+            originalPositions,
+            startClientX: e.clientX,
+            startClientY: e.clientY,
+            totalMoved: 0,
         }
-        ;(e.target as Element).setPointerCapture(e.pointerId)
+        try {
+            (e.target as Element).setPointerCapture(e.pointerId)
+        } catch { /* noop */ }
     }
+
     const onDragMove = (e: React.PointerEvent) => {
-        if (!dragRef.current) return
+        const drag = dragRef.current
+        if (!drag) return
         const canvasPt = clientToCanvas(e.clientX, e.clientY)
-        const rawX = canvasPt.x - dragRef.current.offsetX
-        const rawY = canvasPt.y - dragRef.current.offsetY
-        const item = items.find((it) => it.id === dragRef.current!.itemId)
-        if (!item) return
-        // Clamp al canvas bounds
-        const maxX = canvas.width - item.width
-        const maxY = canvas.height - item.height
-        const clampedX = Math.max(0, Math.min(maxX, rawX))
-        const clampedY = Math.max(0, Math.min(maxY, rawY))
-        const finalX = snap ? snapToGrid(clampedX, GRID_SIZE) : Math.round(clampedX)
-        const finalY = snap ? snapToGrid(clampedY, GRID_SIZE) : Math.round(clampedY)
-        if (finalX !== item.x || finalY !== item.y) {
-            onUpdateItem(item.id, { x: finalX, y: finalY })
+        const anchor = items.find((it) => it.id === drag.anchorId)
+        if (!anchor) return
+        const rawX = canvasPt.x - drag.offsetX
+        const rawY = canvasPt.y - drag.offsetY
+        // Calcula delta desde la posición original del anchor
+        const orig = drag.originalPositions.get(drag.anchorId)!
+        const deltaX = rawX - orig.x
+        const deltaY = rawY - orig.y
+        // Aplica el delta a todos los ítems del set
+        for (const id of drag.itemIds) {
+            const origPos = drag.originalPositions.get(id)
+            const item = items.find((i) => i.id === id)
+            if (!origPos || !item) continue
+            const maxX = canvas.width - item.width
+            const maxY = canvas.height - item.height
+            const nextX = Math.max(0, Math.min(maxX, origPos.x + deltaX))
+            const nextY = Math.max(0, Math.min(maxY, origPos.y + deltaY))
+            const finalX = snap ? snapToGrid(nextX, GRID_SIZE) : Math.round(nextX)
+            const finalY = snap ? snapToGrid(nextY, GRID_SIZE) : Math.round(nextY)
+            if (finalX !== item.x || finalY !== item.y) {
+                onUpdateItem(id, { x: finalX, y: finalY })
+            }
         }
+        // Track total movement + drag-out state
+        drag.totalMoved = Math.abs(e.clientX - drag.startClientX) + Math.abs(e.clientY - drag.startClientY)
+        const outside = isPointerOutsideSvg(e.clientX, e.clientY)
+        setIsDraggingOut(outside && drag.totalMoved > DRAG_OUT_MIN_MOVE)
     }
-    const endDrag = (e: React.PointerEvent) => {
-        if (dragRef.current) {
-            try { (e.target as Element).releasePointerCapture(e.pointerId) } catch { /* noop */ }
-            dragRef.current = null
+
+    const endDrag = async (e: React.PointerEvent) => {
+        const drag = dragRef.current
+        if (!drag) return
+        try {
+            (e.target as Element).releasePointerCapture(e.pointerId)
+        } catch { /* noop */ }
+        const droppedOutside = isPointerOutsideSvg(e.clientX, e.clientY) && drag.totalMoved > DRAG_OUT_MIN_MOVE
+        dragRef.current = null
+        setIsDraggingOut(false)
+        if (droppedOutside) {
+            const count = drag.itemIds.length
+            const label = count === 1 ? '1 item' : `${count} items`
+            const ok = await confirm({
+                title: `Delete ${label}?`,
+                description: 'You dropped outside the canvas. This will remove the item(s) from the project.',
+                confirmLabel: 'Delete',
+                danger: true,
+            })
+            if (ok) {
+                // Restore original positions first (to avoid leaving items
+                // at edge positions), then remove.
+                for (const id of drag.itemIds) {
+                    const orig = drag.originalPositions.get(id)
+                    if (orig) onUpdateItem(id, { x: orig.x, y: orig.y })
+                    onRemoveItem(id)
+                }
+                setSelectedIds((prev) => {
+                    const next = new Set(prev)
+                    drag.itemIds.forEach((id) => next.delete(id))
+                    return next
+                })
+            } else {
+                // Cancel → restore original positions
+                for (const id of drag.itemIds) {
+                    const orig = drag.originalPositions.get(id)
+                    if (orig) onUpdateItem(id, { x: orig.x, y: orig.y })
+                }
+            }
         }
     }
 
@@ -139,13 +272,106 @@ export default function ProjectCanvas({
 
     const handleAddClick = (product: Product) => {
         const item = onAddItem({ productId: product.id })
-        if (item) setSelectedId(item.id)
+        if (item) selectOnly(item.id)
     }
 
-    const handleExport = async () => {
-        // Mock export · en producción usaríamos html2canvas / saveSvgAsPng.
-        // Por ahora abrimos el SVG en una tab nueva para que el user haga
-        // "Save image as…" (banner honesto en el toast).
+    /* ─── Bulk actions ────────────────────────────────────────────── */
+
+    const selectedItems = useMemo(
+        () => items.filter((it) => selectedIds.has(it.id)),
+        [items, selectedIds],
+    )
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.size === 0) return
+        const count = selectedIds.size
+        const ok = await confirm({
+            title: count === 1 ? 'Delete this item?' : `Delete ${count} items?`,
+            description: "This can't be undone.",
+            confirmLabel: 'Delete',
+            danger: true,
+        })
+        if (!ok) return
+        for (const id of selectedIds) onRemoveItem(id)
+        clearSelection()
+    }
+
+    const handleDuplicateSelected = () => {
+        if (selectedIds.size === 0) return
+        const newIds: string[] = []
+        for (const it of selectedItems) {
+            const offset = 20
+            const newX = Math.min(canvas.width - it.width, it.x + offset)
+            const newY = Math.min(canvas.height - it.height, it.y + offset)
+            const created = onAddItem({
+                productId: it.productId,
+                x: snap ? snapToGrid(newX, GRID_SIZE) : newX,
+                y: snap ? snapToGrid(newY, GRID_SIZE) : newY,
+                width: it.width,
+                height: it.height,
+            })
+            if (created) newIds.push(created.id)
+        }
+        if (newIds.length > 0) setSelectedIds(new Set(newIds))
+    }
+
+    type AlignMode = 'left' | 'hCenter' | 'right' | 'top' | 'vCenter' | 'bottom'
+    const handleAlign = (mode: AlignMode) => {
+        if (selectedItems.length < 2) return
+        if (mode === 'left') {
+            const minX = Math.min(...selectedItems.map((it) => it.x))
+            selectedItems.forEach((it) => onUpdateItem(it.id, { x: minX }))
+        } else if (mode === 'right') {
+            const maxRight = Math.max(...selectedItems.map((it) => it.x + it.width))
+            selectedItems.forEach((it) => onUpdateItem(it.id, { x: maxRight - it.width }))
+        } else if (mode === 'hCenter') {
+            const centers = selectedItems.map((it) => it.x + it.width / 2)
+            const avgCenter = centers.reduce((s, v) => s + v, 0) / centers.length
+            selectedItems.forEach((it) => onUpdateItem(it.id, { x: Math.round(avgCenter - it.width / 2) }))
+        } else if (mode === 'top') {
+            const minY = Math.min(...selectedItems.map((it) => it.y))
+            selectedItems.forEach((it) => onUpdateItem(it.id, { y: minY }))
+        } else if (mode === 'bottom') {
+            const maxBottom = Math.max(...selectedItems.map((it) => it.y + it.height))
+            selectedItems.forEach((it) => onUpdateItem(it.id, { y: maxBottom - it.height }))
+        } else if (mode === 'vCenter') {
+            const centers = selectedItems.map((it) => it.y + it.height / 2)
+            const avgCenter = centers.reduce((s, v) => s + v, 0) / centers.length
+            selectedItems.forEach((it) => onUpdateItem(it.id, { y: Math.round(avgCenter - it.height / 2) }))
+        }
+    }
+
+    const handleDistribute = (axis: 'h' | 'v') => {
+        if (selectedItems.length < 3) return
+        // Ordenar por posición, mantener el primero y el último, distribuir
+        // los gaps entre los del medio de forma uniforme.
+        const sorted = [...selectedItems].sort((a, b) =>
+            axis === 'h' ? (a.x + a.width / 2) - (b.x + b.width / 2) : (a.y + a.height / 2) - (b.y + b.height / 2),
+        )
+        const first = sorted[0]
+        const last = sorted[sorted.length - 1]
+        if (axis === 'h') {
+            const firstCenter = first.x + first.width / 2
+            const lastCenter = last.x + last.width / 2
+            const step = (lastCenter - firstCenter) / (sorted.length - 1)
+            sorted.slice(1, -1).forEach((it, i) => {
+                const targetCenter = firstCenter + step * (i + 1)
+                onUpdateItem(it.id, { x: Math.round(targetCenter - it.width / 2) })
+            })
+        } else {
+            const firstCenter = first.y + first.height / 2
+            const lastCenter = last.y + last.height / 2
+            const step = (lastCenter - firstCenter) / (sorted.length - 1)
+            sorted.slice(1, -1).forEach((it, i) => {
+                const targetCenter = firstCenter + step * (i + 1)
+                onUpdateItem(it.id, { y: Math.round(targetCenter - it.height / 2) })
+            })
+        }
+    }
+
+    /* ─── Export + share ──────────────────────────────────────────── */
+
+    const handleExport = () => {
         const svg = svgRef.current
         if (!svg) return
         const clone = svg.cloneNode(true) as SVGSVGElement
@@ -159,9 +385,6 @@ export default function ProjectCanvas({
     }
 
     const handleShare = async () => {
-        // Reusa el pattern de collections · encode del layout en URL.
-        // Mock signature (client-side, ver collectionShareLink) · aquí es
-        // aún más simple: solo copiamos un link a la vista actual.
         const shareData = btoa(unescape(encodeURIComponent(JSON.stringify({
             n: name,
             i: items.map((it) => ({ p: it.productId, x: it.x, y: it.y, w: it.width, h: it.height })),
@@ -175,8 +398,8 @@ export default function ProjectCanvas({
         }
     }
 
-    // Product picker · filtra allProducts por query. Cap a 50 para no
-    // ahogar el DOM.
+    /* ─── Product picker ──────────────────────────────────────────── */
+
     const pickerResults = allProducts
         .filter((p) => {
             if (!pickerQuery.trim()) return true
@@ -184,6 +407,8 @@ export default function ProjectCanvas({
             return hay.includes(pickerQuery.toLowerCase())
         })
         .slice(0, 50)
+
+    /* ─── Render ─────────────────────────────────────────────────── */
 
     return (
         <div className="mx-auto max-w-[1600px]">
@@ -225,7 +450,7 @@ export default function ProjectCanvas({
                         onClick={() => setSnap((v) => !v)}
                         aria-pressed={snap}
                         className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${
-                            snap ? 'border-primary/40 bg-primary/10 text-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+                            snap ? 'border-foreground bg-muted text-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
                         }`}
                         title="Toggle snap to grid"
                     >
@@ -244,7 +469,7 @@ export default function ProjectCanvas({
                             })
                             if (ok) {
                                 onClearItems()
-                                setSelectedId(null)
+                                clearSelection()
                             }
                         }}
                         disabled={items.length === 0}
@@ -276,8 +501,14 @@ export default function ProjectCanvas({
 
             {/* Body · canvas + picker */}
             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-                {/* Canvas */}
-                <div className="overflow-hidden rounded-xl border border-border bg-muted">
+                {/* Canvas wrapper con overlay de "Drop to delete" cuando drag out */}
+                <div className="relative overflow-hidden rounded-xl border border-border bg-muted">
+                    {isDraggingOut && (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 mx-auto flex w-fit items-center gap-2 rounded-full bg-destructive px-4 py-2 text-sm font-bold text-destructive-foreground shadow-xl">
+                            <Trash2 className="h-4 w-4" />
+                            Drop to delete
+                        </div>
+                    )}
                     <svg
                         ref={svgRef}
                         viewBox={`0 0 ${canvas.width} ${canvas.height}`}
@@ -289,9 +520,8 @@ export default function ProjectCanvas({
                         onPointerCancel={endDrag}
                         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
                         onDrop={onDropFromPicker}
-                        onClick={() => setSelectedId(null)}
+                        onClick={() => clearSelection()}
                     >
-                        {/* Grid pattern */}
                         <defs>
                             <pattern id="canvas-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
                                 <path
@@ -305,10 +535,9 @@ export default function ProjectCanvas({
                         <rect width={canvas.width} height={canvas.height} fill="var(--color-background, #fafafa)" />
                         <rect width={canvas.width} height={canvas.height} fill="url(#canvas-grid)" />
 
-                        {/* Items */}
                         {items.map((it) => {
                             const product = allProducts.find((p) => p.id === it.productId)
-                            const isSelected = it.id === selectedId
+                            const selected = isSelected(it.id)
                             return (
                                 <g
                                     key={it.id}
@@ -321,8 +550,8 @@ export default function ProjectCanvas({
                                         width={it.width}
                                         height={it.height}
                                         fill="var(--color-card, #fff)"
-                                        stroke={isSelected ? 'var(--color-primary, #a3c414)' : 'var(--color-border, #e4e4e7)'}
-                                        strokeWidth={isSelected ? 3 : 2}
+                                        stroke={selected ? 'var(--color-foreground, #09090b)' : 'var(--color-border, #e4e4e7)'}
+                                        strokeWidth={selected ? 3 : 2}
                                         rx={8}
                                     />
                                     {product && (
@@ -336,6 +565,35 @@ export default function ProjectCanvas({
                                             style={{ pointerEvents: 'none' }}
                                         />
                                     )}
+                                    {/* Selection checkbox visual · siempre visible top-left */}
+                                    <g
+                                        onPointerDown={(e) => {
+                                            e.stopPropagation()
+                                            toggleSelected(it.id)
+                                        }}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <circle cx={12} cy={12} r={10} fill="var(--color-background, #fafafa)" opacity={0.9} />
+                                        <circle
+                                            cx={12}
+                                            cy={12}
+                                            r={9}
+                                            fill={selected ? 'var(--color-primary, #a3c414)' : 'transparent'}
+                                            stroke={selected ? 'var(--color-primary, #a3c414)' : 'var(--color-foreground, #09090b)'}
+                                            strokeWidth={selected ? 2 : 1.5}
+                                        />
+                                        {selected && (
+                                            <path
+                                                d="M 7 12 L 11 15 L 17 9"
+                                                fill="none"
+                                                stroke="var(--color-primary-foreground, #02060C)"
+                                                strokeWidth={2}
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                style={{ pointerEvents: 'none' }}
+                                            />
+                                        )}
+                                    </g>
                                     {product && (
                                         <text
                                             x={it.width / 2}
@@ -423,7 +681,107 @@ export default function ProjectCanvas({
                 </aside>
             </div>
 
+            {/* Floating bulk actions bar · aparece cuando hay 1+ items seleccionados */}
+            {selectedIds.size > 0 && (
+                <BulkActionsBar
+                    count={selectedIds.size}
+                    canAlign={selectedItems.length >= 2}
+                    canDistribute={selectedItems.length >= 3}
+                    onDelete={handleDeleteSelected}
+                    onDuplicate={handleDuplicateSelected}
+                    onAlign={handleAlign}
+                    onDistribute={handleDistribute}
+                    onClear={clearSelection}
+                />
+            )}
+
             <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         </div>
+    )
+}
+
+/* ─── Floating bulk actions bar ─────────────────────────────────── */
+
+interface BulkActionsBarProps {
+    count: number
+    canAlign: boolean
+    canDistribute: boolean
+    onDelete: () => void
+    onDuplicate: () => void
+    onAlign: (mode: 'left' | 'hCenter' | 'right' | 'top' | 'vCenter' | 'bottom') => void
+    onDistribute: (axis: 'h' | 'v') => void
+    onClear: () => void
+}
+
+function BulkActionsBar({
+    count,
+    canAlign,
+    canDistribute,
+    onDelete,
+    onDuplicate,
+    onAlign,
+    onDistribute,
+    onClear,
+}: BulkActionsBarProps) {
+    return (
+        <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full border border-border bg-card px-2 py-1.5 shadow-lg flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground">
+                <Check className="h-3 w-3" strokeWidth={3} />
+                {count} selected
+            </span>
+
+            <div className="mx-1 h-4 w-px bg-border" />
+
+            <BulkIconButton onClick={onDuplicate} icon={<Copy className="h-3.5 w-3.5" />} label="Duplicate" />
+            <BulkIconButton onClick={onDelete} icon={<Trash2 className="h-3.5 w-3.5" />} label="Delete" danger />
+
+            {/* Align group · solo cuando hay 2+ */}
+            <div className={`mx-1 h-4 w-px bg-border ${canAlign ? '' : 'opacity-50'}`} />
+            <BulkIconButton onClick={() => onAlign('left')} icon={<AlignStartVertical className="h-3.5 w-3.5" />} label="Align left" disabled={!canAlign} />
+            <BulkIconButton onClick={() => onAlign('hCenter')} icon={<AlignCenterVertical className="h-3.5 w-3.5" />} label="Align horizontal center" disabled={!canAlign} />
+            <BulkIconButton onClick={() => onAlign('right')} icon={<AlignEndVertical className="h-3.5 w-3.5" />} label="Align right" disabled={!canAlign} />
+            <BulkIconButton onClick={() => onAlign('top')} icon={<AlignStartHorizontal className="h-3.5 w-3.5" />} label="Align top" disabled={!canAlign} />
+            <BulkIconButton onClick={() => onAlign('vCenter')} icon={<AlignCenterHorizontal className="h-3.5 w-3.5" />} label="Align vertical center" disabled={!canAlign} />
+            <BulkIconButton onClick={() => onAlign('bottom')} icon={<AlignEndHorizontal className="h-3.5 w-3.5" />} label="Align bottom" disabled={!canAlign} />
+
+            {/* Distribute group · solo cuando hay 3+ */}
+            <div className={`mx-1 h-4 w-px bg-border ${canDistribute ? '' : 'opacity-50'}`} />
+            <BulkIconButton onClick={() => onDistribute('h')} icon={<AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />} label="Distribute horizontally" disabled={!canDistribute} />
+            <BulkIconButton onClick={() => onDistribute('v')} icon={<AlignVerticalDistributeCenter className="h-3.5 w-3.5" />} label="Distribute vertically" disabled={!canDistribute} />
+
+            <div className="mx-1 h-4 w-px bg-border" />
+            <BulkIconButton onClick={onClear} icon={<X className="h-3.5 w-3.5" />} label="Clear selection" />
+        </div>
+    )
+}
+
+function BulkIconButton({
+    onClick,
+    icon,
+    label,
+    danger,
+    disabled,
+}: {
+    onClick: () => void
+    icon: React.ReactNode
+    label: string
+    danger?: boolean
+    disabled?: boolean
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={label}
+            title={label}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                danger
+                    ? 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+        >
+            {icon}
+        </button>
     )
 }
