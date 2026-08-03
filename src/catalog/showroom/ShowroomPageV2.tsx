@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft, Sparkles, Plus, Pencil } from 'lucide-react'
-import type { Category, Product, ProductSortKey, SpaceType, SpaceTypeSetting } from '../types'
+import type { Category, Manufacturer, Product, ProductSortKey, SpaceType, SpaceTypeSetting } from '../types'
 import SpaceTypesPage, { SPACES_COST_BUCKETS, type SpacesFilters, type SpacesSortKey } from '../spaces/SpaceTypesPage'
 import SpaceTypeDetailPage from '../spaces/SpaceTypeDetailPage'
 import { getAllBrandsInSpaces, SPACE_TYPES } from '../data/spaceTypes'
@@ -51,7 +51,12 @@ import { useCollections } from '../browse/useCollections'
 import AddToCollectionModal from '../components/AddToCollectionModal'
 // F50 · Etapa 8 (P7 share) · util para armar el link firmado read-only.
 import { encodeCollectionShareLink } from '../browse/collectionShareLink'
-import { Share2, LayoutGrid, Palette, Tag } from 'lucide-react'
+import { Share2, LayoutGrid, Palette, Tag, Wand2 } from 'lucide-react'
+// F50 · Etapa 9 (P1 search) · v2 · command palette + visual search stub +
+// session activity tracker (mock reranking).
+import SearchCommandPalette from '../search/SearchCommandPalette'
+import VisualSearchModal from '../search/VisualSearchModal'
+import { useSessionActivity } from '../search/useSessionActivity'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -221,6 +226,30 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       setCollectionGroupBy('flat')
     }
   }, [activeCollectionFilter, collectionGroupBy])
+  // F50 · Etapa 9 (P1 search) · state del command palette + visual search.
+  // El hotkey `/` global (excepto en inputs) abre el palette. `Esc` cierra.
+  const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
+  const [visualSearchOpen, setVisualSearchOpen] = useState(false)
+  // Session activity tracker · registra vistas de productos para el
+  // reranker mock del palette. Se dispara desde onOpen de las cards.
+  const { recordView } = useSessionActivity()
+  useEffect(() => {
+    const isEditableTarget = (t: EventTarget | null): boolean => {
+      if (!(t instanceof HTMLElement)) return false
+      const tag = t.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+      if (t.isContentEditable) return true
+      return false
+    }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && !isEditableTarget(e.target)) {
+        e.preventDefault()
+        setSearchPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   // Bulk RFQ · queue mode · panel cycles through products via onAfterAdd
   const [quoteQueue, setQuoteQueue] = useState<Product[]>([])
@@ -408,6 +437,13 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
     [taxonomy]
   )
   const brands = useMemo(() => Array.from(new Set(taxoProducts.map((p) => p.brand!).filter(Boolean))), [taxoProducts])
+  // F50 · Etapa 9 (P1 search) · manufacturers derivados por brand para
+  // alimentar el SearchCommandPalette (necesita los objetos completos, no
+  // solo el nombre).
+  const taxoManufacturers = useMemo(
+    () => brands.map((name) => getManufacturerByName(name)).filter((m): m is Manufacturer => !!m),
+    [brands],
+  )
   const categories = useMemo(
     () => Array.from(new Set(taxoProducts.map((p) => p.category!).filter(Boolean))),
     [taxoProducts]
@@ -724,6 +760,19 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
                 />
               </div>
+              {/* F50 · Etapa 9 (P1 search) · v2 · trigger del command palette.
+                  Aparece justo debajo del input plain-text · comparten look
+                  pero funciones distintas (quick text vs NL/visual/recent). */}
+              <button
+                type="button"
+                onClick={() => setSearchPaletteOpen(true)}
+                className="flex h-9 w-full items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 text-left text-[12px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Open AI-assisted search · shortcut: /"
+              >
+                <Wand2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                <span className="flex-1 truncate">AI search · NL &amp; visual</span>
+                <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px] font-mono">/</kbd>
+              </button>
               <div className="relative">
                 <button
                   type="button"
@@ -1470,10 +1519,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             favorite={favorites.has(p.id)}
                             onToggleSelect={(id) => toggleFromSet(setSelected, id)}
                             onToggleFavorite={(id) => setCollectionModalProductId(id)}
-                            onConfigure={(prod) => setDetailId(prod.id)}
+                            onConfigure={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                             onQuickAdd={handleQuickAdd}
                             onRequestSwatch={handleRequestSwatch}
-                            onOpen={(prod) => setDetailId(prod.id)}
+                            onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                           />
                         ))}
                       </div>
@@ -1498,10 +1547,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                     // para 1-click add/remove sin abrir el modal.
                     setCollectionModalProductId(id)
                   }}
-                  onConfigure={(prod) => setDetailId(prod.id)}
+                  onConfigure={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                   onQuickAdd={handleQuickAdd}
                   onRequestSwatch={handleRequestSwatch}
-                  onOpen={(prod) => setDetailId(prod.id)}
+                  onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                 />
               ))}
             </div>
@@ -1696,6 +1745,57 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         onAddToCollection={addToCollection}
         onRemoveFromCollection={removeFromCollection}
         onDeleteCollection={deleteCollection}
+      />
+
+      {/* F50 · Etapa 9 (P1 search) · v2 · command palette style search.
+          Se abre con `/` shortcut o con el botón "AI search" del sidebar. */}
+      <SearchCommandPalette
+        open={searchPaletteOpen}
+        onClose={() => setSearchPaletteOpen(false)}
+        products={taxoProducts}
+        manufacturers={taxoManufacturers}
+        onApplyStructuredFilters={(f) => {
+          if (f.text !== undefined) setSearch(f.text)
+          if (f.category) setSelectedCategories(new Set([f.category]))
+          if (f.tags && f.tags.length > 0) setSelectedFeatures(new Set(f.tags))
+          // Precio custom · usa el rango custom que soporta min/max libre.
+          if (f.minPrice !== undefined || f.maxPrice !== undefined) {
+            setCustomPriceRange({
+              min: f.minPrice ?? 0,
+              max: f.maxPrice ?? 100000,
+            })
+          }
+          setPage(1)
+        }}
+        onApplyFreeText={(t) => {
+          setSearch(t)
+          setPage(1)
+        }}
+        onOpenProduct={(id) => {
+          recordView(id)
+          setDetailId(id)
+        }}
+        onOpenBrand={(name) => {
+          setSelectedBrands(new Set([name]))
+          setPage(1)
+        }}
+        onOpenCategory={(cat) => {
+          setSelectedCategories(new Set([cat]))
+          setPage(1)
+        }}
+        onOpenVisualSearch={() => {
+          setSearchPaletteOpen(false)
+          setVisualSearchOpen(true)
+        }}
+      />
+      <VisualSearchModal
+        open={visualSearchOpen}
+        onClose={() => setVisualSearchOpen(false)}
+        products={taxoProducts}
+        onOpenProduct={(id) => {
+          recordView(id)
+          setDetailId(id)
+        }}
       />
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
