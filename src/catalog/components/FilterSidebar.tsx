@@ -35,6 +35,10 @@ interface FilterSidebarProps {
    *  este handler (en vez de escribir directo al state). Se usa para wire
    *  el input al AI search palette como trigger único. v1 no lo pasa. */
   onSearchClick?: () => void
+  /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · slot opcional
+   *  al final del sidebar (después de todos los filtros). Se usa para
+   *  aterrizar el SampleTrackingPanel. v1 no lo pasa. */
+  bottomSlot?: ReactNode
 }
 
 const SWATCH_COLORS = [
@@ -94,6 +98,7 @@ export default function FilterSidebar({
   onTagsChange,
   topSlot,
   onSearchClick,
+  bottomSlot,
 }: FilterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
@@ -305,6 +310,14 @@ export default function FilterSidebar({
         )}
       </FilterSection>
         </>
+      )}
+      {/* F50 · sample flow (MRL adapt) · v2 · slot al final del sidebar
+          para el SampleTrackingPanel. Solo cuando el sidebar no está
+          collapsed y el consumer pasó el node. */}
+      {!collapsed && bottomSlot && (
+        <div>
+          {bottomSlot}
+        </div>
       )}
     </aside>
   )

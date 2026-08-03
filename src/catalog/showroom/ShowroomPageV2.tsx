@@ -39,6 +39,7 @@ import GridDensitySelector, { gridClassesFor, loadGridDensity, saveGridDensity, 
 import CustomPriceRange, { type PriceRangeValue } from '../components/CustomPriceRange'
 // F50 · Wave 4 · v2 · Sample request modal + tracking slide-over + toast.
 import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
+import SampleTrackingPanel from '../components/SampleTrackingPanel'
 import { useSampleRequests, SAMPLE_STATUS_CHANGE_EVENT, type SampleStatusChangeDetail } from '../browse/useSampleRequests'
 import { useToast, ToastContainer } from '../../components/AuthToast'
 import { Package as PackageIcon, Menu as MenuIcon, X as XIcon, Folder as FolderIcon } from 'lucide-react'
@@ -1392,6 +1393,13 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
 
           </>}
 
+    {/* F50 · sample flow (2026-08-03) · v2 · panel permanente al final
+        del sidebar del Product Catalog · muestra draft + in-flight +
+        delivered con badge en el header colapsable. Sync automático con
+        el hook via CustomEvent. */}
+    <div className="-mx-0">
+      <SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />
+    </div>
     </>
   )
 

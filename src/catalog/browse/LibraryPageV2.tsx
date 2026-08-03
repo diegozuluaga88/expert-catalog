@@ -24,6 +24,10 @@ import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } fr
 // En el MRL busca sobre brands + categorías + tags (sin productos, sin visual
 // search, sin reranker de precios porque no aplica al indexar por fabricante).
 import SearchCommandPalette from '../search/SearchCommandPalette'
+// F50 · sample flow (MRL adapt · 2026-08-03) · v2 · widget del sidebar +
+// slide-over completo para el flujo de tracking.
+import SampleTrackingPanel from '../components/SampleTrackingPanel'
+import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
 
 interface LibraryPageV2Props {
   onSelectManufacturer: (m: Manufacturer) => void
@@ -61,6 +65,9 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   // F50 · Etapa 9-ext · v2 · command palette del MRL. Reusa el mismo
   // componente que el Product Catalog · sin productos, sin visual search.
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
+  // F50 · sample flow (MRL adapt) · v2 · state del slide-over tracking
+  // que abre el widget del sidebar.
+  const [trackingOpen, setTrackingOpen] = useState(false)
   useEffect(() => {
     const isEditableTarget = (t: EventTarget | null): boolean => {
       if (!(t instanceof HTMLElement)) return false
@@ -120,6 +127,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
       activeTags={activeTags}
       onTagsChange={setActiveTags}
       onSearchClick={() => setSearchPaletteOpen(true)}
+      bottomSlot={<SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />}
     />
   )
 
@@ -237,6 +245,17 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
           if (brand) onSelectManufacturer(brand)
         }}
         onOpenCategory={(cat) => setSelectedCategory(cat)}
+      />
+
+      {/* F50 · sample flow (MRL adapt) · v2 · slide-over completo de
+          tracking que abre el widget del sidebar. Reusa el mismo hook
+          global por el CustomEvent pub/sub. */}
+      <SampleTrackingSlideOver
+        open={trackingOpen}
+        onClose={() => setTrackingOpen(false)}
+        onSubmitted={(count) => {
+          addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
+        }}
       />
 
       {/* Toast container · muestra feedback de My Binders toggle */}
