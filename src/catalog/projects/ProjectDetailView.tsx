@@ -53,7 +53,11 @@ interface ProjectDetailViewProps {
     onAddItem: (roomId: string, zoneId: string, productId: string, qty?: number) => ProjectItem | null
     onUpdateItem: (itemId: string, patch: Partial<Pick<ProjectItem, 'qty' | 'notes'>>) => void
     onRemoveItem: (itemId: string) => void
+    onMoveItem: (itemId: string, targetRoomId: string, targetZoneId: string) => { merged: boolean; targetItemId: string } | null
 }
+
+/** Tipos globales de drag · para saber qué mostrar en drop targets. */
+type ActiveDragType = 'product' | 'item' | null
 
 export default function ProjectDetailView({
     project,
@@ -69,6 +73,7 @@ export default function ProjectDetailView({
     onAddItem,
     onUpdateItem,
     onRemoveItem,
+    onMoveItem,
 }: ProjectDetailViewProps) {
     const { name, rooms } = project
     const { toasts, addToast, dismissToast } = useToast()
@@ -80,6 +85,18 @@ export default function ProjectDetailView({
     const [targetZone, setTargetZone] = useState<{ roomId: string; zoneId: string } | null>(null)
     const [collapsedRooms, setCollapsedRooms] = useState<Set<string>>(new Set())
     const [pickerQuery, setPickerQuery] = useState('')
+    // F50 · v2 · state global del drag actual · sirve para mostrar
+    // feedback correcto en drop targets (zones acepta ambos, picker solo
+    // 'item' para delete).
+    const [activeDragType, setActiveDragType] = useState<ActiveDragType>(null)
+    const [isPickerDragOver, setIsPickerDragOver] = useState(false)
+
+    const startProductDrag = () => setActiveDragType('product')
+    const startItemDrag = () => setActiveDragType('item')
+    const endAnyDrag = () => {
+        setActiveDragType(null)
+        setIsPickerDragOver(false)
+    }
 
     const totalUnits = useMemo(() => projectTotalUnits(project), [project])
     const totalLines = useMemo(() => projectTotalLines(project), [project])
@@ -219,6 +236,43 @@ export default function ProjectDetailView({
             danger: true,
         })
         if (ok) onRemoveItem(item.id)
+    }
+
+    // Handler cuando se drop un item existente en otra zone (move).
+    const handleMoveItemToZone = (itemId: string, targetRoomId: string, targetZoneId: string) => {
+        const result = onMoveItem(itemId, targetRoomId, targetZoneId)
+        if (!result) return
+        const zoneName = findZoneName(targetRoomId, targetZoneId)
+        if (result.merged) {
+            addToast('info', `Merged into existing item at ${zoneName} (qty sumado)`)
+        } else {
+            addToast('success', `Moved to ${zoneName}`)
+        }
+    }
+
+    // Handler cuando se drop un item existente en el picker aside (delete).
+    const handleDropItemOnPicker = async (itemId: string) => {
+        // Encontrar el item + producto para mostrar el nombre en el confirm
+        let target: { item: ProjectItem; productName: string } | null = null
+        for (const room of rooms) {
+            for (const zone of room.zones) {
+                const it = zone.items.find((x) => x.id === itemId)
+                if (it) {
+                    const product = allProducts.find((p) => p.id === it.productId)
+                    target = { item: it, productName: product?.name ?? 'item' }
+                    break
+                }
+            }
+            if (target) break
+        }
+        if (!target) return
+        const ok = await confirm({
+            title: `Remove "${target.productName}"?`,
+            description: 'You dropped it on the picker. This removes the line from the project. The product stays in the catalog.',
+            confirmLabel: 'Remove',
+            danger: true,
+        })
+        if (ok) onRemoveItem(target.item.id)
     }
 
     /* ─── Export & share (mocks) ─────────────────────────────────── */
@@ -382,6 +436,9 @@ export default function ProjectDetailView({
                                     const p = allProducts.find((x) => x.id === productId)
                                     addToast('success', `${p?.name ?? 'Product'} added to ${findZoneName(room.id, zoneId)}`)
                                 }}
+                                onDropItem={(zoneId, itemId) => handleMoveItemToZone(itemId, room.id, zoneId)}
+                                onItemDragStart={startItemDrag}
+                                onItemDragEnd={endAnyDrag}
                             />
                         ))
                     )}
@@ -396,8 +453,42 @@ export default function ProjectDetailView({
                     </button>
                 </main>
 
-                {/* Product picker */}
-                <aside className="sticky top-4 flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-border bg-card">
+                {/* Product picker · también actúa como delete target cuando
+                    se arrastra un item existente hacia acá. */}
+                <aside
+                    className={`sticky top-4 flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border bg-card transition-colors ${
+                        activeDragType === 'item' && isPickerDragOver
+                            ? 'border-destructive ring-2 ring-destructive'
+                            : activeDragType === 'item'
+                            ? 'border-destructive/40 border-dashed'
+                            : 'border-border'
+                    }`}
+                    onDragOver={(e) => {
+                        if (e.dataTransfer.types.includes('application/x-item-id')) {
+                            e.preventDefault()
+                            e.dataTransfer.dropEffect = 'move'
+                            if (!isPickerDragOver) setIsPickerDragOver(true)
+                        }
+                    }}
+                    onDragLeave={(e) => {
+                        if (e.currentTarget === e.target) setIsPickerDragOver(false)
+                    }}
+                    onDrop={(e) => {
+                        e.preventDefault()
+                        setIsPickerDragOver(false)
+                        const itemId = e.dataTransfer.getData('application/x-item-id')
+                        if (itemId) handleDropItemOnPicker(itemId)
+                    }}
+                >
+                    {/* Overlay visual "Drop to remove" cuando se está arrastrando un item */}
+                    {activeDragType === 'item' && isPickerDragOver && (
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-destructive/10">
+                            <div className="flex items-center gap-2 rounded-full bg-destructive px-4 py-2 text-sm font-bold text-destructive-foreground shadow-xl">
+                                <Trash2 className="h-4 w-4" />
+                                Drop to remove
+                            </div>
+                        </div>
+                    )}
                     <header className="border-b border-border p-3">
                         <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Product picker</h3>
                         {targetZone ? (
@@ -440,7 +531,9 @@ export default function ProjectDetailView({
                                         onDragStart={(e) => {
                                             e.dataTransfer.setData('application/x-product-id', p.id)
                                             e.dataTransfer.effectAllowed = 'copy'
+                                            startProductDrag()
                                         }}
+                                        onDragEnd={endAnyDrag}
                                         className="group flex cursor-grab items-center gap-2 rounded-lg border border-border bg-background p-1.5 hover:border-foreground/20 hover:bg-muted transition-colors active:cursor-grabbing"
                                     >
                                         <div className="h-8 w-8 shrink-0 overflow-hidden rounded bg-muted">
@@ -490,6 +583,9 @@ interface RoomCardProps {
     onEditNotes: (item: ProjectItem, productName: string) => void
     onRemoveItem: (item: ProjectItem, productName: string) => void
     onDropProduct: (zoneId: string, productId: string) => void
+    onDropItem: (zoneId: string, itemId: string) => void
+    onItemDragStart: () => void
+    onItemDragEnd: () => void
 }
 
 function RoomCard({
@@ -508,6 +604,9 @@ function RoomCard({
     onEditNotes,
     onRemoveItem,
     onDropProduct,
+    onDropItem,
+    onItemDragStart,
+    onItemDragEnd,
 }: RoomCardProps) {
     const roomLines = room.zones.reduce((s, z) => s + z.items.length, 0)
     return (
@@ -561,6 +660,9 @@ function RoomCard({
                             onEditNotes={onEditNotes}
                             onRemoveItem={onRemoveItem}
                             onDropProduct={(productId) => onDropProduct(zone.id, productId)}
+                            onDropItem={(itemId) => onDropItem(zone.id, itemId)}
+                            onItemDragStart={onItemDragStart}
+                            onItemDragEnd={onItemDragEnd}
                         />
                     ))}
                     <div className="p-2">
@@ -592,6 +694,9 @@ interface ZoneSectionProps {
     onEditNotes: (item: ProjectItem, productName: string) => void
     onRemoveItem: (item: ProjectItem, productName: string) => void
     onDropProduct: (productId: string) => void
+    onDropItem: (itemId: string) => void
+    onItemDragStart: () => void
+    onItemDragEnd: () => void
 }
 
 function ZoneSection({
@@ -605,15 +710,19 @@ function ZoneSection({
     onEditNotes,
     onRemoveItem,
     onDropProduct,
+    onDropItem,
+    onItemDragStart,
+    onItemDragEnd,
 }: ZoneSectionProps) {
     const [isDragOver, setIsDragOver] = useState(false)
 
     const handleDragOver = (e: React.DragEvent) => {
-        // Solo aceptar el drop si el dataTransfer tiene el type esperado.
-        // Verificamos types (no getData porque no está permitido en dragover).
-        if (e.dataTransfer.types.includes('application/x-product-id')) {
+        // Acepta tanto product-id (add) como item-id (move). Verificamos
+        // types (no getData porque no está permitido en dragover).
+        const types = e.dataTransfer.types
+        if (types.includes('application/x-product-id') || types.includes('application/x-item-id')) {
             e.preventDefault()
-            e.dataTransfer.dropEffect = 'copy'
+            e.dataTransfer.dropEffect = types.includes('application/x-item-id') ? 'move' : 'copy'
             if (!isDragOver) setIsDragOver(true)
         }
     }
@@ -625,6 +734,12 @@ function ZoneSection({
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault()
         setIsDragOver(false)
+        // Prioridad · si es item-id (move), lo procesamos primero.
+        const itemId = e.dataTransfer.getData('application/x-item-id')
+        if (itemId) {
+            onDropItem(itemId)
+            return
+        }
         const productId = e.dataTransfer.getData('application/x-product-id')
         if (productId) onDropProduct(productId)
     }
@@ -707,6 +822,8 @@ function ZoneSection({
                                 onDecrement={() => onQtyChange(item.id, -1, item.qty)}
                                 onEditNotes={() => onEditNotes(item, product?.name ?? 'item')}
                                 onRemove={() => onRemoveItem(item, product?.name ?? 'item')}
+                                onDragStart={onItemDragStart}
+                                onDragEnd={onItemDragEnd}
                             />
                         )
                     })}
@@ -725,11 +842,22 @@ interface ItemRowProps {
     onDecrement: () => void
     onEditNotes: () => void
     onRemove: () => void
+    onDragStart: () => void
+    onDragEnd: () => void
 }
 
-function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemove }: ItemRowProps) {
+function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemove, onDragStart, onDragEnd }: ItemRowProps) {
     return (
-        <li className="group flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5">
+        <li
+            draggable
+            onDragStart={(e) => {
+                e.dataTransfer.setData('application/x-item-id', item.id)
+                e.dataTransfer.effectAllowed = 'move'
+                onDragStart()
+            }}
+            onDragEnd={onDragEnd}
+            className="group flex cursor-grab items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 hover:border-foreground/20 active:cursor-grabbing"
+        >
             <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
                 {product ? (
                     <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" loading="lazy" />

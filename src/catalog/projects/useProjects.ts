@@ -117,6 +117,11 @@ export interface UseProjectsReturn {
     addItem: (projectId: string, roomId: string, zoneId: string, productId: string, qty?: number) => ProjectItem | null
     updateItem: (projectId: string, itemId: string, patch: Partial<Pick<ProjectItem, 'qty' | 'notes'>>) => void
     removeItem: (projectId: string, itemId: string) => void
+    /** Mueve un item existente a otra zone/room. Si la zone destino ya
+     *  tiene un item con el mismo productId, mergea qty al existente y
+     *  devuelve { merged: true, targetItemId }. Si no, devuelve
+     *  { merged: false, targetItemId: itemId } (mismo id, cambia de bucket). */
+    moveItem: (projectId: string, itemId: string, targetRoomId: string, targetZoneId: string) => { merged: boolean; targetItemId: string } | null
 }
 
 export function useProjects(): UseProjectsReturn {
@@ -351,6 +356,87 @@ export function useProjects(): UseProjectsReturn {
         [],
     )
 
+    const moveItem = useCallback(
+        (projectId: string, itemId: string, targetRoomId: string, targetZoneId: string): { merged: boolean; targetItemId: string } | null => {
+            let result: { merged: boolean; targetItemId: string } | null = null
+            setProjects((prev) =>
+                prev.map((p) => {
+                    if (p.id !== projectId) return p
+                    // Encontrar el item source y su ubicación actual
+                    let source: ProjectItem | null = null
+                    let sourceRoomId = ''
+                    let sourceZoneId = ''
+                    for (const room of p.rooms) {
+                        for (const zone of room.zones) {
+                            const found = zone.items.find((it) => it.id === itemId)
+                            if (found) {
+                                source = found
+                                sourceRoomId = room.id
+                                sourceZoneId = zone.id
+                                break
+                            }
+                        }
+                        if (source) break
+                    }
+                    if (!source) return p
+                    // No-op si ya está ahí
+                    if (sourceRoomId === targetRoomId && sourceZoneId === targetZoneId) {
+                        result = { merged: false, targetItemId: itemId }
+                        return p
+                    }
+                    // Chequear si el target ya tiene un item con el mismo productId (merge)
+                    const targetRoom = p.rooms.find((r) => r.id === targetRoomId)
+                    const targetZone = targetRoom?.zones.find((z) => z.id === targetZoneId)
+                    if (!targetRoom || !targetZone) return p
+                    const existingInTarget = targetZone.items.find((it) => it.productId === source!.productId)
+                    if (existingInTarget) {
+                        // MERGE: suma qty al existente + remove source
+                        result = { merged: true, targetItemId: existingInTarget.id }
+                        return touch({
+                            ...p,
+                            rooms: p.rooms.map((r) => ({
+                                ...r,
+                                zones: r.zones.map((z) => {
+                                    if (z.id === sourceZoneId) {
+                                        return { ...z, items: z.items.filter((it) => it.id !== itemId) }
+                                    }
+                                    if (z.id === targetZoneId) {
+                                        return {
+                                            ...z,
+                                            items: z.items.map((it) =>
+                                                it.id === existingInTarget.id ? { ...it, qty: it.qty + source!.qty } : it,
+                                            ),
+                                        }
+                                    }
+                                    return z
+                                }),
+                            })),
+                        })
+                    }
+                    // MOVE: mismo item, cambia de bucket
+                    result = { merged: false, targetItemId: itemId }
+                    return touch({
+                        ...p,
+                        rooms: p.rooms.map((r) => ({
+                            ...r,
+                            zones: r.zones.map((z) => {
+                                if (z.id === sourceZoneId) {
+                                    return { ...z, items: z.items.filter((it) => it.id !== itemId) }
+                                }
+                                if (z.id === targetZoneId) {
+                                    return { ...z, items: [...z.items, source!] }
+                                }
+                                return z
+                            }),
+                        })),
+                    })
+                }),
+            )
+            return result
+        },
+        [],
+    )
+
     const removeItem = useCallback((projectId: string, itemId: string) => {
         setProjects((prev) =>
             prev.map((p) => {
@@ -386,6 +472,7 @@ export function useProjects(): UseProjectsReturn {
             addItem,
             updateItem,
             removeItem,
+            moveItem,
         }),
         [
             projects,
@@ -403,6 +490,7 @@ export function useProjects(): UseProjectsReturn {
             addItem,
             updateItem,
             removeItem,
+            moveItem,
         ],
     )
 }

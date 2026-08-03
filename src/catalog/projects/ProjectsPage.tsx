@@ -27,6 +27,7 @@ export default function ProjectsPage() {
         addItem,
         updateItem,
         removeItem,
+        moveItem,
     } = useProjects()
 
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
@@ -50,6 +51,7 @@ export default function ProjectsPage() {
                 onAddItem={(roomId, zoneId, productId, qty) => addItem(activeProject.id, roomId, zoneId, productId, qty)}
                 onUpdateItem={(itemId, patch) => updateItem(activeProject.id, itemId, patch)}
                 onRemoveItem={(itemId) => removeItem(activeProject.id, itemId)}
+                onMoveItem={(itemId, targetRoomId, targetZoneId) => moveItem(activeProject.id, itemId, targetRoomId, targetZoneId)}
             />
         )
     }
