@@ -812,7 +812,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
           {selected.size > 0 && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-foreground">
                   Bulk · {selected.size} selected
                 </h3>
                 <button

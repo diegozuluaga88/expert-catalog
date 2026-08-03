@@ -81,11 +81,12 @@ export default function ManufacturerInfoBarV2({ manufacturer, layout = 'stack' }
 /* ─── Section header ─────────────────────────────────────────────────── */
 
 function SectionHeader({ label, accent }: { label: string; accent?: boolean }) {
+    // Diego a11y ask · el accent brand color (lima) sobre fondos claros
+    // no cumple contraste. El acento se comunica con weight (bold) + color
+    // foreground, no con el brand color en el texto.
     return (
         <h3
-            className={`text-[10px] font-semibold uppercase tracking-widest mb-3 ${
-                accent ? 'text-primary' : 'text-muted-foreground'
-            }`}
+            className={`${accent ? 'text-[11px] font-bold text-foreground' : 'text-[10px] font-semibold text-muted-foreground'} uppercase tracking-widest mb-3`}
         >
             {label}
         </h3>

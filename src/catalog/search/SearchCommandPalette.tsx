@@ -264,8 +264,8 @@ export default function SearchCommandPalette({
                             {/* NL Understood chips + Apply CTA */}
                             {structured && (
                                 <div className="flex flex-wrap items-center gap-2 border-b border-border bg-primary/5 px-4 py-2.5">
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                                        <Wand2 className="h-3 w-3" aria-hidden="true" />
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-foreground">
+                                        <Wand2 className="h-3 w-3 text-primary" aria-hidden="true" />
                                         Understood
                                     </span>
                                     {parsed.understood.map((chip, i) => (
@@ -434,7 +434,7 @@ export default function SearchCommandPalette({
                                         <button
                                             type="button"
                                             onClick={handleApplyFreeText}
-                                            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                                            className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
                                         >
                                             Search anyway with "{query}"
                                             <ArrowUpRight className="h-3 w-3" />
@@ -519,7 +519,7 @@ function ProductRow({
                 <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground truncate">
                     {product.brand}
                     {savedBrand && (
-                        <span className="ml-1.5 inline-flex items-center rounded-sm bg-primary/15 px-1 py-0 text-[9px] font-bold uppercase text-primary">
+                        <span className="ml-1.5 inline-flex items-center rounded-sm bg-primary px-1 py-0 text-[9px] font-bold uppercase text-primary-foreground">
                             Saved
                         </span>
                     )}
