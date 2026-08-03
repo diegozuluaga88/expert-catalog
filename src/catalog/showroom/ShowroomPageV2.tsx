@@ -747,32 +747,42 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Search</h3>
             <div className="space-y-1.5">
+              {/* F50 · Etapa 9 (integración) · v2 · un solo trigger visual
+                  del AI search palette. Reemplaza el input inline + el botón
+                  "AI search" separados. Look-and-feel de input (search icon
+                  a la izq · placeholder o search actual · ícono varita + kbd
+                  al final) · onClick abre el palette con initialQuery pre-
+                  cargado. Botón X inline limpia el search sin abrir modal. */}
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value)
-                    setPage(1)
-                  }}
-                  placeholder="SKU, name, brand…"
-                  title="Try a manufacturer SKU (e.g. ALL-1234A), internal SKU (IN-87423), name, or category"
-                  className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-                />
+                <button
+                  type="button"
+                  onClick={() => setSearchPaletteOpen(true)}
+                  className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-background pl-9 pr-2 text-left text-sm text-foreground transition-colors hover:bg-muted focus:border-ring focus:outline-none"
+                  title="Open search · SKU, name, brand, NL & visual · shortcut: /"
+                >
+                  <span className={`flex-1 truncate ${search ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {search || 'SKU, name, brand, or "chairs under $500"'}
+                  </span>
+                  <Wand2 className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+                  <kbd className="rounded border border-border bg-card px-1 py-0.5 text-[9px] font-mono text-muted-foreground shrink-0">/</kbd>
+                </button>
+                {search && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSearch('')
+                      setPage(1)
+                    }}
+                    aria-label="Clear search"
+                    title="Clear search"
+                    className="absolute right-16 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                )}
               </div>
-              {/* F50 · Etapa 9 (P1 search) · v2 · trigger del command palette.
-                  Aparece justo debajo del input plain-text · comparten look
-                  pero funciones distintas (quick text vs NL/visual/recent). */}
-              <button
-                type="button"
-                onClick={() => setSearchPaletteOpen(true)}
-                className="flex h-9 w-full items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 text-left text-[12px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                title="Open AI-assisted search · shortcut: /"
-              >
-                <Wand2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                <span className="flex-1 truncate">AI search · NL &amp; visual</span>
-                <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px] font-mono">/</kbd>
-              </button>
               <div className="relative">
                 <button
                   type="button"
@@ -1747,13 +1757,16 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         onDeleteCollection={deleteCollection}
       />
 
-      {/* F50 · Etapa 9 (P1 search) · v2 · command palette style search.
-          Se abre con `/` shortcut o con el botón "AI search" del sidebar. */}
+      {/* F50 · Etapa 9 (P1 search · integración) · v2 · command palette
+          style search. Se abre desde el input inline del sidebar (que ahora
+          es un trigger visual) o con hotkey `/`. Recibe el search actual
+          como initialQuery para no forzar retype. */}
       <SearchCommandPalette
         open={searchPaletteOpen}
         onClose={() => setSearchPaletteOpen(false)}
         products={taxoProducts}
         manufacturers={taxoManufacturers}
+        initialQuery={search}
         onApplyStructuredFilters={(f) => {
           if (f.text !== undefined) setSearch(f.text)
           if (f.category) setSelectedCategories(new Set([f.category]))

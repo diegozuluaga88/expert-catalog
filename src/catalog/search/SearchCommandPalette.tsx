@@ -73,6 +73,11 @@ interface SearchCommandPaletteProps {
     showVisualSearch?: boolean
     /** Placeholder personalizable. Default apropiado para Product Catalog. */
     placeholder?: string
+    /** F50 · Etapa 9 (integración search unificado) · si el palette se abre
+     *  desde un input inline que ya tiene texto (search actual del showroom
+     *  o library), lo pre-carga para no forzar retype. Se aplica cada vez
+     *  que `open` cambia de false a true. */
+    initialQuery?: string
 }
 
 const MAX_PER_GROUP = 5
@@ -90,16 +95,24 @@ export default function SearchCommandPalette({
     onOpenVisualSearch,
     showVisualSearch = true,
     placeholder = 'Search products, brands, categories · try "chairs under $500 quickship"',
+    initialQuery = '',
 }: SearchCommandPaletteProps) {
-    const [query, setQuery] = useState('')
+    const [query, setQuery] = useState(initialQuery)
     const { history, push: pushHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory()
     const { viewedProductIds, recordView } = useSessionActivity()
     const { savedProductIds } = useCollections()
 
-    // Resetea la query al cerrar
+    // F50 · Etapa 9 (integración) · cuando el palette se abre, pre-carga
+    // initialQuery (típicamente el search actual del showroom/library). Al
+    // cerrar, resetea a vacío para que la próxima apertura re-hidrate
+    // desde el prop.
     useEffect(() => {
-        if (!open) setQuery('')
-    }, [open])
+        if (open) {
+            setQuery(initialQuery)
+        } else {
+            setQuery('')
+        }
+    }, [open, initialQuery])
 
     // Brands guardadas · derivado de los savedProductIds + catálogo.
     const savedBrands = useMemo(() => {

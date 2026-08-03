@@ -30,6 +30,11 @@ interface FilterSidebarProps {
    *  aterriza aquí el botón "AI search" para tenerlo visible sin quitar
    *  el input clásico. Solo visible cuando el sidebar no está collapsed. */
   topSlot?: ReactNode
+  /** F50 · Etapa 9 (integración) · v2 · si viene, el input clásico de
+   *  search se transforma en un button visualmente idéntico que dispara
+   *  este handler (en vez de escribir directo al state). Se usa para wire
+   *  el input al AI search palette como trigger único. v1 no lo pasa. */
+  onSearchClick?: () => void
 }
 
 const SWATCH_COLORS = [
@@ -88,6 +93,7 @@ export default function FilterSidebar({
   activeTags,
   onTagsChange,
   topSlot,
+  onSearchClick,
 }: FilterSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
@@ -134,17 +140,35 @@ export default function FilterSidebar({
           {topSlot}
         </div>
       )}
-      {/* Search + View mode · reubicados desde la toolbar de LibraryPage (espejo de Product Catalog) */}
+      {/* Search + View mode · reubicados desde la toolbar de LibraryPage (espejo de Product Catalog).
+          F50 · Etapa 9 (integración) · si onSearchClick viene, el input clásico
+          se transforma en un button visualmente idéntico que dispara el palette
+          (el palette hace la búsqueda plain + NL + agrupación + reranker · un
+          solo entry point). Si no viene (v1), sigue como input clásico. */}
       <div className="px-4 py-3 border-b border-border space-y-2">
         <div className="relative">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="search"
-            placeholder="Search manufacturers…"
-            value={search}
-            onChange={e => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-sm bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
-          />
+          {onSearchClick ? (
+            <button
+              type="button"
+              onClick={onSearchClick}
+              className="flex w-full items-center gap-2 pl-9 pr-2 py-1.5 text-sm bg-muted border border-border rounded-lg text-left transition-all hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60"
+              title="Open search · shortcut: /"
+            >
+              <span className={`flex-1 truncate ${search ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {search || 'Search manufacturers, tags…'}
+              </span>
+              <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px] font-mono text-muted-foreground shrink-0">/</kbd>
+            </button>
+          ) : (
+            <input
+              type="search"
+              placeholder="Search manufacturers…"
+              value={search}
+              onChange={e => onSearchChange(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-sm bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+            />
+          )}
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">View</span>

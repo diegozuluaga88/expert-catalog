@@ -9,7 +9,7 @@
 //     search, tags) es idéntica a v1.
 
 import { useState, useEffect } from 'react'
-import { PackageSearch, Menu as MenuIcon, X as XIcon, Wand2 } from 'lucide-react'
+import { PackageSearch, Menu as MenuIcon, X as XIcon } from 'lucide-react'
 import { Dialog as HeadlessDialog } from '@headlessui/react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufacturers'
@@ -97,25 +97,13 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
     return matchesSearch && matchesCategory && matchesTags
   })
 
-  // F50 · Etapa 9-ext · v2 · botón "AI search" que vive en el topSlot del
-  // FilterSidebar. Se declara antes del node del sidebar para pasarlo como
-  // prop.
-  const aiSearchButton = (
-    <button
-      type="button"
-      onClick={() => setSearchPaletteOpen(true)}
-      className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-      title="Open AI-assisted search · shortcut: /"
-    >
-      <Wand2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-      <span className="flex-1 text-left">AI search</span>
-      <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px] font-mono">/</kbd>
-    </button>
-  )
-
   // F50 · Wave 5 · v2 · el FilterSidebar se referencia una vez y se renderea
   // en dos lugares (desktop inline + mobile Dialog). Solo uno visible por
   // breakpoint.
+  // F50 · Etapa 9 (integración) · v2 · el input clásico del sidebar es el
+  // único trigger del AI search palette (unificado, sin duplicar UI). El
+  // FilterSidebar lo convierte en button visualmente idéntico cuando recibe
+  // onSearchClick. v1 no lo pasa (input clásico intacto).
   const filterSidebarNode = (
     <FilterSidebar
       manufacturers={baseList}
@@ -131,7 +119,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
       onMyBindersToggle={() => setShowMyBindersOnly(v => !v)}
       activeTags={activeTags}
       onTagsChange={setActiveTags}
-      topSlot={aiSearchButton}
+      onSearchClick={() => setSearchPaletteOpen(true)}
     />
   )
 
@@ -234,6 +222,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
         manufacturers={baseList}
         showVisualSearch={false}
         placeholder='Search brands, categories · try "quickship chairs"'
+        initialQuery={search}
         onApplyStructuredFilters={(f) => {
           if (f.text !== undefined) setSearch(f.text)
           if (f.tags && f.tags.length > 0) setActiveTags(new Set(f.tags))
