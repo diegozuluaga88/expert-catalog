@@ -119,6 +119,9 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 export default function ProductDetailPage({
   manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject, onRequestSample,
 }: ProductDetailPageProps) {
+  // F50 · sample flow fix · igual que CategoryPage · derivamos del
+  // manufacturer.type porque los productos del MRL vienen sin isMaterial.
+  const treatAsMaterial = rawManufacturer.type === 'materials' || rawManufacturer.type === 'both' || rawProduct.isMaterial === true
   // Enrich · aplica mock parts + options si el producto no los trae. Consumido
   // por las Fases P3-P6 (tab strip Images/Parts/Options).
   const product = enrichProductForDetail(rawProduct)
@@ -274,8 +277,8 @@ export default function ProductDetailPage({
                   </button>
                 )}
                 {/* F50 · sample flow (MRL adapt) · botón secundario Request
-                    sample · outline · solo si el producto es material. */}
-                {onRequestSample && product.isMaterial && (
+                    sample · outline · solo si el manufacturer produce materials. */}
+                {onRequestSample && treatAsMaterial && (
                   <button
                     type="button"
                     onClick={() => onRequestSample(product)}

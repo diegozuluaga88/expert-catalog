@@ -17,6 +17,12 @@ interface CategoryPageProps {
 }
 
 export default function CategoryPage({ manufacturer, category, onBack, onGoToLibrary, onSelectProduct, onAddToProject, onRequestSample }: CategoryPageProps) {
+  // F50 · sample flow fix (2026-08-03) · los productos del MRL vienen
+  // directo del manufacturer sin el flag `isMaterial` que sí tiene
+  // UNIFIED_PRODUCTS del Product Catalog. Derivamos del manufacturer.type
+  // acá: si el manufacturer produce materials (o both), tratamos todos
+  // sus productos como material para el guard del botón Request sample.
+  const treatAsMaterials = manufacturer.type === 'materials' || manufacturer.type === 'both'
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
       {/* Breadcrumb */}
@@ -57,7 +63,7 @@ export default function CategoryPage({ manufacturer, category, onBack, onGoToLib
             {category.products.map(product => (
               <ProductCard
                 key={product.id}
-                product={product}
+                product={treatAsMaterials ? { ...product, isMaterial: true } : product}
                 onClick={() => onSelectProduct(product)}
                 onAddToProject={onAddToProject}
                 onRequestSample={onRequestSample}
