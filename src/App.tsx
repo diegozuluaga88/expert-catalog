@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from './context/AuthContext'
+import { CatalogVersionProvider, useCatalogVersion } from './context/CatalogVersionContext'
 import Login from "./Login"
 import OCRTracking from "./OCRTracking"
 import FeedbackBoard from "./FeedbackBoard"
 import CatalogPage from "./catalog/CatalogPage"
+import CatalogPageV2 from "./catalog/CatalogPageV2"
 import Transactions from "./Transactions"
 import OrderDetail from "./OrderDetail"
 import AckDetail from "./AckDetail"
@@ -19,6 +21,16 @@ export interface ConvertedDocument {
   name: string
   type: 'po' | 'ack'
   tab: 'orders' | 'acknowledgments'
+}
+
+// F49 · componente interno que lee el context de CatalogVersion para elegir
+// entre v1 (actual) y v2 (refactor UX). Necesita vivir dentro del Provider,
+// por eso está separado del App root.
+function CatalogPageSwitcher({ onLogout, onNavigate }: { onLogout: () => void; onNavigate: (p: string) => void }) {
+  const { version } = useCatalogVersion()
+  return version === 'v2'
+    ? <CatalogPageV2 onLogout={onLogout} onNavigate={onNavigate} />
+    : <CatalogPage onLogout={onLogout} onNavigate={onNavigate} />
 }
 
 function App() {
@@ -56,7 +68,7 @@ function App() {
       case 'feedback':
         return <FeedbackBoard onLogout={handleLogout} onNavigate={handleNavigate} />
       case 'catalog':
-        return <CatalogPage onLogout={handleLogout} onNavigate={handleNavigate} />
+        return <CatalogPageSwitcher onLogout={handleLogout} onNavigate={handleNavigate} />
       case 'transactions':
         return (
           <>
@@ -108,27 +120,29 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {renderPage()}
-      <SessionExpiryModal
-        isOpen={showSessionWarning}
-        onExtend={refreshSession}
-        onLogout={handleLogout}
-      />
-      {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Selection.
-          onViewQuote · navega a Catalog y dispara evento para abrir el tab
-          "My Selection" dentro.
-          Mount permanente (Diego ask · fix FAB no aparece) · el componente
-          internamente retorna null cuando no hay cart items · así garantizamos
-          que cuando se agreguen items desde el catalog el drawer/FAB sea
-          visible inmediatamente sin importar la página activa. */}
-      {/* Diego · el cart/FAB se monta dentro de CatalogPage y solo en los tabs
-          Product Catalog (showroom) + My Selection (quotes). Ver CatalogPage.tsx. */}
-      {/* Phase 3 polish · panel global para editar variants de un item del cart.
-          Aparece cuando user click "Edit" en el drawer o en My Quotes detail.
-          También scoped al catalog ya que es relevante solo en ese contexto. */}
-      {currentPage === 'catalog' && <EditQuoteItemPanel />}
-    </div>
+    <CatalogVersionProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        {renderPage()}
+        <SessionExpiryModal
+          isOpen={showSessionWarning}
+          onExtend={refreshSession}
+          onLogout={handleLogout}
+        />
+        {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Selection.
+            onViewQuote · navega a Catalog y dispara evento para abrir el tab
+            "My Selection" dentro.
+            Mount permanente (Diego ask · fix FAB no aparece) · el componente
+            internamente retorna null cuando no hay cart items · así garantizamos
+            que cuando se agreguen items desde el catalog el drawer/FAB sea
+            visible inmediatamente sin importar la página activa. */}
+        {/* Diego · el cart/FAB se monta dentro de CatalogPage y solo en los tabs
+            Product Catalog (showroom) + My Selection (quotes). Ver CatalogPage.tsx. */}
+        {/* Phase 3 polish · panel global para editar variants de un item del cart.
+            Aparece cuando user click "Edit" en el drawer o en My Quotes detail.
+            También scoped al catalog ya que es relevante solo en ese contexto. */}
+        {currentPage === 'catalog' && <EditQuoteItemPanel />}
+      </div>
+    </CatalogVersionProvider>
   )
 }
 
