@@ -49,6 +49,9 @@ import { Dialog as HeadlessDialog } from '@headlessui/react'
 // reemplaza al favoritos-flat en memoria + modal de add-to-collection.
 import { useCollections } from '../browse/useCollections'
 import AddToCollectionModal from '../components/AddToCollectionModal'
+// F50 · Etapa 8 (P7 share) · util para armar el link firmado read-only.
+import { encodeCollectionShareLink } from '../browse/collectionShareLink'
+import { Share2, LayoutGrid, Palette, Tag } from 'lucide-react'
 
 // Etapa 9 — Módulo unificado "Showroom": storefront (base = Product Catalog) sobre la data unificada
 // (browse rich + dealer), con toggle Products|Materials y drill-down al detalle rico (browse).
@@ -208,6 +211,16 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   const [activeCollectionFilter, setActiveCollectionFilter] = useState<string | null>(null)
   // F50 · Wave 6 · state del modal add-to-collection · id del producto en foco.
   const [collectionModalProductId, setCollectionModalProductId] = useState<string | null>(null)
+  // F50 · Etapa 8 (P7 share) · agrupación visual dentro de una colección.
+  // Solo tiene efecto cuando `activeCollectionFilter !== null`. Cuando la
+  // colección se deselecciona, se resetea a 'flat' en el mismo effect que
+  // reactiva la paginación.
+  const [collectionGroupBy, setCollectionGroupBy] = useState<'flat' | 'color' | 'category'>('flat')
+  useEffect(() => {
+    if (activeCollectionFilter === null && collectionGroupBy !== 'flat') {
+      setCollectionGroupBy('flat')
+    }
+  }, [activeCollectionFilter, collectionGroupBy])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   // Bulk RFQ · queue mode · panel cycles through products via onAfterAdd
   const [quoteQueue, setQuoteQueue] = useState<Product[]>([])
@@ -876,6 +889,26 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                         </button>
                         <button
                           type="button"
+                          onClick={async () => {
+                            // F50 · Etapa 8 · copia al clipboard el link
+                            // firmado (mock) y notifica al user. Fallback
+                            // silencioso a prompt si el clipboard falla.
+                            const link = encodeCollectionShareLink(c)
+                            try {
+                              await navigator.clipboard.writeText(link)
+                              addToast('success', `"${c.name}" link copied · paste it anywhere to share read-only.`)
+                            } catch {
+                              window.prompt('Copy this link:', link)
+                            }
+                          }}
+                          aria-label={`Copy share link for ${c.name}`}
+                          title="Copy shareable read-only link"
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
+                        >
+                          <Share2 className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             const nextName = window.prompt('Rename collection', c.name)
                             if (nextName && nextName.trim()) renameCollection(c.id, nextName)
@@ -1368,6 +1401,32 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                     </span>
                   )}
                 </button>
+                {activeCollectionFilter !== null && (
+                  <div
+                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-0.5"
+                    role="group"
+                    aria-label="Group products by"
+                  >
+                    <GroupByButton
+                      active={collectionGroupBy === 'flat'}
+                      onClick={() => setCollectionGroupBy('flat')}
+                      icon={<LayoutGrid className="h-3 w-3" />}
+                      label="Flat"
+                    />
+                    <GroupByButton
+                      active={collectionGroupBy === 'color'}
+                      onClick={() => setCollectionGroupBy('color')}
+                      icon={<Palette className="h-3 w-3" />}
+                      label="By color"
+                    />
+                    <GroupByButton
+                      active={collectionGroupBy === 'category'}
+                      onClick={() => setCollectionGroupBy('category')}
+                      icon={<Tag className="h-3 w-3" />}
+                      label="By category"
+                    />
+                  </div>
+                )}
                 <GridDensitySelector
                   value={gridDensity}
                   onChange={handleGridDensityChange}
@@ -1379,29 +1438,74 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
 
           {/* F50 · Wave 2.b · aire editorial · grid density controlado por el
               usuario (Auto/2/3/4) via GridDensitySelector. Default 'auto'
-              usa 1/2/3 columnas según breakpoint (más aire que v1 · 4-col). */}
-          <div className={gridClassesFor(gridDensity)}>
-            {pageItems.map((p) => (
-              <ProductCatalogCard
-                key={p.id}
-                product={p}
-                selected={selected.has(p.id)}
-                favorite={favorites.has(p.id)}
-                onToggleSelect={(id) => toggleFromSet(setSelected, id)}
-                onToggleFavorite={(id) => {
-                  // F50 · Wave 6 · v2 · click en el heart abre el modal para
-                  // elegir a qué colección(es) agregar/quitar. El toggle-flat
-                  // legacy (toggleSaved) queda disponible como shift-click
-                  // para 1-click add/remove sin abrir el modal.
-                  setCollectionModalProductId(id)
-                }}
-                onConfigure={(prod) => setDetailId(prod.id)}
-                onQuickAdd={handleQuickAdd}
-                onRequestSwatch={handleRequestSwatch}
-                onOpen={(prod) => setDetailId(prod.id)}
-              />
-            ))}
-          </div>
+              usa 1/2/3 columnas según breakpoint (más aire que v1 · 4-col).
+              F50 · Etapa 8 · cuando hay colección activa + groupBy !== flat,
+              renderea el filtered completo (sin paginación) agrupado por
+              color o categoría. Colecciones típicamente son chicas así que
+              no vale la pena partir un grupo entre páginas. */}
+          {activeCollectionFilter !== null && collectionGroupBy !== 'flat' ? (
+            (() => {
+              const groups = groupProductsBy(filtered, collectionGroupBy)
+              return (
+                <div className="space-y-6">
+                  {groups.map(([groupKey, groupProducts]) => (
+                    <section key={groupKey}>
+                      <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {collectionGroupBy === 'color' ? (
+                          <Palette className="h-3 w-3" aria-hidden="true" />
+                        ) : (
+                          <Tag className="h-3 w-3" aria-hidden="true" />
+                        )}
+                        <span>{groupKey}</span>
+                        <span className="rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground normal-case tracking-normal">
+                          {groupProducts.length}
+                        </span>
+                      </h3>
+                      <div className={gridClassesFor(gridDensity)}>
+                        {groupProducts.map((p) => (
+                          <ProductCatalogCard
+                            key={p.id}
+                            product={p}
+                            selected={selected.has(p.id)}
+                            favorite={favorites.has(p.id)}
+                            onToggleSelect={(id) => toggleFromSet(setSelected, id)}
+                            onToggleFavorite={(id) => setCollectionModalProductId(id)}
+                            onConfigure={(prod) => setDetailId(prod.id)}
+                            onQuickAdd={handleQuickAdd}
+                            onRequestSwatch={handleRequestSwatch}
+                            onOpen={(prod) => setDetailId(prod.id)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )
+            })()
+          ) : (
+            <div className={gridClassesFor(gridDensity)}>
+              {pageItems.map((p) => (
+                <ProductCatalogCard
+                  key={p.id}
+                  product={p}
+                  selected={selected.has(p.id)}
+                  favorite={favorites.has(p.id)}
+                  onToggleSelect={(id) => toggleFromSet(setSelected, id)}
+                  onToggleFavorite={(id) => {
+                    // F50 · Wave 6 · v2 · click en el heart abre el modal para
+                    // elegir a qué colección(es) agregar/quitar. El toggle-flat
+                    // legacy (toggleSaved) queda disponible como shift-click
+                    // para 1-click add/remove sin abrir el modal.
+                    setCollectionModalProductId(id)
+                  }}
+                  onConfigure={(prod) => setDetailId(prod.id)}
+                  onQuickAdd={handleQuickAdd}
+                  onRequestSwatch={handleRequestSwatch}
+                  onOpen={(prod) => setDetailId(prod.id)}
+                />
+              ))}
+            </div>
+          )}
 
           {pageItems.length === 0 && (
             // F50 · Wave 2.c · empty state con ilustración + acción "Clear filters".
@@ -1596,5 +1700,58 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
+  )
+}
+
+// F50 · Etapa 8 · agrupador de productos por color o categoría · para
+// la vista de una colección específica. Orden estable · claves ordenadas
+// alfabéticamente, "Uncategorized"/"Uncolored" al final.
+function groupProductsBy(
+  list: Product[],
+  key: 'color' | 'category',
+): Array<[string, Product[]]> {
+  const groups = new Map<string, Product[]>()
+  for (const p of list) {
+    const groupKey =
+      key === 'color'
+        ? p.colorways?.[0]?.name ?? 'Uncolored'
+        : p.category ?? 'Uncategorized'
+    if (!groups.has(groupKey)) groups.set(groupKey, [])
+    groups.get(groupKey)!.push(p)
+  }
+  const sortable: Array<[string, Product[]]> = Array.from(groups.entries())
+  const bucket = key === 'color' ? 'Uncolored' : 'Uncategorized'
+  sortable.sort(([a], [b]) => {
+    if (a === bucket) return 1
+    if (b === bucket) return -1
+    return a.localeCompare(b)
+  })
+  return sortable
+}
+
+// F50 · Etapa 8 · botón pill del toggle "Group by" · presentational.
+function GroupByButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: ReactNode
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
+        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

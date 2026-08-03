@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
 import { CatalogVersionProvider, useCatalogVersion } from './context/CatalogVersionContext'
 import Login from "./Login"
@@ -6,6 +6,10 @@ import OCRTracking from "./OCRTracking"
 import FeedbackBoard from "./FeedbackBoard"
 import CatalogPage from "./catalog/CatalogPage"
 import CatalogPageV2 from "./catalog/CatalogPageV2"
+// F50 · Etapa 8 (P7 share) · vista read-only pública que se activa cuando
+// la URL trae `?share=...&sig=...`. NO requiere login (patrón "send to
+// end client"). Se intercala antes del login-check del App.
+import CollectionShareView from "./catalog/browse/CollectionShareView"
 import Transactions from "./Transactions"
 import OrderDetail from "./OrderDetail"
 import AckDetail from "./AckDetail"
@@ -37,6 +41,22 @@ function App() {
   const { user, initialLoading, signOut, showSessionWarning, refreshSession } = useAuth()
   const [currentPage, setCurrentPage] = useState<Page>('ocr-tracking')
   const [convertedDoc, setConvertedDoc] = useState<ConvertedDocument | null>(null)
+  // F50 · Etapa 8 · si la URL trae `?share=`, activa la vista compartida.
+  // Se mantiene en state para que el "Back to catalog" pueda limpiar el
+  // param sin recargar. Se hidrata una sola vez al mount.
+  const [shareParams, setShareParams] = useState<URLSearchParams | null>(() => {
+    if (typeof window === 'undefined') return null
+    const p = new URLSearchParams(window.location.search)
+    return p.get('share') ? p : null
+  })
+  useEffect(() => {
+    // Cuando el user sale del share view, limpia el param del URL sin
+    // reload (history.replaceState) · la próxima navegación es limpia.
+    if (!shareParams && typeof window !== 'undefined' && window.location.search.includes('share=')) {
+      const clean = window.location.pathname
+      window.history.replaceState({}, '', clean)
+    }
+  }, [shareParams])
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page as Page)
@@ -56,6 +76,20 @@ function App() {
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
+    )
+  }
+
+  // F50 · Etapa 8 · vista pública read-only cuando la URL trae `?share=`.
+  // Se muestra antes del login-check para que un destinatario sin cuenta
+  // pueda ver la colección. Vive dentro del CatalogVersionProvider para
+  // habilitar el Import a colecciones (que sí requiere tenant activo).
+  if (shareParams) {
+    return (
+      <CatalogVersionProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          <CollectionShareView search={shareParams} onExit={() => setShareParams(null)} />
+        </div>
+      </CatalogVersionProvider>
     )
   }
 
