@@ -133,7 +133,10 @@ export default function SearchCommandPalette({
 
     const parsed: ParsedQuery = useMemo(() => parseNaturalQuery(query), [query])
     const structured = hasStructuredHints(parsed)
-    const effectiveText = (parsed.freeText || query).toLowerCase().trim()
+    // Solo el freeText residual va como plain text match. Antes usaba fallback
+    // al query completo cuando el parser consumía todo (ej: "chairs under $500"
+    // dejaba freeText vacío y caía al query original que no matchea nada).
+    const effectiveText = parsed.freeText.toLowerCase().trim()
 
     // Filtro base de products (usando ya los hints estructurados, así los
     // resultados en vivo respetan la interpretación NL).
@@ -165,22 +168,46 @@ export default function SearchCommandPalette({
     }, [query, products, effectiveText, parsed, viewedProductIds, savedBrands])
 
     const brandResults = useMemo(() => {
-        if (!effectiveText) return []
-        return manufacturers
-            .filter((m) => m.name.toLowerCase().includes(effectiveText))
-            .slice(0, MAX_PER_GROUP)
-    }, [effectiveText, manufacturers])
+        if (query.trim() === '') return []
+        // Match por nombre (existing) + brands que tienen la category detectada
+        // por el NL parser en su lineup (útil para MRL donde products=[] y sin
+        // esto una query como "chairs under $500" no devolvería nada).
+        const set = new Map<string, Manufacturer>()
+        if (effectiveText) {
+            manufacturers
+                .filter((m) => m.name.toLowerCase().includes(effectiveText))
+                .forEach((m) => set.set(m.id, m))
+        }
+        if (parsed.category) {
+            manufacturers
+                .filter((m) => m.categories?.some((c) => c.name === parsed.category))
+                .forEach((m) => set.set(m.id, m))
+        }
+        return Array.from(set.values()).slice(0, MAX_PER_GROUP)
+    }, [query, effectiveText, manufacturers, parsed.category])
 
     const categoryResults = useMemo(() => {
-        if (!effectiveText) return []
+        if (query.trim() === '') return []
         const set = new Set<string>()
-        for (const p of products) {
-            if (p.category && p.category.toLowerCase().includes(effectiveText)) {
-                set.add(p.category)
+        // Category detectada por el NL parser · siempre entra primero.
+        if (parsed.category) set.add(parsed.category)
+        // Categories que matchean el freeText en el catálogo de productos.
+        if (effectiveText) {
+            for (const p of products) {
+                if (p.category && p.category.toLowerCase().includes(effectiveText)) {
+                    set.add(p.category)
+                }
+            }
+            // Fallback · categories declaradas por los manufacturers (útil para
+            // MRL donde products=[]).
+            for (const m of manufacturers) {
+                for (const c of m.categories ?? []) {
+                    if (c.name.toLowerCase().includes(effectiveText)) set.add(c.name)
+                }
             }
         }
         return Array.from(set).slice(0, MAX_PER_GROUP)
-    }, [effectiveText, products])
+    }, [query, effectiveText, parsed.category, products, manufacturers])
 
     const hasAnyResult = productResults.length + brandResults.length + categoryResults.length > 0
 
@@ -278,7 +305,7 @@ export default function SearchCommandPalette({
                             {structured && (
                                 <div className="flex flex-wrap items-center gap-2 border-b border-border bg-primary/5 px-4 py-2.5">
                                     <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-foreground">
-                                        <Wand2 className="h-3 w-3 text-primary" aria-hidden="true" />
+                                        <Wand2 className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                                         Understood
                                     </span>
                                     {parsed.understood.map((chip, i) => (
@@ -447,7 +474,7 @@ export default function SearchCommandPalette({
                                         <button
                                             type="button"
                                             onClick={handleApplyFreeText}
-                                            className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+                                            className="mt-2 inline-flex items-center gap-1 rounded-md border border-input bg-background px-3 py-1.5 text-[11px] font-semibold text-foreground hover:bg-accent transition-colors"
                                         >
                                             Search anyway with "{query}"
                                             <ArrowUpRight className="h-3 w-3" />

@@ -764,7 +764,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   <span className={`flex-1 truncate ${search ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {search || 'SKU, name, brand, or "chairs under $500"'}
                   </span>
-                  <Wand2 className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+                  <Wand2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
                   <kbd className="rounded border border-border bg-card px-1 py-0.5 text-[9px] font-mono text-muted-foreground shrink-0">/</kbd>
                 </button>
                 {search && (

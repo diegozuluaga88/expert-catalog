@@ -177,7 +177,7 @@ function MetricChip({ icon, label, value }: { icon: React.ReactNode; label: stri
     return (
         <div className="rounded-lg border border-border bg-background p-2.5">
             <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <span className="text-primary" aria-hidden="true">{icon}</span>
+                <span className="text-muted-foreground" aria-hidden="true">{icon}</span>
                 {label}
             </div>
             <div className="text-sm font-bold text-foreground">{value}</div>

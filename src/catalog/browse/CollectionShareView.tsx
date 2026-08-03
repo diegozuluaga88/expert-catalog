@@ -78,7 +78,7 @@ export default function CollectionShareView({ search, onExit }: CollectionShareV
             <div className="mx-auto max-w-6xl px-6 py-8">
                 {/* Honest banner */}
                 <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/40 bg-primary/5 p-4">
-                    <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                    <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <div className="flex-1">
                         <p className="text-sm font-bold text-foreground">Shared collection · read-only</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
