@@ -21,7 +21,7 @@ import {
   DocumentArrowDownIcon, ChevronDownIcon, ChevronUpIcon,
   PhotoIcon, Square3Stack3DIcon,
 } from '@heroicons/react/24/outline'
-import { FolderPlus } from 'lucide-react'
+import { FolderPlus, Package } from 'lucide-react'
 import type { Manufacturer, Category, Product } from '../types'
 import ColorwaySwatch from '../components/ColorwaySwatch'
 import CatalogVerifyPill from '../../components/ocr/CatalogVerifyPill'
@@ -51,6 +51,9 @@ interface ProductDetailPageProps {
   /** F50 · Etapa 10.d (MRL adapt) · v2 · si llega, muestra un botón
    *  "Add to project" al lado del CTA principal. Fallback seguro v1. */
   onAddToProject?: (p: Product) => void
+  /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · si llega Y el
+   *  producto es material, muestra botón "Request sample" al lado. */
+  onRequestSample?: (p: Product) => void
 }
 
 function EmptyState({ label }: { label: string }) {
@@ -114,7 +117,7 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 }
 
 export default function ProductDetailPage({
-  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject,
+  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject, onRequestSample,
 }: ProductDetailPageProps) {
   // Enrich · aplica mock parts + options si el producto no los trae. Consumido
   // por las Fases P3-P6 (tab strip Images/Parts/Options).
@@ -268,6 +271,19 @@ export default function ProductDetailPage({
                   >
                     <FolderPlus className="w-4 h-4" />
                     Add to project
+                  </button>
+                )}
+                {/* F50 · sample flow (MRL adapt) · botón secundario Request
+                    sample · outline · solo si el producto es material. */}
+                {onRequestSample && product.isMaterial && (
+                  <button
+                    type="button"
+                    onClick={() => onRequestSample(product)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent transition-colors"
+                    title="Add this material to the sample draft"
+                  >
+                    <Package className="w-4 h-4" />
+                    Request sample
                   </button>
                 )}
                 <div className="flex items-center gap-2">

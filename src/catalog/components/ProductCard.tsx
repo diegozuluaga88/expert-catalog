@@ -1,4 +1,4 @@
-import { FolderPlus } from 'lucide-react'
+import { FolderPlus, Package } from 'lucide-react'
 import type { Product } from '../types'
 
 interface ProductCardProps {
@@ -9,9 +9,14 @@ interface ProductCardProps {
    *  "Add to project". stopPropagation para no gatillar el onClick de
    *  la card. Fallback seguro para v1 · si no llega, no se renderea. */
   onAddToProject?: (product: Product) => void
+  /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · si llega Y el
+   *  producto es material, aparece un botón Package overlay top-left
+   *  (visible al hover) que agrega al sample draft. Fallback seguro:
+   *  si no llega o no es material, no se renderea. */
+  onRequestSample?: (product: Product) => void
 }
 
-export default function ProductCard({ product, onClick, onAddToProject }: ProductCardProps) {
+export default function ProductCard({ product, onClick, onAddToProject, onRequestSample }: ProductCardProps) {
   const thumb = product.images[0]
 
   return (
@@ -91,6 +96,23 @@ export default function ProductCard({ product, onClick, onAddToProject }: Produc
           className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100"
         >
           <FolderPlus className="h-3.5 w-3.5" />
+        </button>
+      )}
+
+      {/* F50 · sample flow · botón overlay Request-sample · top-left del
+          card · visible en hover · solo si el producto es material. */}
+      {onRequestSample && product.isMaterial && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onRequestSample(product)
+          }}
+          aria-label={`Add ${product.name} to sample draft`}
+          title="Add to sample draft"
+          className="absolute left-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+        >
+          <Package className="h-3.5 w-3.5" />
         </button>
       )}
     </div>

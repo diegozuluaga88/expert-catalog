@@ -23,6 +23,10 @@ import ProjectsPage from './projects/ProjectsPage'
 import AddToProjectModal from './projects/AddToProjectModal'
 import { useProjects } from './projects/useProjects'
 import { useToast, ToastContainer } from '../components/AuthToast'
+// F50 · sample flow (MRL adapt · 2026-08-03) · v2 · agregar materiales
+// desde MRL al draft de sample requests. El slide-over de tracking vive
+// en ShowroomPageV2 · desde MRL solo agregamos al draft y notificamos.
+import { useSampleRequests } from './browse/useSampleRequests'
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
@@ -55,6 +59,26 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   const [addToProjectProduct, setAddToProjectProduct] = useState<Product | null>(null)
   const { projects, createProject, addItem: addItemToProject } = useProjects()
   const { toasts, addToast, dismissToast } = useToast()
+  // F50 · sample flow (MRL adapt) · agrega el material al draft y
+  // muestra un toast. El "Review draft" abre el tab Product Catalog
+  // (que tiene el slide-over de tracking · ShowroomPageV2 lo monta).
+  const { addToDraft: addSampleToDraft } = useSampleRequests()
+  const handleRequestSampleFromMRL = (product: Product) => {
+    const firstColor = product.colorways?.[0]
+    addSampleToDraft({
+      productId: product.id,
+      productName: product.name,
+      productBrand: product.brand,
+      productImage: product.images[0],
+      colorwayName: firstColor?.name,
+      colorwayHex: firstColor?.hex,
+      qty: 1,
+    })
+    addToast('success', `${product.name} added to sample draft.`, {
+      label: 'Review in Product Catalog',
+      onClick: () => setMode('showroom'),
+    })
+  }
 
   // Listen for "open-quotes" event from MiniCartDrawer · navega al tab dentro
   useEffect(() => {
@@ -105,6 +129,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
               })
             }
             onAddToProject={(p) => setAddToProjectProduct(p)}
+            onRequestSample={handleRequestSampleFromMRL}
           />
         ) : null
       case 'product':
@@ -121,6 +146,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
               navigate({ page: 'manufacturer', manufacturer: nav.manufacturer })
             }
             onAddToProject={(p) => setAddToProjectProduct(p)}
+            onRequestSample={handleRequestSampleFromMRL}
           />
         ) : null
       default:

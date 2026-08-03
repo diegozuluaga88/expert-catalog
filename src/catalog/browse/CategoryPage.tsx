@@ -11,9 +11,12 @@ interface CategoryPageProps {
   /** F50 · Etapa 10.d (MRL adapt) · v2 · si llega, cada ProductCard
    *  suma el botón overlay "Add to project". Fallback seguro para v1. */
   onAddToProject?: (p: Product) => void
+  /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · si llega, cada
+   *  ProductCard material suma el botón overlay "Request sample". */
+  onRequestSample?: (p: Product) => void
 }
 
-export default function CategoryPage({ manufacturer, category, onBack, onGoToLibrary, onSelectProduct, onAddToProject }: CategoryPageProps) {
+export default function CategoryPage({ manufacturer, category, onBack, onGoToLibrary, onSelectProduct, onAddToProject, onRequestSample }: CategoryPageProps) {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-background">
       {/* Breadcrumb */}
@@ -57,6 +60,7 @@ export default function CategoryPage({ manufacturer, category, onBack, onGoToLib
                 product={product}
                 onClick={() => onSelectProduct(product)}
                 onAddToProject={onAddToProject}
+                onRequestSample={onRequestSample}
               />
             ))}
           </div>
