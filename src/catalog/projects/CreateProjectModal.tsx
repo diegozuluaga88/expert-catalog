@@ -11,7 +11,7 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Check } from 'lucide-react'
 import { Button, Input } from 'strata-design-system'
 import type { ProjectCanvas } from './useProjects'
 
@@ -129,13 +129,22 @@ export default function CreateProjectModal({ open, onClose, onCreate }: CreatePr
                                                     type="button"
                                                     onClick={() => setSizeId(preset.id)}
                                                     aria-pressed={selected}
-                                                    className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-colors ${
+                                                    className={`relative flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-center transition-colors ${
                                                         selected
-                                                            ? 'border-primary bg-primary/10'
-                                                            : 'border-border bg-background hover:bg-muted'
+                                                            ? 'border-foreground bg-background'
+                                                            : 'border-border bg-background hover:border-foreground/30 hover:bg-muted'
                                                     }`}
                                                 >
-                                                    <SizeThumb ratio={preset.canvas.width / preset.canvas.height} selected={selected} />
+                                                    {/* Check ícono explícito arriba a la derecha del card seleccionado */}
+                                                    {selected && (
+                                                        <span
+                                                            className="absolute right-1.5 top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                                                        </span>
+                                                    )}
+                                                    <SizeThumb ratio={preset.canvas.width / preset.canvas.height} />
                                                     <span className="text-sm font-bold text-foreground">{preset.label}</span>
                                                     <span className="text-[10px] text-muted-foreground">{preset.dims}</span>
                                                 </button>
@@ -163,15 +172,18 @@ export default function CreateProjectModal({ open, onClose, onCreate }: CreatePr
 }
 
 // Mini-thumbnail proporcional para el radio card · comunica el aspect
-// ratio del preset sin cargar imagen.
-function SizeThumb({ ratio, selected }: { ratio: number; selected: boolean }) {
+// ratio del preset sin cargar imagen. Diego a11y ask · el thumb NO cambia
+// con el estado seleccionado (el selected se comunica en el card via
+// border-foreground + check ícono). Así el shape del canvas queda siempre
+// legible independiente del estado.
+function SizeThumb({ ratio }: { ratio: number }) {
     // Fija altura y calcula width según ratio · max 36×24
     const h = 20
     const w = Math.round(h * ratio)
     return (
         <div className="mb-1 flex h-6 items-center justify-center">
             <div
-                className={`rounded border ${selected ? 'border-primary bg-primary/20' : 'border-border bg-muted'}`}
+                className="rounded border border-foreground/30 bg-foreground/10"
                 style={{ width: Math.min(w, 36), height: h }}
                 aria-hidden="true"
             />
