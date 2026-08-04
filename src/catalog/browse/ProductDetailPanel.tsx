@@ -11,11 +11,11 @@
 import React, { Fragment, useEffect, useMemo, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import {
-    ArrowUpRight, Ban, ChevronRight, Copy, CheckCircle2, Download,
-    GitCompareArrows, Heart, MapPin, Plus, ShoppingCart, Sparkles, Star, Trash2, X,
+    ArrowUpRight, Ban, ChevronRight, Download,
+    GitCompareArrows, Heart, Lightbulb, MapPin, Plus, ShoppingCart, Sparkles, Star, Trash2, X,
 } from 'lucide-react'
 import type { Category, FabricOption, Finish, Manufacturer, MaterialTier, Product } from '../types'
-import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from './catalogSku'
+import { resolveItemStatus } from './catalogSku'
 import { getProductVariants } from '../data/productVariants'
 import { useCatalogs } from '../data/catalogs'
 import { computeLineItemTotals, formatLeadTime } from '../../quote/helpers'
@@ -83,10 +83,14 @@ function makeDefaultLine(product: Product): QuoteLine {
 export default function ProductDetailPanel({
     open, manufacturer, category, product, onClose, editingItem, onAfterAdd, queueInfo,
 }: ProductDetailPanelProps) {
-    const { addItems, updateItem, quotedHistory, buyerInfo, activeDraft } = useQuote()
+    // F55.3 · quotedHistory + buyerInfo + skuCopied + SkuChip removidos ·
+    // los metadata secundarios (MFR/Internal SKU, Product ID, Previously
+    // selected pill, Often selected) salieron de la identity row para
+    // reducir el noise cross-tab. Si se necesitan de vuelta, pueden vivir
+    // en un accordion/sección "Product info" dentro de la Overview tab.
+    const { addItems, updateItem, activeDraft } = useQuote()
     const isEditMode = !!editingItem
     const [lines, setLines] = useState<QuoteLine[]>([])
-    const [skuCopied, setSkuCopied] = useState<'mfr' | 'internal' | null>(null)
     const [activeTab, setActiveTab] = useState<DetailTab>('quote')
     // Compare flow · picker overlay → CompareModal con [current, ...selected]
     const [showComparePicker, setShowComparePicker] = useState(false)
@@ -184,17 +188,7 @@ export default function ProductDetailPanel({
     const itemStatus = resolveItemStatus(product, catalogs)
     const isDiscontinued = itemStatus === 'discontinued'
     const isDiscrepancy = itemStatus === 'discrepancy'
-    const mfrSku = resolveManufacturerSku(product)
-    const internalSku = resolveInternalSku(product)
     const heroImage = product.images[0]
-
-    const handleCopy = async (text: string, which: 'mfr' | 'internal') => {
-        try {
-            await navigator.clipboard.writeText(text)
-            setSkuCopied(which)
-            setTimeout(() => setSkuCopied(null), 1500)
-        } catch { /* clipboard blocked */ }
-    }
 
     const addLine = () => {
         if (!product) return
@@ -383,19 +377,26 @@ export default function ProductDetailPanel({
                                 </div>
                             </div>
 
-                            {/* Sticky identity · thumbnail + name + SKUs + status (Diego ask) */}
-                            <div className="flex flex-shrink-0 items-start gap-4 border-b border-border bg-card px-6 py-3">
-                                {/* Image thumbnail · siempre visible · click → tab Overview para ver galería completa */}
+                            {/* F55.3 · Sticky identity sanitizada · antes tenía 8-9 elementos
+                                competing con el H1 (thumbnail · brand · status · H1 · MFR SKU
+                                · Internal SKU · ID · Previously selected · rating · Often
+                                selected). Ahora foco puro: thumbnail + brand+status inline
+                                + H1 + rating a la derecha. Los detalles secundarios (SKUs
+                                copiables, Product ID, Previously selected, Often selected)
+                                se movieron a ProductMetaRow que aparece al inicio del body
+                                de la Selection tab · donde el user está armando el add
+                                y sí los mira. */}
+                            <div className="flex flex-shrink-0 items-center gap-4 border-b border-border bg-card px-6 py-3">
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('overview')}
-                                    className="group relative h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border transition-all hover:ring-foreground/30"
+                                    className="group relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border transition-all hover:ring-foreground/30"
                                     title="View full gallery"
                                     aria-label="View full gallery"
                                 >
                                     <img src={heroImage} alt={product.name} className="h-full w-full object-cover" />
                                     <span className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-                                        <span className="m-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Gallery</span>
+                                        <span className="m-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Gallery</span>
                                     </span>
                                 </button>
                                 <div className="min-w-0 flex-1">
@@ -403,42 +404,14 @@ export default function ProductDetailPanel({
                                         <span className="font-medium uppercase tracking-wide text-muted-foreground">{product.brand}</span>
                                         <ItemStatusInlinePill status={itemStatus} />
                                     </div>
-                                    <h1 className="mt-0.5 text-xl font-bold leading-tight text-foreground">{product.name}</h1>
-                                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                        <SkuChip label="MFR" value={mfrSku} copied={skuCopied === 'mfr'} onCopy={() => handleCopy(mfrSku, 'mfr')} />
-                                        <SkuChip label="Internal" value={internalSku} copied={skuCopied === 'internal'} onCopy={() => handleCopy(internalSku, 'internal')} />
-                                        <span className="text-[10px] font-mono text-muted-foreground/80" title="Product ID">ID · {product.id}</span>
-                                        {/* Previously selected · inline en la línea del SKU para ganar espacio */}
-                                        {(() => {
-                                            const entry = quotedHistory.get(product.id)
-                                            if (!entry) return null
-                                            return (
-                                                <span
-                                                    className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-foreground"
-                                                    title={`Previously selected for ${buyerInfo.tenant.name} · ${entry.occurrences} ${entry.occurrences === 1 ? 'line' : 'lines'} · ${entry.totalUnits} units across history`}
-                                                >
-                                                    <Star className="h-2.5 w-2.5 fill-foreground" />
-                                                    Previously selected · {entry.totalUnits}u
-                                                </span>
-                                            )
-                                        })()}
-                                    </div>
+                                    <h1 className="mt-0.5 text-xl font-bold leading-tight text-foreground truncate">{product.name}</h1>
                                 </div>
-                                <div className="flex flex-col items-end gap-1 text-right">
-                                    {product.dealerRating && (
-                                        <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
-                                            <Star className="h-3.5 w-3.5 fill-foreground" />
-                                            {product.dealerRating.toFixed(1)}
-                                            <span className="text-xs text-muted-foreground">Dealer Rated</span>
-                                        </span>
-                                    )}
-                                    {product.popular && (
-                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
-                                            <Sparkles className="h-3.5 w-3.5" />
-                                            Often selected
-                                        </span>
-                                    )}
-                                </div>
+                                {product.dealerRating && (
+                                    <span className="inline-flex items-center gap-1 flex-shrink-0 text-sm font-medium text-foreground">
+                                        <Star className="h-3.5 w-3.5 fill-foreground" />
+                                        {product.dealerRating.toFixed(1)}
+                                    </span>
+                                )}
                             </div>
 
                             {isDiscontinued && (
@@ -479,18 +452,12 @@ export default function ProductDetailPanel({
                                         product={product}
                                         lines={lines}
                                         lineTotals={lineTotals}
-                                        totalUnits={totalUnits}
-                                        totalPrice={totalPrice}
-                                        maxLeadDays={maxLeadDays}
                                         variants={variants}
                                         disabled={isDiscontinued}
                                         addLine={addLine}
                                         removeLine={removeLine}
                                         updateLine={updateLine}
-                                        onAddToQuote={handleAddToQuote}
                                         isEditMode={isEditMode}
-                                        queueInfo={queueInfo}
-                                        onCompare={() => setShowComparePicker(true)}
                                     />
                                 )}
                                 {activeTab === 'overview' && <OverviewTab product={product} />}
@@ -500,6 +467,27 @@ export default function ProductDetailPanel({
                                 {/* Strata recommends · ahora vive dentro del Overview tab (después de los tags)
                                     para evitar scroll vertical excesivo en las otras tabs */}
                             </div>
+
+                            {/* F55.1 · sticky footer con el CTA único · fuera del scroll
+                                del body para que el "Add to Selection" quede siempre
+                                visible (antes vivía dentro del QuoteTab · podía quedar
+                                debajo del fold con 2-3 lines). Solo se muestra cuando
+                                el tab activo es Selection · en otros tabs mostramos un
+                                shortcut CTA para volver al flow del add. */}
+                            <SelectionFooter
+                                product={product}
+                                activeTab={activeTab}
+                                onGoToSelection={() => setActiveTab('quote')}
+                                totalUnits={totalUnits}
+                                totalPrice={totalPrice}
+                                maxLeadDays={maxLeadDays}
+                                lines={lines}
+                                isEditMode={isEditMode}
+                                queueInfo={queueInfo}
+                                disabled={isDiscontinued}
+                                onAddToQuote={handleAddToQuote}
+                                onCompare={() => setShowComparePicker(true)}
+                            />
                         </Dialog.Panel>
                     </Transition.Child>
                 </div>
@@ -534,16 +522,6 @@ function ItemStatusInlinePill({ status }: { status: ReturnType<typeof resolveIte
     return <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Out of sync</span>
 }
 
-function SkuChip({ label, value, copied, onCopy }: { label: string; value: string; copied: boolean; onCopy: () => void }) {
-    return (
-        <button type="button" onClick={onCopy} className="group inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-mono text-foreground transition-colors hover:bg-muted" title={`Copy ${label} SKU`}>
-            <span className="text-[9px] font-sans font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
-            {value}
-            {copied ? <CheckCircle2 className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3 text-muted-foreground group-hover:text-foreground" />}
-        </button>
-    )
-}
-
 function TabButton({ label, active, onClick, disabled, primary }: { label: string; active: boolean; onClick: () => void; disabled?: boolean; primary?: boolean }) {
     return (
         <button
@@ -571,24 +549,18 @@ interface QuoteTabProps {
     product: Product
     lines: QuoteLine[]
     lineTotals: ReturnType<typeof computeLineItemTotals>[]
-    totalUnits: number
-    totalPrice: number
-    maxLeadDays: number
     variants: ReturnType<typeof getProductVariants>
     disabled: boolean
     addLine: () => void
     removeLine: (id: string) => void
     updateLine: (id: string, patch: Partial<QuoteLine>) => void
-    onAddToQuote: () => void
-    /** Edit mode · single line · CTA cambia a Update */
+    /** Edit mode · single line · el CTA del footer cambia a Update */
     isEditMode?: boolean
-    /** Queue mode info · si pasada, CTA muestra "Add & Next" / "Add & Finish" */
-    queueInfo?: { current: number; total: number }
-    /** Optional · click "Compare with…" abre el picker overlay */
-    onCompare?: () => void
 }
 
-function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadDays, variants, disabled, addLine, removeLine, updateLine, onAddToQuote, isEditMode, queueInfo, onCompare }: QuoteTabProps) {
+// F55.1 · QuoteTab ya no renderiza totales + CTA · esa parte vive en el
+// SelectionFooter sticky del root (siempre visible, fuera del scroll).
+function QuoteTab({ product, lines, lineTotals, variants, disabled, addLine, removeLine, updateLine, isEditMode }: QuoteTabProps) {
     return (
         <div className="space-y-5">
             {/* Intro · adapta a edit mode */}
@@ -641,20 +613,95 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                     Add another line for different variants
                 </button>
             )}
+        </div>
+    )
+}
 
-            {/* Totals + CTA */}
-            <div className="rounded-xl border border-border bg-background p-4">
-                <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
-                    <Stat label="Total units" value={`${totalUnits}`} />
-                    <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
-                    <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={formatPrice(totalPrice, product.currencyId)} highlight />
+/* F55.1 · Sticky footer con CTA único · siempre visible al final del
+ * Dialog.Panel, fuera del scroll del body. Cuando activeTab === 'quote'
+ * muestra totales + CTA principal + Compare secundario. En otros tabs
+ * muestra un shortcut CTA para volver al tab Selection y hacer el add.
+ */
+interface SelectionFooterProps {
+    product: Product
+    activeTab: 'quote' | 'overview' | 'variants' | 'specs' | 'resources'
+    onGoToSelection: () => void
+    totalUnits: number
+    totalPrice: number
+    maxLeadDays: number
+    lines: QuoteLine[]
+    isEditMode?: boolean
+    queueInfo?: { current: number; total: number }
+    disabled: boolean
+    onAddToQuote: () => void
+    onCompare?: () => void
+}
+
+function SelectionFooter({
+    product,
+    activeTab,
+    onGoToSelection,
+    totalUnits,
+    totalPrice,
+    maxLeadDays,
+    lines,
+    isEditMode,
+    queueInfo,
+    disabled,
+    onAddToQuote,
+    onCompare,
+}: SelectionFooterProps) {
+    // Shortcut CTA cuando el user está browsing otro tab · le da un
+    // path visible de vuelta al add flow sin scroll ni click extra.
+    if (activeTab !== 'quote') {
+        return (
+            <div className="flex-shrink-0 border-t border-border bg-card px-6 py-3">
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                        {totalUnits > 0
+                            ? `${totalUnits} ${totalUnits === 1 ? 'unit' : 'units'} · ${formatPrice(totalPrice, product.currencyId)} in selection draft`
+                            : 'Configure variants to add this product to your selection.'}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={onGoToSelection}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                        Go to Selection
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
                 </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex-shrink-0 border-t border-border bg-card px-6 py-4">
+            <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
+                <Stat label="Total units" value={`${totalUnits}`} />
+                <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
+                <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={formatPrice(totalPrice, product.currencyId)} highlight />
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+                {/* F55.1 · Compare movido a icon-only button a la izq · antes competía
+                    con el CTA primario abajo en su propio row full-width. */}
+                {onCompare && (
+                    <button
+                        type="button"
+                        onClick={onCompare}
+                        className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        title="Pick other products to compare against this one side-by-side"
+                        aria-label="Compare with other products"
+                    >
+                        <GitCompareArrows className="h-4 w-4" />
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={onAddToQuote}
                     disabled={disabled}
                     title={disabled ? 'Discontinued · selection disabled' : (isEditMode ? 'Update the existing item with new variants' : `Add ${lines.length} line${lines.length === 1 ? '' : 's'} to your selection`)}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
                 >
                     {disabled
                         ? <><Ban className="h-4 w-4" /> Discontinued</>
@@ -667,22 +714,10 @@ function QuoteTab({ product, lines, lineTotals, totalUnits, totalPrice, maxLeadD
                                 : <>Add {lines.length} {lines.length === 1 ? 'line' : 'lines'} to Selection <ArrowUpRight className="h-4 w-4" /></>
                     }
                 </button>
-                {/* Secondary action · Compare with… (Diego polish · feature en detail) */}
-                {onCompare && (
-                    <button
-                        type="button"
-                        onClick={onCompare}
-                        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
-                        title="Pick other products to compare against this one side-by-side"
-                    >
-                        <GitCompareArrows className="h-3.5 w-3.5" />
-                        Compare with…
-                    </button>
-                )}
-                <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                    Sold by {product.brand} · Free returns within 30 days
-                </p>
             </div>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Sold by {product.brand} · Free returns within 30 days
+            </p>
         </div>
     )
 }
@@ -846,9 +881,12 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                 </div>
             </div>
             {totals.nextVolumeTier && (
-                <p className="mt-2 text-xs text-foreground">
-                    💡 Add <span className="font-bold">{totals.nextVolumeTier.qtyNeeded}</span> more to save{' '}
-                    <span className="font-bold">{formatPrice(totals.nextVolumeTier.savings, product.currencyId)}</span> on this line
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-foreground">
+                    <Lightbulb className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <span>
+                        Add <span className="font-bold">{totals.nextVolumeTier.qtyNeeded}</span> more to save{' '}
+                        <span className="font-bold">{formatPrice(totals.nextVolumeTier.savings, product.currencyId)}</span> on this line
+                    </span>
                 </p>
             )}
         </div>
@@ -1075,7 +1113,7 @@ function ConfigurableOptionsSection({ product }: { product: Product }) {
     )
 
     return (
-        <section className="lg:col-span-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
+        <section className="lg:col-span-2 rounded-xl border border-border bg-muted/30 p-4">
             <div className="mb-3 flex items-baseline gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5">
                     <Sparkles className="h-3 w-3" />
@@ -1146,7 +1184,7 @@ function ConfigurableFinishesSection({ product }: { product: Product }) {
     )
 
     return (
-        <section className="lg:col-span-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+        <section className="lg:col-span-2 rounded-xl border border-border bg-muted/30 p-4">
             <div className="mb-3 flex items-baseline gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-foreground flex items-center gap-1.5">
                     <Sparkles className="h-3 w-3" />
@@ -1243,7 +1281,7 @@ function QuoteLineOptionsSelector({
     }
 
     return (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 h-full">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 h-full">
             <div className="mb-2 flex items-baseline gap-1.5">
                 <Sparkles className="h-3 w-3 text-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Configurable options</span>
@@ -1322,7 +1360,7 @@ function QuoteLineFinishesSelector({
     }
 
     return (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 h-full">
+        <div className="rounded-lg border border-border bg-muted/30 p-3 h-full">
             <div className="mb-2 flex items-baseline gap-1.5">
                 <Sparkles className="h-3 w-3 text-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Configurable finishes</span>
@@ -1463,7 +1501,7 @@ function ResourcesTab({ product }: { product: Product }) {
                                 </h4>
                                 <ul className="space-y-1.5">
                                     {product.drawingName2D && (
-                                        <li className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs">
+                                        <li className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs">
                                             <span className="font-semibold text-foreground truncate">{product.drawingName2D}</span>
                                             <span className="text-[9px] font-semibold uppercase text-muted-foreground">Primary</span>
                                         </li>
@@ -1486,7 +1524,7 @@ function ResourcesTab({ product }: { product: Product }) {
                                 </h4>
                                 <ul className="space-y-1.5">
                                     {product.drawingName3D && (
-                                        <li className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs">
+                                        <li className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5 text-xs">
                                             <span className="font-semibold text-foreground truncate">{product.drawingName3D}</span>
                                             <span className="text-[9px] font-semibold uppercase text-muted-foreground">Primary</span>
                                         </li>
@@ -1641,10 +1679,12 @@ function RelatedBucketRow({ bucket, ownPrice, onAdd }: { bucket: RelatedBucket; 
                                     </div>
                                 )}
                             </div>
+                            {/* F55.4 · secondary style · no compite con el CTA primary
+                                del footer sticky. Estilo outline en foreground. */}
                             <button
                                 type="button"
                                 onClick={() => onAdd(p)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                                className="inline-flex items-center gap-1 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
                                 title={`Add ${p.name} to your active quote`}
                             >
                                 <Plus className="h-3.5 w-3.5" />
