@@ -119,9 +119,9 @@ export default function InstallationDetailModal({
                                 <header className="flex items-start justify-between gap-3 border-b border-border p-4">
                                     <div className="min-w-0 flex-1">
                                         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Installation</p>
-                                        <h2 className="mt-0.5 text-base font-bold text-foreground leading-snug">
+                                        <Dialog.Title as="h2" className="mt-0.5 text-base font-bold text-foreground leading-snug">
                                             {installation.title}
-                                        </h2>
+                                        </Dialog.Title>
                                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                             {installation.designFirm && (
                                                 <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground">

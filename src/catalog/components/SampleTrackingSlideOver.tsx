@@ -459,7 +459,7 @@ function DraftRow({ item, onQtyChange, onRemove }: DraftRowProps) {
                 onClick={onRemove}
                 aria-label={`Remove ${item.productName} from draft`}
                 title="Remove from draft"
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
             >
                 <Trash2 className="h-3 w-3" />
             </button>
@@ -540,7 +540,7 @@ function RequestRow({ request, onDelete, onAdvance }: RequestRowProps) {
                             onClick={() => onDelete(request.id)}
                             aria-label="Cancel request"
                             title="Cancel request"
-                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
                         >
                             <X className="h-3.5 w-3.5" />
                         </button>

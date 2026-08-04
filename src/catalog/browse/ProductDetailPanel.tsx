@@ -452,19 +452,28 @@ export default function ProductDetailPanel({
                             )}
                             {/* Previously selected · ahora vive inline con SKU chips (ganamos espacio vertical) */}
 
-                            {/* Tabs · Selection first (Diego ask) */}
+                            {/* Tabs · Selection first (Diego ask)
+                                F57.5 · a11y · IDs en cada tab + tabpanel role
+                                + aria-labelledby en el content wrapper para
+                                que el screen reader asocie el panel al tab
+                                activo. */}
                             <div className="flex-shrink-0 border-b border-border bg-muted/20 px-6">
                                 <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Product details">
-                                    <TabButton label="Selection" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} primary />
-                                    <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-                                    <TabButton label="Variants & Materials" active={activeTab === 'variants'} onClick={() => setActiveTab('variants')} />
-                                    <TabButton label="Specifications" active={activeTab === 'specs'} onClick={() => setActiveTab('specs')} />
-                                    <TabButton label="Resources" active={activeTab === 'resources'} onClick={() => setActiveTab('resources')} />
+                                    <TabButton id="tab-quote" panelId="panel-quote" label="Selection" active={activeTab === 'quote'} onClick={() => setActiveTab('quote')} primary />
+                                    <TabButton id="tab-overview" panelId="panel-overview" label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
+                                    <TabButton id="tab-variants" panelId="panel-variants" label="Variants & Materials" active={activeTab === 'variants'} onClick={() => setActiveTab('variants')} />
+                                    <TabButton id="tab-specs" panelId="panel-specs" label="Specifications" active={activeTab === 'specs'} onClick={() => setActiveTab('specs')} />
+                                    <TabButton id="tab-resources" panelId="panel-resources" label="Resources" active={activeTab === 'resources'} onClick={() => setActiveTab('resources')} />
                                 </div>
                             </div>
 
                             {/* Tab content · scrolls in fixed-height container */}
-                            <div className="flex-1 overflow-y-auto px-6 py-5">
+                            <div
+                                className="flex-1 overflow-y-auto px-6 py-5"
+                                role="tabpanel"
+                                id={`panel-${activeTab === 'quote' ? 'quote' : activeTab}`}
+                                aria-labelledby={`tab-${activeTab === 'quote' ? 'quote' : activeTab}`}
+                            >
                                 {activeTab === 'quote' && (
                                     <QuoteTab
                                         product={product}
@@ -540,12 +549,15 @@ function ItemStatusInlinePill({ status }: { status: ReturnType<typeof resolveIte
     return <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Out of sync</span>
 }
 
-function TabButton({ label, active, onClick, disabled, primary }: { label: string; active: boolean; onClick: () => void; disabled?: boolean; primary?: boolean }) {
+function TabButton({ label, active, onClick, disabled, primary, id, panelId }: { label: string; active: boolean; onClick: () => void; disabled?: boolean; primary?: boolean; id?: string; panelId?: string }) {
     return (
         <button
             type="button"
             role="tab"
+            id={id}
+            aria-controls={panelId}
             aria-selected={active}
+            tabIndex={active ? 0 : -1}
             disabled={disabled}
             onClick={onClick}
             className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
@@ -671,9 +683,15 @@ function SelectionFooter({
 }: SelectionFooterProps) {
     // Shortcut CTA cuando el user está browsing otro tab · le da un
     // path visible de vuelta al add flow sin scroll ni click extra.
+    // F57.5 · aria-live="polite" para que screen readers anuncien el
+    // cambio del CTA al switchear tabs (shortcut vs full add).
     if (activeTab !== 'quote') {
         return (
-            <div className="flex-shrink-0 border-t border-border bg-card px-6 py-3">
+            <div
+                className="flex-shrink-0 border-t border-border bg-card px-6 py-3"
+                aria-live="polite"
+                aria-atomic="true"
+            >
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-xs text-muted-foreground">
                         {totalUnits > 0
@@ -694,7 +712,11 @@ function SelectionFooter({
     }
 
     return (
-        <div className="flex-shrink-0 border-t border-border bg-card px-6 py-4">
+        <div
+            className="flex-shrink-0 border-t border-border bg-card px-6 py-4"
+            aria-live="polite"
+            aria-atomic="true"
+        >
             {/* F56.3 · mobile fix · 3 stats colisionaban en <sm por labels
                 largos + precios de 5-6 dígitos. En mobile stackea 2+1 (top
                 row · units + lead · bottom row full · total highlighted). */}

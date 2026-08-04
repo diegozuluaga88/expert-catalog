@@ -71,8 +71,13 @@ interface ProductCatalogCardV2Props {
  * Airbnb/Pinterest pattern · opacity 0 default · 100 en hover.
  * Fallback touch: `[@media(hover:none)]:opacity-100` mantiene los
  * overlays visibles en devices sin hover capability. */
+// F57.1 · a11y fix · antes `focus-visible:opacity-100` vivía en el div
+// contenedor no-focusable · nunca disparaba. Cambio a `group-focus-within`
+// para que Tab en cualquier button interno haga el overlay visible
+// (checkbox select, favorite, add-to-project). Sin esto, keyboard users
+// no ven los botones cuando llegan a ellos con Tab.
 const HOVER_OVERLAY_CLS =
-  'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200'
+  'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200'
 
 export default function ProductCatalogCardV2({
   product,
@@ -122,19 +127,19 @@ export default function ProductCatalogCardV2({
       )}
 
       {/* Hero image + overlays on-hover (checkbox select, favorite,
-          add-to-project). Click en imagen abre el detail panel.
-          F53 fix · el badge "Previously selected" ahora vive DENTRO
-          del container de la imagen (bottom-left) para no invadir el
-          body del card. Signal permanente · no se esconde on-hover. */}
+          add-to-project). El add real vive en el CTA "Add" del footer ·
+          keyboard users no dependen del click de la imagen.
+          F57.4 · a11y · onClick de imagen removido (era decorativo · el
+          único entry point válido es el CTA "Add" del footer, que sí es
+          keyboard focusable). Sighted-mouse conserva el CTA como acción
+          discoverable · keyboard conserva el mismo CTA como único path
+          consistente. */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <img
           src={product.images[0]}
           alt={product.name}
-          onClick={() => !isDiscontinued && onOpen(product)}
           className={`h-full w-full object-cover transition-transform duration-300 ${
-            isDiscontinued
-              ? 'cursor-not-allowed'
-              : 'cursor-pointer group-hover:scale-105'
+            isDiscontinued ? 'cursor-not-allowed' : 'group-hover:scale-105'
           }`}
           loading="lazy"
         />
@@ -211,14 +216,12 @@ export default function ProductCatalogCardV2({
           )}
         </div>
 
-        {/* Row 2 · nombre + status inline si aplica. Click abre el
-            detail panel (mismo comportamiento que la imagen). */}
+        {/* Row 2 · nombre + status inline si aplica.
+            F57.4 · a11y · sin onClick decorativo · el CTA "Add" del
+            footer es el único entry point al detail panel. */}
         <div className="flex items-start gap-2">
           <h3
-            onClick={() => !isDiscontinued && onOpen(product)}
-            className={`text-sm font-bold leading-tight text-foreground ${
-              isDiscontinued ? '' : 'cursor-pointer hover:text-foreground/80'
-            }`}
+            className="text-sm font-bold leading-tight text-foreground"
           >
             {product.name}
           </h3>

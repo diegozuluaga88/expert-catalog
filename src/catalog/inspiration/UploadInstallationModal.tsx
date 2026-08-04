@@ -90,7 +90,7 @@ export default function UploadInstallationModal({ open, onClose, onCreate }: Upl
                         <Dialog.Panel className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
                             <header className="flex items-start justify-between gap-3 border-b border-border p-5">
                                 <div>
-                                    <h2 className="text-lg font-bold text-foreground">Upload installation</h2>
+                                    <Dialog.Title as="h2" className="text-lg font-bold text-foreground">Upload installation</Dialog.Title>
                                     <p className="mt-1 text-xs text-muted-foreground">Share an installation image and tag the products in it · other dealers on your team can browse.</p>
                                 </div>
                                 <button
@@ -106,13 +106,27 @@ export default function UploadInstallationModal({ open, onClose, onCreate }: Upl
                             <div className="flex-1 overflow-y-auto p-5 space-y-4">
                                 {/* Image drop / picker */}
                                 {!imageUrl ? (
+                                    {/* F57.3 · a11y fix · antes era un <div onClick> sin keyboard
+                                        access · el input file estaba hidden y no había Enter/Space
+                                        handler. Ahora role="button" + tabIndex=0 + onKeyDown
+                                        + focus-visible ring · keyboard users pueden invocar el
+                                        file picker con Enter/Space. */}
                                     <div
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label="Choose an image to upload · JPG, PNG or WebP"
                                         onClick={() => fileInputRef.current?.click()}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                fileInputRef.current?.click()
+                                            }
+                                        }}
                                         onDrop={handleDrop}
                                         onDragOver={(e) => e.preventDefault()}
-                                        className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 px-6 py-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-primary/5"
+                                        className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 px-6 py-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                     >
-                                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                                        <ImageIcon className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
                                         <p className="text-sm font-semibold text-foreground">Drop an image or click to select</p>
                                         <p className="text-[11px] text-muted-foreground">JPG, PNG, WebP · saved locally to your browser</p>
                                         <input
@@ -121,6 +135,8 @@ export default function UploadInstallationModal({ open, onClose, onCreate }: Upl
                                             accept="image/*"
                                             className="hidden"
                                             onChange={handleFileChange}
+                                            aria-hidden="true"
+                                            tabIndex={-1}
                                         />
                                     </div>
                                 ) : (

@@ -585,7 +585,7 @@ export default function ProjectDetailView({
                                             onClick={() => handleAddItem(p)}
                                             aria-label={`Add ${p.name} to project`}
                                             title="Add 1 unit to targeted zone · or drag to a specific zone"
-                                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground opacity-0 transition-all hover:bg-primary hover:text-primary-foreground group-hover:opacity-100"
+                                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground opacity-0 transition-all hover:bg-primary hover:text-primary-foreground group-hover:opacity-100 focus-visible:opacity-100"
                                         >
                                             <Plus className="h-3 w-3" />
                                         </button>
@@ -950,7 +950,7 @@ function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemov
                 aria-label={item.notes ? 'Edit notes' : 'Add notes'}
                 title={item.notes ? 'Edit notes' : 'Add notes'}
                 className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors ${
-                    item.notes ? 'text-foreground bg-muted' : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground'
+                    item.notes ? 'text-foreground bg-muted' : 'text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted hover:text-foreground'
                 }`}
             >
                 <StickyNote className="h-3 w-3" />
@@ -960,7 +960,7 @@ function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemov
                 onClick={onRemove}
                 aria-label="Remove item"
                 title="Remove item"
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
             >
                 <Trash2 className="h-3 w-3" />
             </button>

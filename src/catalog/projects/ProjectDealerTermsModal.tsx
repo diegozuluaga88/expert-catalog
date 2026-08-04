@@ -41,9 +41,9 @@ export default function ProjectDealerTermsModal({
                                         <Handshake className="h-3 w-3" />
                                         Dealer terms · scoped to this project
                                     </p>
-                                    <h2 className="mt-0.5 text-lg font-bold text-foreground leading-snug">
+                                    <Dialog.Title as="h2" className="mt-0.5 text-lg font-bold text-foreground leading-snug">
                                         {projectName}
-                                    </h2>
+                                    </Dialog.Title>
                                 </div>
                                 <button
                                     type="button"
