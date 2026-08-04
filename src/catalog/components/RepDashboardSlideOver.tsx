@@ -462,31 +462,36 @@ function EmailPreviewModal({ open, onClose, repName, relationships }: EmailPrevi
                                     <hr className="my-3 border-border" />
                                     <p className="mb-3">Hi {repName.split(' ')[0]},</p>
                                     <p className="mb-3">Here's a quick view of the dealers you serve. Please review and update any terms that have changed since last month.</p>
-                                    <table className="w-full border-collapse text-xs">
-                                        <thead>
-                                            <tr className="border-b border-border">
-                                                <th className="py-1.5 text-left font-semibold">Dealer</th>
-                                                <th className="py-1.5 text-left font-semibold">Manufacturer</th>
-                                                <th className="py-1.5 text-right font-semibold">Discount</th>
-                                                <th className="py-1.5 text-left font-semibold">Freight</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {dealerGroups.flatMap(([, rels]) => rels).map((r) => {
-                                                const dealerDisplay = r.dealerSlug
-                                                    .split('-').map((s) => s.replace(/^./, (c) => c.toUpperCase())).join(' ')
-                                                const mfrName = MANUFACTURERS.find((m) => m.id === r.manufacturerSlug)?.name ?? r.manufacturerSlug
-                                                return (
-                                                    <tr key={`${r.dealerSlug}-${r.manufacturerSlug}`} className="border-b border-border">
-                                                        <td className="py-1.5">{dealerDisplay}</td>
-                                                        <td className="py-1.5">{mfrName}</td>
-                                                        <td className="py-1.5 text-right tabular-nums">{r.discountTier}%</td>
-                                                        <td className="py-1.5">{r.freightTerms}</td>
-                                                    </tr>
-                                                )
-                                            })}
-                                        </tbody>
-                                    </table>
+                                    {/* F56.4 · mobile fix · tabla raw de 4 columnas se aplastaba en
+                                        el slide-over max-w-2xl. Wrap con overflow-x-auto para
+                                        que scrollee horizontal sin romper el layout del modal. */}
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full border-collapse text-xs min-w-[420px]">
+                                            <thead>
+                                                <tr className="border-b border-border">
+                                                    <th className="py-1.5 text-left font-semibold">Dealer</th>
+                                                    <th className="py-1.5 text-left font-semibold">Manufacturer</th>
+                                                    <th className="py-1.5 text-right font-semibold">Discount</th>
+                                                    <th className="py-1.5 text-left font-semibold">Freight</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {dealerGroups.flatMap(([, rels]) => rels).map((r) => {
+                                                    const dealerDisplay = r.dealerSlug
+                                                        .split('-').map((s) => s.replace(/^./, (c) => c.toUpperCase())).join(' ')
+                                                    const mfrName = MANUFACTURERS.find((m) => m.id === r.manufacturerSlug)?.name ?? r.manufacturerSlug
+                                                    return (
+                                                        <tr key={`${r.dealerSlug}-${r.manufacturerSlug}`} className="border-b border-border">
+                                                            <td className="py-1.5 whitespace-nowrap">{dealerDisplay}</td>
+                                                            <td className="py-1.5 whitespace-nowrap">{mfrName}</td>
+                                                            <td className="py-1.5 text-right tabular-nums">{r.discountTier}%</td>
+                                                            <td className="py-1.5 whitespace-nowrap">{r.freightTerms}</td>
+                                                        </tr>
+                                                    )
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                     <p className="mt-4 text-xs">
                                         <a href="#" className="text-primary underline">Open your rep dashboard →</a>
                                     </p>

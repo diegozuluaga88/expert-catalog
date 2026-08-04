@@ -141,7 +141,11 @@ export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking 
         <div
             role="status"
             aria-live="polite"
-            className="fixed bottom-6 right-6 z-[80] w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300"
+            // F56.2 · mobile fix · antes `right-6 w-full max-w-sm` calculaba
+            // ancho a 100vw en mobile chico y clippeaba el borde izquierdo.
+            // Ahora `left-6 right-6 max-w-sm mx-auto` da margin uniforme en
+            // mobile y respeta el max en desktop.
+            className="fixed bottom-6 left-6 right-6 z-[80] max-w-sm mx-auto sm:left-auto sm:right-6 sm:mx-0 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300"
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
         >

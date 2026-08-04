@@ -235,7 +235,9 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
     : 'other'
 
   const tabClass = (active: boolean) =>
-    `flex items-center gap-2 h-9 px-4 rounded-full text-sm font-semibold transition-colors ${
+    // F56.1 · whitespace-nowrap + flex-shrink-0 asegura que los tabs no
+    // wrappean dentro del pill scrollable en mobile.
+    `flex items-center gap-2 h-9 px-4 rounded-full text-sm font-semibold transition-colors whitespace-nowrap flex-shrink-0 ${
       active
         ? 'bg-primary text-primary-foreground'
         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -313,7 +315,13 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
       <div className="pt-24 px-4 max-w-screen-2xl mx-auto space-y-6">
         {(() => {
           const modeTabBar = (
-            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+            // F56.1 · mobile fix · en <sm el pill hace scroll-x horizontal
+            // sin empujar el layout (antes 5 sub-tabs sumaban ~600px y forzaban
+            // scroll de página completo). max-w-full + overflow-x-auto lo
+            // contiene · scrollbar-none oculta la barra visual. flex-nowrap
+            // asegura que los tabs NO wrappean.
+            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 max-w-full overflow-x-auto flex-nowrap scrollbar-none"
+                 style={{ scrollbarWidth: 'none' }}>
               <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
                 <LibraryBig className="h-4 w-4" />
                 MRL

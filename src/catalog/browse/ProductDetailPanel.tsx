@@ -695,10 +695,18 @@ function SelectionFooter({
 
     return (
         <div className="flex-shrink-0 border-t border-border bg-card px-6 py-4">
-            <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
+            {/* F56.3 · mobile fix · 3 stats colisionaban en <sm por labels
+                largos + precios de 5-6 dígitos. En mobile stackea 2+1 (top
+                row · units + lead · bottom row full · total highlighted). */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 border-b border-border pb-3">
                 <Stat label="Total units" value={`${totalUnits}`} />
                 <Stat label="Estimated lead" value={formatLeadTime(maxLeadDays)} sub={lines.length > 1 ? `max across ${lines.length} lines` : undefined} />
-                <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={formatPrice(totalPrice, product.currencyId)} highlight />
+                {/* Selection total ocupa full width en mobile · single col con
+                    right-align para el precio · alinea con el reading pattern
+                    del footer del cart. */}
+                <div className="col-span-2 sm:col-span-1">
+                    <Stat label={isEditMode ? 'New line total' : 'Selection total'} value={formatPrice(totalPrice, product.currencyId)} highlight />
+                </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
                 {/* F55.1 · Compare movido a icon-only button a la izq · antes competía
