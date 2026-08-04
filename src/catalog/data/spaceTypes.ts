@@ -354,6 +354,136 @@ export const SPACE_TYPE_SETTINGS: SpaceTypeSetting[] = [
             { productGroupCode: 'TB22', itemId: 'stub-tb22-1', qty: 1, label: '2' },
         ], 8500, 9500),
     },
+
+    // F58a.1 fix · seeds para SpaceTypes que estaban vacíos (Cafeteria,
+    // Training, Phone Booth, Wellness, Other) · antes el detail view
+    // mostraba "No settings configured for this space type yet" ·
+    // deprimente. Agregamos 1-2 settings mock por cada uno con
+    // productGroupCodes existentes en el catálogo.
+
+    // ─── Cafeteria · 2 settings (CF1, CF2) ──────────────────────────────
+    {
+        id: 'st-cf1',
+        code: 'CF1',
+        name: 'Cafeteria · Small (24 seats)',
+        spaceTypeId: 'sp-cafeteria',
+        description: 'Long communal dining tables + benches + serving counter for daily meals.',
+        notes: ['Example configuration · actual will depend on kitchen and service line layout.'],
+        bundle: makeBundle('bd-cf1', 'st-cf1', [
+            { productGroupCode: 'CH06', itemId: 'stub-ch06-1', qty: 16, label: '1' },
+            { productGroupCode: 'CH15', itemId: 'stub-ch15-1', qty: 8, label: '2' },
+            { productGroupCode: 'TB21', itemId: 'stub-tb21-1', qty: 4, label: '3' },
+            { productGroupCode: 'TB20', itemId: 'stub-tb20-1', qty: 2, label: '4' },
+        ], 28000, 32000),
+    },
+    {
+        id: 'st-cf2',
+        code: 'CF2',
+        name: 'Cafeteria · Large (48 seats)',
+        spaceTypeId: 'sp-cafeteria',
+        description: 'Full cafeteria with mixed seating clusters and lounge nook for social gatherings.',
+        bundle: makeBundle('bd-cf2', 'st-cf2', [
+            { productGroupCode: 'CH06', itemId: 'stub-ch06-1', qty: 32, label: '1' },
+            { productGroupCode: 'CH15', itemId: 'stub-ch15-1', qty: 12, label: '2' },
+            { productGroupCode: 'TB21', itemId: 'stub-tb21-1', qty: 8, label: '3' },
+            { productGroupCode: 'TB20', itemId: 'stub-tb20-1', qty: 4, label: '4' },
+            { productGroupCode: 'CH10', itemId: 'stub-ch10-1', qty: 4, label: '5' },
+        ], 48000, 54000),
+    },
+
+    // ─── Training Room · 2 settings (TR1, TR2) ──────────────────────────
+    {
+        id: 'st-tr1',
+        code: 'TR1',
+        name: 'Training · Classroom (16 seats)',
+        spaceTypeId: 'sp-training-room',
+        description: 'Rows of desks + task chairs facing an instructor station · classroom-style layout.',
+        notes: ['Layout can be reconfigured for group work by clustering tables into pods.'],
+        bundle: makeBundle('bd-tr1', 'st-tr1', [
+            { productGroupCode: 'CH01', itemId: 'stub-ch01-1', qty: 16, label: '1' },
+            { productGroupCode: 'TB15', itemId: 'stub-tb15-1', qty: 8, label: '2' },
+            { productGroupCode: 'CH03', itemId: 'stub-ch03-1', qty: 1, label: '3' },
+        ], 18000, 22000),
+    },
+    {
+        id: 'st-tr2',
+        code: 'TR2',
+        name: 'Training · U-shape (12 seats)',
+        spaceTypeId: 'sp-training-room',
+        description: 'U-shaped table configuration for interactive workshops and small-group facilitation.',
+        bundle: makeBundle('bd-tr2', 'st-tr2', [
+            { productGroupCode: 'CH01', itemId: 'stub-ch01-1', qty: 12, label: '1' },
+            { productGroupCode: 'TB15', itemId: 'stub-tb15-1', qty: 6, label: '2' },
+        ], 14000, 17000),
+    },
+
+    // ─── Phone Booth · 2 settings (PB1, PB2) ────────────────────────────
+    {
+        id: 'st-pb1',
+        code: 'PB1',
+        name: 'Phone Booth · Single occupant',
+        spaceTypeId: 'sp-phone-booth',
+        description: 'Enclosed nook for private calls · task chair + narrow ledge desk + acoustic panels.',
+        notes: ['Requires acoustic-rated enclosure · pod product not included in the bundle · specify separately.'],
+        bundle: makeBundle('bd-pb1', 'st-pb1', [
+            { productGroupCode: 'CH01', itemId: 'stub-ch01-1', qty: 1, label: '1' },
+            { productGroupCode: 'TB15', itemId: 'stub-tb15-1', qty: 1, label: '2' },
+        ], 1400, 1800),
+    },
+    {
+        id: 'st-pb2',
+        code: 'PB2',
+        name: 'Phone Booth · Focus stand-up',
+        spaceTypeId: 'sp-phone-booth',
+        description: 'Standing-height counter with stool for quick calls · ideal for hot-desking areas.',
+        bundle: makeBundle('bd-pb2', 'st-pb2', [
+            { productGroupCode: 'CH15', itemId: 'stub-ch15-1', qty: 1, label: '1' },
+            { productGroupCode: 'TB20', itemId: 'stub-tb20-1', qty: 1, label: '2' },
+        ], 1100, 1400),
+    },
+
+    // ─── Wellness Room · 2 settings (WR1, WR2) ──────────────────────────
+    {
+        id: 'st-wr1',
+        code: 'WR1',
+        name: 'Wellness · Rest & recharge',
+        spaceTypeId: 'sp-wellness-room',
+        description: 'Reclining lounge chair + ottoman + soft ambient lighting for quiet recovery breaks.',
+        notes: ['Consider blackout curtains and low-noise HVAC for a fully calming environment.'],
+        bundle: makeBundle('bd-wr1', 'st-wr1', [
+            { productGroupCode: 'CH08', itemId: 'stub-ch08-1', qty: 1, label: '1' },
+            { productGroupCode: 'CH17', itemId: 'stub-ch17-1', qty: 1, label: '2' },
+            { productGroupCode: 'AL13', itemId: 'stub-al13-1', qty: 1, label: '3' },
+            { productGroupCode: 'TB18', itemId: 'stub-tb18-1', qty: 1, label: '4' },
+        ], 3800, 4500),
+    },
+    {
+        id: 'st-wr2',
+        code: 'WR2',
+        name: 'Wellness · Meditation / prayer',
+        spaceTypeId: 'sp-wellness-room',
+        description: 'Bench seating + floor cushions + soft lighting for private reflection or prayer.',
+        bundle: makeBundle('bd-wr2', 'st-wr2', [
+            { productGroupCode: 'CH09', itemId: 'stub-ch09-1', qty: 2, label: '1' },
+            { productGroupCode: 'AL13', itemId: 'stub-al13-1', qty: 1, label: '2' },
+        ], 2200, 2800),
+    },
+
+    // ─── Other · 1 setting (OT1) ────────────────────────────────────────
+    {
+        id: 'st-ot1',
+        code: 'OT1',
+        name: 'Multi-purpose · Flexible',
+        spaceTypeId: 'sp-other',
+        description: 'Mixed seating and modular tables · reconfigurable for events, workshops, or open lounge.',
+        notes: ['Starting point · customize based on the actual use case of the space.'],
+        bundle: makeBundle('bd-ot1', 'st-ot1', [
+            { productGroupCode: 'CH01', itemId: 'stub-ch01-1', qty: 8, label: '1' },
+            { productGroupCode: 'CH08', itemId: 'stub-ch08-1', qty: 4, label: '2' },
+            { productGroupCode: 'TB15', itemId: 'stub-tb15-1', qty: 4, label: '3' },
+            { productGroupCode: 'TB18', itemId: 'stub-tb18-1', qty: 2, label: '4' },
+        ], 12000, 15000),
+    },
 ]
 
 /** Bundles extraídos de settings para uso directo cuando se necesita agregar

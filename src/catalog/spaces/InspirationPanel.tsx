@@ -98,12 +98,16 @@ export default function InspirationPanel({ defaultCollapsed = true }: Inspiratio
                         </div>
                     )}
 
+                    {/* F58a.1 fix · label descriptivo · el user smoke reportó
+                        que "View gallery" no dejaba claro que iba a cambiar de
+                        tab (MRL → Product Catalog). Ahora explícito. */}
                     <button
                         type="button"
                         onClick={handleOpenGallery}
                         className="mt-1 inline-flex w-full items-center justify-center gap-1 rounded-md border border-input bg-background px-2 py-1.5 text-[11px] font-semibold text-foreground hover:bg-muted transition-colors"
+                        title="Opens the Inspiration tab inside Product Catalog"
                     >
-                        View gallery
+                        Open in Product Catalog →
                     </button>
                 </div>
             )}

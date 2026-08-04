@@ -169,6 +169,8 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
     }
     // F58a.1 · navigate to showroom con taxonomy=spaces (label UI
     // 'Inspiration') · disparado desde el InspirationPanel del MRL sidebar.
+    // Toast informativo para que el user sepa que cambió de tab
+    // (feedback del smoke · antes el jump era silencioso y confuso).
     const toShowroomInspiration = () => {
       setMode('showroom')
       setTimeout(() => {
@@ -176,6 +178,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
           detail: { taxonomy: 'spaces' },
         }))
       }, 50)
+      addToast('info', 'Opened Inspiration in Product Catalog · switch back to MRL from the tab bar.')
     }
     window.addEventListener('expert-hub:navigate-to-mrl', toMRL)
     window.addEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
