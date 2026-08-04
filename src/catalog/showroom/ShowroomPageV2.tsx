@@ -51,7 +51,11 @@ import { useCollections } from '../browse/useCollections'
 import AddToCollectionModal from '../components/AddToCollectionModal'
 // F50 · Etapa 8 (P7 share) · util para armar el link firmado read-only.
 import { encodeCollectionShareLink } from '../browse/collectionShareLink'
-import { Share2, LayoutGrid, Palette, Tag, Wand2 } from 'lucide-react'
+// F51 · B.3 (consolidación 2026-08-04) · helper + toggle compartidos con
+// CollectionShareView · antes vivían inline en este file, ahora en el
+// módulo browse/collectionGrouping · single source of truth.
+import { CollectionGroupByToggle, groupProductsBy } from '../browse/collectionGrouping'
+import { Share2, Palette, Tag, Wand2 } from 'lucide-react'
 // F50 · Etapa 9 (P1 search) · v2 · command palette + visual search stub +
 // session activity tracker (mock reranking).
 import SearchCommandPalette from '../search/SearchCommandPalette'
@@ -1548,30 +1552,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   )}
                 </button>
                 {activeCollectionFilter !== null && (
-                  <div
-                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-0.5"
-                    role="group"
-                    aria-label="Group products by"
-                  >
-                    <GroupByButton
-                      active={collectionGroupBy === 'flat'}
-                      onClick={() => setCollectionGroupBy('flat')}
-                      icon={<LayoutGrid className="h-3 w-3" />}
-                      label="Flat"
-                    />
-                    <GroupByButton
-                      active={collectionGroupBy === 'color'}
-                      onClick={() => setCollectionGroupBy('color')}
-                      icon={<Palette className="h-3 w-3" />}
-                      label="By color"
-                    />
-                    <GroupByButton
-                      active={collectionGroupBy === 'category'}
-                      onClick={() => setCollectionGroupBy('category')}
-                      icon={<Tag className="h-3 w-3" />}
-                      label="By category"
-                    />
-                  </div>
+                  <CollectionGroupByToggle
+                    value={collectionGroupBy}
+                    onChange={setCollectionGroupBy}
+                  />
                 )}
                 <GridDensitySelector
                   value={gridDensity}
@@ -1935,55 +1919,6 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   )
 }
 
-// F50 · Etapa 8 · agrupador de productos por color o categoría · para
-// la vista de una colección específica. Orden estable · claves ordenadas
-// alfabéticamente, "Uncategorized"/"Uncolored" al final.
-function groupProductsBy(
-  list: Product[],
-  key: 'color' | 'category',
-): Array<[string, Product[]]> {
-  const groups = new Map<string, Product[]>()
-  for (const p of list) {
-    const groupKey =
-      key === 'color'
-        ? p.colorways?.[0]?.name ?? 'Uncolored'
-        : p.category ?? 'Uncategorized'
-    if (!groups.has(groupKey)) groups.set(groupKey, [])
-    groups.get(groupKey)!.push(p)
-  }
-  const sortable: Array<[string, Product[]]> = Array.from(groups.entries())
-  const bucket = key === 'color' ? 'Uncolored' : 'Uncategorized'
-  sortable.sort(([a], [b]) => {
-    if (a === bucket) return 1
-    if (b === bucket) return -1
-    return a.localeCompare(b)
-  })
-  return sortable
-}
-
-// F50 · Etapa 8 · botón pill del toggle "Group by" · presentational.
-function GroupByButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean
-  onClick: () => void
-  icon: ReactNode
-  label: string
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
-        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  )
-}
+// F51 · B.3 (consolidación 2026-08-04) · groupProductsBy y GroupByButton
+// se movieron a browse/collectionGrouping · single source of truth
+// compartida con CollectionShareView.
