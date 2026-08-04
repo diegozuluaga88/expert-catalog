@@ -104,13 +104,13 @@ export default function UploadInstallationModal({ open, onClose, onCreate }: Upl
                             </header>
 
                             <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                                {/* Image drop / picker */}
+                                {/* Image drop / picker · F57.3 · a11y fix · antes era
+                                    un <div onClick> sin keyboard access · el input
+                                    file estaba hidden y no había Enter/Space handler.
+                                    Ahora role="button" + tabIndex=0 + onKeyDown +
+                                    focus-visible ring · keyboard users pueden invocar
+                                    el file picker con Enter/Space. */}
                                 {!imageUrl ? (
-                                    {/* F57.3 · a11y fix · antes era un <div onClick> sin keyboard
-                                        access · el input file estaba hidden y no había Enter/Space
-                                        handler. Ahora role="button" + tabIndex=0 + onKeyDown
-                                        + focus-visible ring · keyboard users pueden invocar el
-                                        file picker con Enter/Space. */}
                                     <div
                                         role="button"
                                         tabIndex={0}
