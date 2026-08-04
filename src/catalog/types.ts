@@ -695,6 +695,15 @@ export interface SpaceTypeSetting {
   /** Fase 5 · timestamps para custom settings (edit history) */
   createdAt?: string
   updatedAt?: string
+  /** F58a.2 · absorbe del ex-módulo Inspiration · attribución del design
+   *  firm cuando el setting viene de una installation real de un partner
+   *  (Perkins&Will · Gensler · HOK · etc). Opcional. */
+  designFirm?: string
+  /** F58a.2 · absorbe del ex-módulo Inspiration · señal de que el imageUrl
+   *  es una foto real (object URL o CDN) en vez de un rendering seed. Se
+   *  usa para default view-mode (Photo view en vez de Bundle view) y para
+   *  el gating "I have rights" del upload flow. */
+  isUserUpload?: boolean
 }
 
 /**
@@ -722,5 +731,18 @@ export interface SpaceBundle {
    *  lo consumía vía el fallback `currencyId ?? currency` y el único writer
    *  (factory `makeBundle`) fue migrado a setear `currencyId`. */
   currencyId?: string
+  /** F58a.2 · absorbe del ex-módulo Inspiration · overlays sobre la imagen
+   *  del setting con posiciones (xPct/yPct, 0-100) para pintar hotspots
+   *  numerados. Solo aplica en Photo view. Cuando el setting tiene items en
+   *  el bundle + tiene imageOverlay, el user puede alternar entre Bundle
+   *  view (item list numerada tradicional) y Photo view (hotspots sobre la
+   *  imagen real). Uploads del user llegan directo con imageOverlay + items
+   *  qty:1 sin cost estimate. */
+  imageOverlay?: Array<{
+    productId: string
+    xPct: number
+    yPct: number
+    note?: string
+  }>
 }
 

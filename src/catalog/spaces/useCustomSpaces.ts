@@ -6,6 +6,11 @@
 // Los custom se mezclan con los seed en el grid principal via
 // `mergeCustomIntoSettings()` · el resto de la UI no distingue seed vs custom
 // excepto por el badge "Custom" y las acciones inline (edit/duplicate/delete).
+//
+// F58a.2 · consolidación con ex-módulo Inspiration · agregada migration
+// one-shot que lee la legacy key `catalog-installations-{tenantSlug}` y
+// convierte cada Installation a un SpaceTypeSetting con isCustom + isUserUpload
+// + imageOverlay. Después borra la key legacy · zero data loss.
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTenant } from '../../TenantContext'
@@ -13,6 +18,102 @@ import type { SpaceTypeSetting, SpaceBundle } from '../types'
 import { SPACE_TYPE_SETTINGS } from '../data/spaceTypes'
 
 const STORAGE_PREFIX = 'expert-hub-custom-spaces'
+const LEGACY_INSTALLATIONS_PREFIX = 'catalog-installations'
+
+/** F58a.2 · shape del legacy Installation (ex-módulo Inspiration).
+ *  Preservado solo aquí para la migración one-shot · después de correr,
+ *  ninguna otra parte del código necesita este tipo. */
+interface LegacyInstallation {
+    id: string
+    imageUrl: string
+    imageAspect?: number
+    title: string
+    designFirm?: string
+    roomType?: string
+    tags: Array<{ productId: string; xPct: number; yPct: number; note?: string }>
+    addedAt: string
+}
+
+/** F58a.2 · mapping heurístico roomType → SpaceType.id. Los strings del
+ *  Inspiration UploadModal coincidían literal con los names de SPACE_TYPES. */
+function roomTypeToSpaceTypeId(roomType: string | undefined): string {
+    if (!roomType) return 'sp-other'
+    const normalized = roomType.toLowerCase().trim()
+    const map: Record<string, string> = {
+        'focus room': 'sp-focus-room',
+        'work cafe': 'sp-work-cafe',
+        'huddle room': 'sp-huddle-room',
+        'meeting room': 'sp-meeting-room',
+        'front porch': 'sp-front-porch',
+        'reception': 'sp-reception',
+        'cafeteria': 'sp-cafeteria',
+        'training room': 'sp-training-room',
+        'phone booth': 'sp-phone-booth',
+        'wellness room': 'sp-wellness-room',
+    }
+    return map[normalized] ?? 'sp-other'
+}
+
+/** F58a.2 · migración one-shot Installation → SpaceTypeSetting. Ejecuta 1 vez
+ *  al primer mount por tenant · si hay data en la legacy key la convierte y
+ *  la borra. Zero data loss. */
+function migrateFromLegacyInstallations(tenantSlug: string): SpaceTypeSetting[] {
+    if (typeof window === 'undefined') return []
+    const legacyKey = `${LEGACY_INSTALLATIONS_PREFIX}-${tenantSlug}`
+    try {
+        const raw = window.localStorage.getItem(legacyKey)
+        if (!raw) return []
+        const installations = JSON.parse(raw) as LegacyInstallation[]
+        if (!Array.isArray(installations) || installations.length === 0) {
+            window.localStorage.removeItem(legacyKey)
+            return []
+        }
+        const migrated: SpaceTypeSetting[] = installations.map((inst, idx) => {
+            const settingId = `migrated-${inst.id}`
+            const bundleItems = inst.tags.map((t, i) => ({
+                productGroupCode: 'MIGRATED',
+                itemId: t.productId,
+                qty: 1,
+                label: String(i + 1),
+            }))
+            const bundle: SpaceBundle = {
+                id: `bundle-${settingId}`,
+                settingId,
+                items: bundleItems,
+                estimatedCostMin: 0,
+                estimatedCostMax: 0,
+                imageOverlay: inst.tags.map((t) => ({
+                    productId: t.productId,
+                    xPct: t.xPct,
+                    yPct: t.yPct,
+                    note: t.note,
+                })),
+            }
+            return {
+                id: settingId,
+                code: `MIG-${idx + 1}`,
+                name: inst.title,
+                spaceTypeId: roomTypeToSpaceTypeId(inst.roomType),
+                imageUrl: inst.imageUrl,
+                description: inst.designFirm
+                    ? `Reference installation by ${inst.designFirm}`
+                    : 'Migrated from Inspiration gallery',
+                bundle,
+                isCustom: true,
+                isUserUpload: true,
+                designFirm: inst.designFirm,
+                createdAt: inst.addedAt,
+                updatedAt: new Date().toISOString(),
+            }
+        })
+        window.localStorage.removeItem(legacyKey)
+        // eslint-disable-next-line no-console
+        console.info(`[F58a.2 migration] Migrated ${migrated.length} installations to custom spaces for tenant "${tenantSlug}".`)
+        return migrated
+    } catch {
+        return []
+    }
+}
 
 /** Input reducido para crear un custom setting · el hook completa id/timestamps
  *  y arma el bundle desde items sueltos. */
@@ -121,13 +222,20 @@ export function useCustomSpaces(): UseCustomSpacesReturn {
     const { currentTenant } = useTenant()
     // currentTenant es un string (slug del tenant) según TenantContext
     const tenantSlug = currentTenant
-    const [customSettings, setCustomSettings] = useState<SpaceTypeSetting[]>(
-        () => loadFromStorage(tenantSlug),
-    )
+    const [customSettings, setCustomSettings] = useState<SpaceTypeSetting[]>(() => {
+        // F58a.2 · init con merge legacy migration + existing custom.
+        // La migración corre 1 vez (borra la legacy key después) · lecturas
+        // subsecuentes solo devuelven [] y no producen duplicados.
+        const existing = loadFromStorage(tenantSlug)
+        const migrated = migrateFromLegacyInstallations(tenantSlug)
+        return migrated.length > 0 ? [...existing, ...migrated] : existing
+    })
 
     // Recarga cuando cambia el tenant (multi-tenant demo)
     useEffect(() => {
-        setCustomSettings(loadFromStorage(tenantSlug))
+        const existing = loadFromStorage(tenantSlug)
+        const migrated = migrateFromLegacyInstallations(tenantSlug)
+        setCustomSettings(migrated.length > 0 ? [...existing, ...migrated] : existing)
     }, [tenantSlug])
 
     // Persist en cada mutation
