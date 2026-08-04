@@ -147,27 +147,11 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   // Phase 1 polish · catalogs reactivos · filter por status responde a sync mutations
   const catalogs = useCatalogs()
   // Phase 4 Fix #13b · quoted history para el sort "Previously Quoted First"
-  const { quotedHistory, addItems } = useQuote()
-
-  // F50 · Wave 3.c · quick-add · agrega el producto directo al draft activo
-  // (o al que se cree por default) con qty=1, sin variants seleccionados. El
-  // usuario puede editar variants más tarde desde el carrito.
-  const handleQuickAdd = (product: Product) => {
-    const firstColor = product.colorways?.[0]
-    addItems([{
-      productId: product.id,
-      productName: product.name,
-      productBrand: product.brand,
-      productImage: product.images[0],
-      qty: 1,
-      colorwayCode: firstColor?.code,
-      colorwayName: firstColor?.name,
-      colorwayHex: firstColor?.hex,
-      unitPrice: product.price ?? 0,
-      totalPrice: product.price ?? 0,
-      leadTimeDays: product.leadTimeDays ?? 0,
-    }])
-  }
+  const { quotedHistory } = useQuote()
+  // F53 · handleQuickAdd removed · el add real vive ahora dentro del
+  // detail panel (single entry point via onOpen del ProductCatalogCard).
+  // El pill quick-add del footer se eliminó junto con el sliders icon
+  // Configure · ambos se pisaban con el panel según el user smoke.
 
   // F50 · Wave 5 · v2 · drawer mobile del sidebar de filtros. En desktop
   // (lg+) el sidebar es siempre visible en el flujo normal; en mobile se
@@ -1632,8 +1616,6 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             favorite={favorites.has(p.id)}
                             onToggleSelect={(id) => toggleFromSet(setSelected, id)}
                             onToggleFavorite={(id) => setCollectionModalProductId(id)}
-                            onConfigure={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
-                            onQuickAdd={handleQuickAdd}
                             onRequestSwatch={handleRequestSwatch}
                             onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                             onAddToProject={(prod) => setAddToProjectProduct(prod)}
@@ -1661,8 +1643,6 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                     // para 1-click add/remove sin abrir el modal.
                     setCollectionModalProductId(id)
                   }}
-                  onConfigure={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
-                  onQuickAdd={handleQuickAdd}
                   onRequestSwatch={handleRequestSwatch}
                   onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                   onAddToProject={(prod) => setAddToProjectProduct(prod)}
