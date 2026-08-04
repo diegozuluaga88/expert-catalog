@@ -278,6 +278,20 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
         onSubmitted={(count) => {
           addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
         }}
+        // F51 fix (2026-08-04) · wire de callbacks contextuales para el
+        // empty state CTA + dropdown "Add another material". Ya estamos
+        // en MRL, así que onBrowseMRL solo cierra el slide-over (context
+        // 'mrl' hace el CTA directo "Continue browsing MRL Library").
+        // onBrowseCatalog sale del MRL via CustomEvent que CatalogPageV2
+        // escucha (setMode 'showroom' + taxonomy=materials).
+        onBrowseCatalog={() => {
+          setTrackingOpen(false)
+          window.dispatchEvent(new CustomEvent('expert-hub:navigate-to-showroom-materials'))
+        }}
+        onBrowseMRL={() => {
+          setTrackingOpen(false)
+        }}
+        currentContext="mrl"
       />
 
       {/* Toast container · muestra feedback de My Binders toggle */}

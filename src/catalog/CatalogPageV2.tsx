@@ -147,6 +147,36 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
     return () => window.removeEventListener('expert-hub:showroom-taxonomy-changed', handler)
   }, [])
 
+  // F51 fix (2026-08-04) · cross-consumer nav para el empty state CTA
+  // del SampleTrackingSlideOver. Los mounts locales en ShowroomPageV2 y
+  // LibraryPageV2 disparan estos eventos cuando el user hace click en
+  // "Browse Product Catalog" / "Browse MRL Library" desde OUTSIDE del
+  // contexto actual · el CatalogPageV2 los intercepta para hacer el
+  // setMode global. No usa el reopen-flag porque este flow es desde
+  // empty state (sin draft) · el user re-abre el slide-over manualmente
+  // cuando agrega un material.
+  useEffect(() => {
+    const toMRL = () => {
+      setMode('browse')
+      setNav({ page: 'library' })
+    }
+    const toShowroomMaterials = () => {
+      setMode('showroom')
+      // Defer para que ShowroomPageV2 monte antes del event de taxonomy.
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('expert-hub:set-showroom-taxonomy', {
+          detail: { taxonomy: 'materials' },
+        }))
+      }, 50)
+    }
+    window.addEventListener('expert-hub:navigate-to-mrl', toMRL)
+    window.addEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
+    return () => {
+      window.removeEventListener('expert-hub:navigate-to-mrl', toMRL)
+      window.removeEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
+    }
+  }, [])
+
   // F50 · Add-another-material · si el user vino del slide-over al catálogo
   // via "Browse ...", auto-reabre el slide-over apenas agregue al draft.
   useEffect(() => {

@@ -1820,6 +1820,22 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         onSubmitted={(count) => {
           addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
         }}
+        // F51 fix (2026-08-04) · wire de los callbacks contextuales para
+        // el empty state CTA + el dropdown "Add another material" del
+        // Draft. Ya estamos en Product Catalog, así que onBrowseCatalog
+        // switchea taxonomy=materials (o solo cierra si ya está).
+        // onBrowseMRL sale del showroom via CustomEvent que CatalogPageV2
+        // escucha (setMode 'browse'). currentContext deriva de la
+        // taxonomy actual.
+        onBrowseCatalog={() => {
+          setTrackingOpen(false)
+          if (taxonomy !== 'materials') setTaxonomy('materials')
+        }}
+        onBrowseMRL={() => {
+          setTrackingOpen(false)
+          window.dispatchEvent(new CustomEvent('expert-hub:navigate-to-mrl'))
+        }}
+        currentContext={taxonomy === 'materials' ? 'catalog-materials' : 'catalog-other'}
       />
 
       {/* F50 · Wave 6 · v2 · Add-to-collection modal · se abre al click del
