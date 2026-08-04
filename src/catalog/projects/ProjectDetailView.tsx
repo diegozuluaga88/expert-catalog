@@ -31,6 +31,7 @@ import {
     Share2,
     Minus,
     StickyNote,
+    Handshake,
 } from 'lucide-react'
 import { Button, Input, EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } from 'strata-design-system'
 import type { Project, Room, Zone, ProjectItem } from './useProjects'
@@ -38,6 +39,9 @@ import { projectTotalUnits, projectTotalLines } from './useProjects'
 import type { Product } from '../types'
 import { useToast, ToastContainer } from '../../components/AuthToast'
 import { useDialogs } from '../../components/dialogs/DialogsContext'
+// F52 · E · botón "Dealer terms" del toolbar · abre modal con
+// MyDealerInfoPage en modo contextual filtrado a los brands presentes.
+import ProjectDealerTermsModal from './ProjectDealerTermsModal'
 
 interface ProjectDetailViewProps {
     project: Project
@@ -100,6 +104,20 @@ export default function ProjectDetailView({
 
     const totalUnits = useMemo(() => projectTotalUnits(project), [project])
     const totalLines = useMemo(() => projectTotalLines(project), [project])
+
+    // F52 · E · brands únicos presentes en el project · lookup del brand
+    // string desde el productId via allProducts (que el parent ya pasa).
+    // Ideal cross-reference con UNIFIED_INDEX, pero allProducts ya trae
+    // los enriched products del showroom · más liviano y sin import extra.
+    const brandsInProject = useMemo(() => {
+        const set = new Set<string>()
+        project.rooms.forEach((r) => r.zones.forEach((z) => z.items.forEach((it) => {
+            const product = allProducts.find((p) => p.id === it.productId)
+            if (product?.brand) set.add(product.brand)
+        })))
+        return Array.from(set)
+    }, [project, allProducts])
+    const [dealerTermsOpen, setDealerTermsOpen] = useState(false)
 
     const toggleRoom = (roomId: string) => {
         setCollapsedRooms((prev) => {
@@ -378,6 +396,25 @@ export default function ProjectDetailView({
                 </span>
 
                 <div className="ml-auto flex items-center gap-1">
+                    {/* F52 · E · Dealer terms scoped al project · disabled si
+                        no hay items todavía (nada para filtrar). */}
+                    <button
+                        type="button"
+                        onClick={() => setDealerTermsOpen(true)}
+                        disabled={brandsInProject.length === 0}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={brandsInProject.length === 0
+                            ? 'Add products to the project first'
+                            : `See your terms for the ${brandsInProject.length} ${brandsInProject.length === 1 ? 'brand' : 'brands'} in this project`}
+                    >
+                        <Handshake className="h-3 w-3" />
+                        Dealer terms
+                        {brandsInProject.length > 0 && (
+                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[9px] font-bold tabular-nums text-foreground">
+                                {brandsInProject.length}
+                            </span>
+                        )}
+                    </button>
                     <button
                         type="button"
                         onClick={handleExportCSV}
@@ -561,6 +598,16 @@ export default function ProjectDetailView({
             </div>
 
             <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+            {/* F52 · E · modal Dealer terms scoped al project. Reusa
+                MyDealerInfoPage en modo contextual filtrado por brands
+                presentes. */}
+            <ProjectDealerTermsModal
+                open={dealerTermsOpen}
+                onClose={() => setDealerTermsOpen(false)}
+                projectName={project.name}
+                brandsInProject={brandsInProject}
+            />
         </div>
     )
 }

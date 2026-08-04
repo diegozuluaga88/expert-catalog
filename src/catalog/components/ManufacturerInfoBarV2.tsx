@@ -20,7 +20,7 @@
 // para el dealer).
 
 import { ArrowTopRightOnSquareIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline'
-import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog } from 'lucide-react'
+import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake } from 'lucide-react'
 import type { Manufacturer } from '../types'
 import { useState } from 'react'
 import { useTenant } from '../../TenantContext'
@@ -153,15 +153,31 @@ function DealerRelationshipSection({
                 </div>
             )}
 
-            <button
-                type="button"
-                onClick={() => setRepDashboardOpen(true)}
-                className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                title="Preview the rep-side view of this relationship"
-            >
-                <UserCog className="h-3 w-3" />
-                Are you the rep? View dashboard preview →
-            </button>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+                {/* F52 · link contextual al home global · pattern del PRD ·
+                    "See all my terms" navega al MyDealerInfoPage (page
+                    top-level accesible desde avatar dropdown). Dispara
+                    CustomEvent que App.tsx escucha para setCurrentPage. */}
+                <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('expert-hub:navigate-to-dealer-info'))}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                    title="Open the full dealer info page (all your manufacturers)"
+                >
+                    <Handshake className="h-3 w-3" />
+                    See all my terms →
+                </button>
+                <span className="text-[11px] text-muted-foreground">·</span>
+                <button
+                    type="button"
+                    onClick={() => setRepDashboardOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                    title="Preview the rep-side view of this relationship"
+                >
+                    <UserCog className="h-3 w-3" />
+                    Are you the rep? View dashboard preview →
+                </button>
+            </div>
 
             <RepDashboardSlideOver
                 open={repDashboardOpen}

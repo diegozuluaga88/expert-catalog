@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LibraryBig, Store, FileText, FolderKanban, Sparkles, Handshake } from 'lucide-react'
+import { LibraryBig, Store, FileText, FolderKanban, Sparkles } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
 import LibraryPage from './browse/LibraryPageV2'
@@ -34,9 +34,11 @@ import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
 // F51 · A.1 · P6 Inspiration Gallery · nuevo sub-tab greenfield con
 // installations + hotspot tagging + upload flow local (sin backend).
 import InspirationGalleryPage from './inspiration/InspirationGalleryPage'
-// F51 · A.2 · P4 Internal Info · left-tab dedicado con TODA la info del
-// dealer (todos sus manufacturers en un solo lugar).
-import MyDealerInfoPage from './dealerinfo/MyDealerInfoPage'
+// F52 · MyDealerInfo migró a home global (page 'dealer-info' del App.tsx,
+// accesible desde el avatar dropdown del Navbar). Ya no vive como
+// sub-tab del Catalog · el sub-tab se eliminó para volver el nav a
+// verbos puros de browse/action. La vista contextual dentro de un
+// project usa el mismo componente vía ProjectDealerTermsModal.
 
 // F49 · v2 (refactor UX) · duplicado de CatalogPage.tsx sin los 2 tabs
 // "reference" (Dealer/Quote + Figma) que quedaron absorbidos en las otras
@@ -49,7 +51,7 @@ import MyDealerInfoPage from './dealerinfo/MyDealerInfoPage'
 // código queda dormido, no se borra.
 const INSPIRATION_ENABLED = true
 
-type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects' | 'inspiration' | 'dealer-info'
+type CatalogMode = 'browse' | 'showroom' | 'quotes' | 'projects' | 'inspiration'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
 
 interface BrowseNav {
@@ -318,11 +320,9 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                   Inspiration
                 </button>
               )}
-              {/* F51 · A.2 · P4 Internal Info · left-tab dedicado. */}
-              <button type="button" onClick={() => setMode('dealer-info')} className={tabClass(mode === 'dealer-info')}>
-                <Handshake className="h-4 w-4" />
-                My Dealer Info
-              </button>
+              {/* F52 · el sub-tab "My Dealer Info" se eliminó · ahora vive
+                  como page top-level en el App.tsx (case 'dealer-info'),
+                  accesible desde el avatar dropdown del Navbar. */}
             </div>
           )
           const hideTopBar = mode === 'showroom'
@@ -345,8 +345,6 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                     setNav({ page: 'product', manufacturer, category, product })
                   }}
                 />
-              ) : mode === 'dealer-info' ? (
-                <MyDealerInfoPage />
               ) : (
                 <ShowroomPageV2 headerAside={modeTabBar} />
               )}

@@ -3,10 +3,17 @@ import { useAuth } from '../context/AuthContext'
 import { useCatalogVersion } from '../context/CatalogVersionContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt } from 'lucide-react'
+import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Handshake } from 'lucide-react'
 import logoLightBrand from '../assets/logo-light-brand.png'
 import logoDarkBrand from '../assets/logo-dark-brand.png'
 import ChangePasswordModal from './auth/ChangePasswordModal'
+// F52 · D · badge indicator del avatar cuando hay updates pendientes o
+// info outdated · lee las mismas fuentes que MyDealerInfoPage.
+import {
+    getRelationshipsForDealer,
+    DEALER_REL_CHANGE_EVENT,
+    UPDATE_REQUESTS_CHANGE_EVENT,
+} from '../catalog/data/dealerRelationships'
 
 type NavTab = 'OCR' | 'Feedback'
 
@@ -21,6 +28,34 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
     const { theme, toggleTheme } = useTheme()
     const { user } = useAuth()
     const { selectedTenants, tenants, toggleTenant, selectAll } = useTenant()
+
+    // F52 · D · badge indicator para el avatar. Se activa si hay info
+    // outdated (>180 días) o update-requests pendientes que el dealer
+    // envió a algún rep. Escucha ambos eventos globales para refresh
+    // automático sin recargar.
+    const activeTenant = selectedTenants[0]
+    const [dealerBadgeActive, setDealerBadgeActive] = useState(false)
+    useEffect(() => {
+        const recompute = () => {
+            try {
+                const rels = getRelationshipsForDealer(activeTenant || '')
+                const anyOutdated = rels.some((r) => {
+                    const days = Math.floor((Date.now() - new Date(r.lastUpdatedAt).getTime()) / 86400000)
+                    return days > 180
+                })
+                const raw = localStorage.getItem('dealer-info-update-requests-v1')
+                const requestsCount = raw ? (JSON.parse(raw) as unknown[]).length : 0
+                setDealerBadgeActive(anyOutdated || requestsCount > 0)
+            } catch { setDealerBadgeActive(false) }
+        }
+        recompute()
+        window.addEventListener(DEALER_REL_CHANGE_EVENT, recompute)
+        window.addEventListener(UPDATE_REQUESTS_CHANGE_EVENT, recompute)
+        return () => {
+            window.removeEventListener(DEALER_REL_CHANGE_EVENT, recompute)
+            window.removeEventListener(UPDATE_REQUESTS_CHANGE_EVENT, recompute)
+        }
+    }, [activeTenant])
     // F49 · v1 (actual) vs v2 (refactor UX) · el dropdown del tab "Catalog"
     // permite a los stakeholders comparar la versión estable con la que va
     // avanzando el refactor sin bloquear ninguna de las dos.
@@ -262,17 +297,28 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                                 className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-muted transition-colors"
                             >
-                                <img
-                                    src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=face"
-                                    alt={displayName}
-                                    className="w-8 h-8 rounded-full object-cover border-2 border-border"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                    }}
-                                />
-                                <div className="w-8 h-8 rounded-full bg-ai flex items-center justify-center text-white text-xs font-bold hidden">
-                                    {displayName.charAt(0).toUpperCase()}
+                                <div className="relative">
+                                    <img
+                                        src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=face"
+                                        alt={displayName}
+                                        className="w-8 h-8 rounded-full object-cover border-2 border-border"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                        }}
+                                    />
+                                    <div className="w-8 h-8 rounded-full bg-ai flex items-center justify-center text-white text-xs font-bold hidden">
+                                        {displayName.charAt(0).toUpperCase()}
+                                    </div>
+                                    {/* F52 · D · badge dot amber si hay dealer info outdated o
+                                        update-requests pendientes · signal permanente en el avatar. */}
+                                    {dealerBadgeActive && (
+                                        <span
+                                            className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-amber-500"
+                                            title="Dealer info needs attention"
+                                            aria-label="Dealer info needs attention"
+                                        />
+                                    )}
                                 </div>
                                 <div className="hidden md:block text-left">
                                     <div className="text-xs font-semibold text-foreground leading-tight truncate max-w-[100px]">{displayName}</div>
@@ -284,11 +330,28 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                             {isUserMenuOpen && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-xl shadow-lg z-50 p-1">
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-lg z-50 p-1">
                                         <div className="px-3 py-2 border-b border-border mb-1">
                                             <div className="text-sm font-medium text-foreground">{displayName}</div>
                                             <div className="text-xs text-muted-foreground">{user?.email || 'sara.chen@strata.com'}</div>
                                         </div>
+                                        {/* F52 · D · home global de "My Dealer Info" · convención
+                                            settings-like (avatar dropdown). Badge amber al lado
+                                            del label si hay algo que atender. */}
+                                        <button
+                                            onClick={() => { setIsUserMenuOpen(false); onNavigate('dealer-info'); }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
+                                        >
+                                            <Handshake className="h-4 w-4" />
+                                            <span className="flex-1 text-left">My Dealer Info</span>
+                                            {dealerBadgeActive && (
+                                                <span
+                                                    className="inline-flex h-2 w-2 rounded-full bg-amber-500"
+                                                    aria-label="needs attention"
+                                                />
+                                            )}
+                                        </button>
+                                        <div className="my-1 border-t border-border" />
                                         <button
                                             onClick={() => { setIsUserMenuOpen(false); setShowChangePassword(true); }}
                                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"

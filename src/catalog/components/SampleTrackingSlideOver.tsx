@@ -123,8 +123,37 @@ export default function SampleTrackingSlideOver({ open, onClose, onSubmitted, on
                         </EmptyStateIcon>
                         <EmptyStateTitle>No sample requests yet</EmptyStateTitle>
                         <EmptyStateDescription>
-                            Browse Materials in the Product Catalog and click "Request sample" on any material card to build your draft.
+                            Browse Materials and click "Request sample" on any material card to build your draft.
                         </EmptyStateDescription>
+                        {/* F52 · CTA contextual · si el consumer pasó los callbacks
+                            y el user está en una vista de browsing, mostramos un
+                            botón directo al destino más razonable según el
+                            currentContext. En 'mrl' → MRL Library. En cualquier
+                            otro contexto → Product Catalog · Materials tab. Sin
+                            callbacks no renderiza (fallback silencioso). */}
+                        {(onBrowseCatalog || onBrowseMRL) && (
+                            <div className="mt-4 flex justify-center">
+                                {currentContext === 'mrl' && onBrowseMRL ? (
+                                    <button
+                                        type="button"
+                                        onClick={onBrowseMRL}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    >
+                                        <LibraryBig className="h-3.5 w-3.5" />
+                                        Browse MRL Library
+                                    </button>
+                                ) : onBrowseCatalog ? (
+                                    <button
+                                        type="button"
+                                        onClick={onBrowseCatalog}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    >
+                                        <Store className="h-3.5 w-3.5" />
+                                        Browse Product Catalog · Materials
+                                    </button>
+                                ) : null}
+                            </div>
+                        )}
                     </EmptyState>
                 ) : (
                     <div className="space-y-6">

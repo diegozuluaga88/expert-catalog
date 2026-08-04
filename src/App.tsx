@@ -19,8 +19,11 @@ import AckDetail from "./AckDetail"
 import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
+// F52 · D · home global de "My Dealer Info" como page top-level ·
+// convención settings-like (avatar dropdown del Navbar).
+import MyDealerInfoPage from "./catalog/dealerinfo/MyDealerInfoPage"
 
-type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
+type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail' | 'dealer-info'
 
 export interface ConvertedDocument {
   id: string
@@ -60,6 +63,15 @@ function App() {
       window.history.replaceState({}, '', clean)
     }
   }, [shareParams])
+
+  // F52 · listener del CustomEvent que dispara ManufacturerInfoBarV2
+  // cuando el user hace click en "See all my terms →". Deja el
+  // ManufacturerInfoBarV2 desacoplado del sistema de rutas del App.
+  useEffect(() => {
+    const handler = () => setCurrentPage('dealer-info')
+    window.addEventListener('expert-hub:navigate-to-dealer-info', handler)
+    return () => window.removeEventListener('expert-hub:navigate-to-dealer-info', handler)
+  }, [])
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page as Page)
@@ -144,6 +156,20 @@ function App() {
             onNavigate={handleNavigate}
             onNavigateToWorkspace={() => setCurrentPage('transactions')}
           />
+        )
+      case 'dealer-info':
+        return (
+          <>
+            <Navbar
+              onLogout={handleLogout}
+              activeTab="Dealer Info"
+              onNavigateToWorkspace={() => setCurrentPage('transactions')}
+              onNavigate={handleNavigate}
+            />
+            <div className="pt-24 px-4 max-w-screen-2xl mx-auto">
+              <MyDealerInfoPage />
+            </div>
+          </>
         )
       default:
         return (

@@ -47,7 +47,18 @@ function currencyFormat(n: number): string {
     }).format(n)
 }
 
-export default function MyDealerInfoPage() {
+interface MyDealerInfoPageProps {
+    /** F52 · variant='contextual' esconde el header full y muestra summary
+     *  compacto ("N brands used · avg X% off"). Ideal para embed en modal
+     *  desde in-project. Default 'full' preserva el behavior anterior. */
+    variant?: 'full' | 'contextual'
+    /** F52 · filtro por brand names para el modo contextual. Se matchea
+     *  contra MANUFACTURERS.name → id → relationship.manufacturerSlug.
+     *  Si no viene, se muestran todas las relationships del tenant. */
+    filterByBrands?: string[]
+}
+
+export default function MyDealerInfoPage({ variant = 'full', filterByBrands }: MyDealerInfoPageProps = {}) {
     const { currentTenant } = useTenant()
     const tenantDisplay = (currentTenant as unknown as string) || ''
     const dealerSlug = toDealerSlug(tenantDisplay)
@@ -62,11 +73,29 @@ export default function MyDealerInfoPage() {
         return () => window.removeEventListener(DEALER_REL_CHANGE_EVENT, handler)
     }, [])
 
-    const relationships = useMemo(
+    const allRelationships = useMemo(
         () => getRelationshipsForDealer(tenantDisplay),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [tenantDisplay, tick],
     )
+
+    // F52 · si el consumer pasó filterByBrands, matcheamos brand-name
+    // (case-insensitive) contra MANUFACTURERS.name para derivar los ids
+    // permitidos, y filtramos las relationships por esos. Los brands que
+    // no están en el registry MANUFACTURERS se ignoran silenciosamente.
+    const relationships = useMemo(() => {
+        if (!filterByBrands || filterByBrands.length === 0) return allRelationships
+        const allowedIds = new Set<string>()
+        const wantedNames = new Set(filterByBrands.map((b) => b.toLowerCase()))
+        MANUFACTURERS.forEach((m) => {
+            if (wantedNames.has(m.name.toLowerCase())) allowedIds.add(m.id)
+        })
+        // También matcheamos si el filterByBrands trae directamente el
+        // slug (útil cuando UNIFIED_PRODUCTS.brand no matchea un
+        // MANUFACTURERS.name pero sí el id).
+        filterByBrands.forEach((b) => allowedIds.add(b.toLowerCase()))
+        return allRelationships.filter((r) => allowedIds.has(r.manufacturerSlug))
+    }, [allRelationships, filterByBrands])
 
     const [askedManufacturers, setAskedManufacturers] = useState<Set<string>>(new Set())
 
@@ -76,25 +105,55 @@ export default function MyDealerInfoPage() {
         addToast('success', `Update request sent to ${rel.primaryRep.name} · they will refresh your info.`)
     }
 
+    const isContextual = variant === 'contextual'
+    const avgDiscount = relationships.length > 0
+        ? Math.round(relationships.reduce((s, r) => s + r.discountTier, 0) / relationships.length)
+        : 0
+
     return (
         <div className="space-y-4">
             <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-            {/* Header · icon en foreground, NO primary sobre fondo claro (Rule DS). */}
-            <header>
-                <h1 className="text-2xl font-bold text-foreground leading-tight flex items-center gap-2">
-                    <Handshake className="h-6 w-6 text-muted-foreground" />
-                    My dealer info
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-                    Your negotiated terms with each manufacturer · discounts, freight, primary rep, credit limit.
-                    This information is private to <span className="font-semibold text-foreground">{tenantDisplay}</span> and
-                    updated by your reps.
-                </p>
-            </header>
+            {/* Header · varia según variant. Full muestra title global,
+                contextual muestra summary compacto del subset filtrado. */}
+            {isContextual ? (
+                <header className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Your terms for this scope
+                    </p>
+                    <p className="mt-0.5 text-sm text-foreground">
+                        <span className="font-bold">{relationships.length}</span>{' '}
+                        {relationships.length === 1 ? 'brand' : 'brands'}
+                        {relationships.length > 0 && (
+                            <>
+                                {' · avg '}
+                                <span className="font-bold tabular-nums">{avgDiscount}%</span>{' off list'}
+                            </>
+                        )}
+                    </p>
+                </header>
+            ) : (
+                <header>
+                    <h1 className="text-2xl font-bold text-foreground leading-tight flex items-center gap-2">
+                        <Handshake className="h-6 w-6 text-muted-foreground" />
+                        My dealer info
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
+                        Your negotiated terms with each manufacturer · discounts, freight, primary rep, credit limit.
+                        This information is private to <span className="font-semibold text-foreground">{tenantDisplay}</span> and
+                        updated by your reps.
+                    </p>
+                </header>
+            )}
 
             {relationships.length === 0 ? (
-                <EmptyState tenantDisplay={tenantDisplay} />
+                isContextual ? (
+                    <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center text-xs text-muted-foreground">
+                        No dealer terms on file for the brands in this scope.
+                    </div>
+                ) : (
+                    <EmptyState tenantDisplay={tenantDisplay} />
+                )
             ) : (
                 <div
                     className="grid gap-4"
