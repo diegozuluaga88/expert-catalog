@@ -246,7 +246,7 @@ function ProjectCard({ project, onOpen, onRename, onDelete, onDuplicate, onDropP
                     </div>
                 )}
             </button>
-            <div className="flex items-center justify-end gap-0.5 border-t border-border bg-muted/30 px-2 py-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex items-center justify-end gap-0.5 border-t border-border bg-muted/30 px-2 py-1.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
                 <IconButton onClick={onRename} label="Rename">
                     <Pencil className="h-3 w-3" />
                 </IconButton>

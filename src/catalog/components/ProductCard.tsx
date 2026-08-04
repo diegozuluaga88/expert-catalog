@@ -91,7 +91,10 @@ export default function ProductCard({ product, onClick, onAddToProject, onReques
 
       {/* F50 · Etapa 10.d (MRL adapt) · botón overlay Add-to-project ·
           top-right del card · visible en hover. stopPropagation para no
-          disparar el onClick de la card (que abre el detail). */}
+          disparar el onClick de la card (que abre el detail).
+          F54 · fallback touch · [@media(hover:none)]:opacity-100 para
+          que el overlay siempre esté visible en devices sin hover
+          capability (consistente con el pattern F53 del ProductCatalogCardV2). */}
       {onAddToProject && (
         <button
           type="button"
@@ -101,14 +104,15 @@ export default function ProductCard({ product, onClick, onAddToProject, onReques
           }}
           aria-label={`Add ${product.name} to a project`}
           title="Add to a project"
-          className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+          className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
         >
           <FolderPlus className="h-3.5 w-3.5" />
         </button>
       )}
 
       {/* F50 · sample flow · botón overlay Request-sample · top-left del
-          card · visible en hover · solo si el producto es material. */}
+          card · visible en hover · solo si el producto es material.
+          F54 · idem mobile fallback. */}
       {onRequestSample && product.isMaterial && (
         <button
           type="button"
@@ -118,7 +122,7 @@ export default function ProductCard({ product, onClick, onAddToProject, onReques
           }}
           aria-label={`Add ${product.name} to sample draft`}
           title="Add to sample draft"
-          className="absolute left-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+          className="absolute left-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:bg-card hover:text-foreground group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
         >
           <Package className="h-3.5 w-3.5" />
         </button>
