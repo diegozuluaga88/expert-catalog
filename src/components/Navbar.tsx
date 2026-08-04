@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useCatalogVersion } from '../context/CatalogVersionContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Handshake } from 'lucide-react'
+import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Handshake, Menu as MenuIcon, X as XIcon } from 'lucide-react'
+// F56b · HeadlessUI Dialog para el mobile drawer que colapsa las 4
+// nav tabs top-level en <md · focus trap + escape gratis.
+import { Dialog, Transition } from '@headlessui/react'
 import logoLightBrand from '../assets/logo-light-brand.png'
 import logoDarkBrand from '../assets/logo-dark-brand.png'
 import ChangePasswordModal from './auth/ChangePasswordModal'
@@ -64,6 +67,10 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
     const [showChangePassword, setShowChangePassword] = useState(false)
     const [isTenantOpen, setIsTenantOpen] = useState(false)
     const [isCatalogVersionOpen, setIsCatalogVersionOpen] = useState(false)
+    // F56b · mobile nav drawer · abre las 4 nav tabs en fullscreen dialog
+    // cuando la viewport es <md (el pill fixed no cabe con logo + tabs +
+    // avatar + acciones · antes overflow-clippeaba).
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
     const tenantRef = useRef<HTMLDivElement>(null)
     const catalogVersionRef = useRef<HTMLDivElement>(null)
 
@@ -162,8 +169,21 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                         </div>
                     </div>
 
-                    {/* Center: Nav Tabs */}
-                    <div className="flex items-center gap-1 mx-auto">
+                    {/* F56b · Hamburger trigger · solo visible en <md ·
+                        colapsa las 4 nav tabs top-level en un drawer
+                        fullscreen. En md+ el hamburger se oculta y los
+                        tabs se muestran normales. */}
+                    <button
+                        type="button"
+                        onClick={() => setIsMobileNavOpen(true)}
+                        aria-label="Open navigation menu"
+                        className="flex md:hidden items-center justify-center h-9 w-9 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-all mx-auto"
+                    >
+                        <MenuIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Center: Nav Tabs · hidden en <md · visible en md+ */}
+                    <div className="hidden md:flex items-center gap-1 mx-auto">
                         {visibleTabs.map(tab => {
                             const isActive = activeTab === tab.name
                             const Icon = tab.icon
@@ -378,6 +398,91 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                 isOpen={showChangePassword}
                 onClose={() => setShowChangePassword(false)}
             />
+
+            {/* F56b · Mobile nav drawer · fullscreen dialog con las 4 nav
+                tabs top-level stacked (OCR Tracking · Transactions ·
+                Feedback · Catalog). Se abre desde el hamburger del pill
+                fixed. HeadlessUI Dialog aporta focus trap + escape gratis. */}
+            <Transition show={isMobileNavOpen} as={Fragment} appear>
+                <Dialog onClose={() => setIsMobileNavOpen(false)} className="relative z-[70] md:hidden">
+                    <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
+                    </Transition.Child>
+                    <div className="fixed inset-y-0 left-0 flex max-w-full">
+                        <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="-translate-x-full" enterTo="translate-x-0" leave="ease-in duration-150" leaveFrom="translate-x-0" leaveTo="-translate-x-full">
+                            <Dialog.Panel className="flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-background shadow-xl">
+                                <div className="flex items-center justify-between border-b border-border p-4">
+                                    <Dialog.Title as="h2" className="text-sm font-bold uppercase tracking-wider text-foreground">
+                                        Navigation
+                                    </Dialog.Title>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMobileNavOpen(false)}
+                                        aria-label="Close navigation menu"
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                    >
+                                        <XIcon className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <nav className="flex flex-col p-2">
+                                    {visibleTabs.map(tab => {
+                                        const isActive = activeTab === tab.name
+                                        const Icon = tab.icon
+                                        return (
+                                            <button
+                                                key={tab.name}
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsMobileNavOpen(false)
+                                                    // Catalog abre v2 por default en mobile · no vale
+                                                    // la pena repetir el dropdown v1/v2 en el drawer.
+                                                    onNavigate(tab.page)
+                                                }}
+                                                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
+                                                    isActive
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'text-foreground hover:bg-muted'
+                                                }`}
+                                            >
+                                                <Icon className="h-5 w-5 flex-shrink-0" />
+                                                <span>{tab.label}</span>
+                                            </button>
+                                        )
+                                    })}
+                                </nav>
+                                {/* Tenant selector mobile · como en <sm el DEALER inline queda
+                                    hidden, este drawer también le da acceso. */}
+                                <div className="mt-auto border-t border-border p-3">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Dealer</p>
+                                    <div className="space-y-0.5">
+                                        {tenants.map(tenant => {
+                                            const isSelected = selectedTenants.includes(tenant)
+                                            return (
+                                                <button
+                                                    key={tenant}
+                                                    type="button"
+                                                    onClick={() => toggleTenant(tenant)}
+                                                    className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted transition-colors"
+                                                >
+                                                    <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                                        isSelected ? 'bg-primary border-primary' : 'border-border'
+                                                    }`}>
+                                                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                                                    </div>
+                                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                    <span className={`text-left truncate ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                                                        {tenant}
+                                                    </span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            </Dialog.Panel>
+                        </Transition.Child>
+                    </div>
+                </Dialog>
+            </Transition>
         </>
     )
 }
