@@ -66,16 +66,34 @@ interface ProductDetailPanelProps {
     queueInfo?: { current: number; total: number }
 }
 
+/* F55b · si el ProductGroup del product tiene silver linkedFinishMasterRefs,
+ * los pickers silver toman over sobre los legacy Finish + Fabric. En ese caso
+ * NO seteamos defaults legacy (quedarían huérfanos y sumarían price double).
+ * Mismo pattern que ConfigurableFinishesSection (L1103+) usa para hidr el
+ * silver render. Materials tier y colorway NO tienen equivalente silver, se
+ * mantienen siempre. */
+function hasSilverFinishesConfig(product: Product): boolean {
+    const code = inferProductGroupCode(product)
+    if (!code) return false
+    const group = findProductGroupByCode(code)
+    return !!(group?.linkedFinishMasterRefs && group.linkedFinishMasterRefs.length > 0)
+}
+
 function makeDefaultLine(product: Product): QuoteLine {
     const variants = getProductVariants(product)
+    const silverTakesOver = hasSilverFinishesConfig(product)
     return {
         id: `line-${Math.floor(Math.random() * 1e9).toString(36)}`,
         qty: 1,
         colorwayCode: product.colorways[0]?.code,
-        finishId: variants.finishes?.[0]?.id,
-        fabricId:
-            variants.fabricOptions?.find(f => f.type === 'standard')?.id ??
-            variants.fabricOptions?.[0]?.id,
+        // F55b · si silver está activo, NO seteamos defaults legacy · el picker
+        // silver arranca vacío intencionalmente (el user elige) y su
+        // priceModifier no se dobla con el legacy default.
+        finishId: silverTakesOver ? undefined : variants.finishes?.[0]?.id,
+        fabricId: silverTakesOver
+            ? undefined
+            : (variants.fabricOptions?.find(f => f.type === 'standard')?.id ??
+               variants.fabricOptions?.[0]?.id),
         materialTierId: variants.materialTiers?.[0]?.id,
     }
 }
@@ -748,6 +766,12 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
     const selectedColorway = product.colorways.find(c => c.code === line.colorwayCode)
     const selectedFabric = variants.fabricOptions?.find(f => f.id === line.fabricId)
     const isPremiumFabric = selectedFabric?.type === 'special'
+    // F55b · si el ProductGroup tiene silver finishes refs, los pickers
+    // silver toman over sobre los legacy Finish + Fabric · elimina la
+    // duplicación de "dos secciones Finishes" que confundía al user.
+    // Cuando NO hay silver refs (18% de cobertura hoy · 4 de 22
+    // productGroups), el legacy sigue siendo el picker único.
+    const silverTakesOver = hasSilverFinishesConfig(product)
     return (
         <div className="rounded-xl border border-border bg-background p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -801,8 +825,13 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                     </LineField>
                 )}
 
-                {/* Finish */}
-                {variants.finishes && variants.finishes.length > 0 && (
+                {/* F55b · Finish + Fabric legacy · solo se muestran si el product
+                    NO tiene silver linkedFinishMasterRefs. Cuando el silver
+                    está activo, el picker `<QuoteLineFinishesSelector>` (más
+                    abajo) los reemplaza con mejor UX (swatches inline + price
+                    modifier + agrupación por FinishOption). Elimina la
+                    duplicación "dos secciones Finishes" del diagnostic F55. */}
+                {!silverTakesOver && variants.finishes && variants.finishes.length > 0 && (
                     <LineField label="Finish">
                         <select disabled={disabled} value={line.finishId ?? ''} onChange={(e) => onChange({ finishId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                             {variants.finishes.map(f => (
@@ -812,8 +841,7 @@ function QuoteLineEditor({ product, line, totals, variants, disabled, canRemove,
                     </LineField>
                 )}
 
-                {/* Fabric */}
-                {variants.fabricOptions && variants.fabricOptions.length > 0 && (
+                {!silverTakesOver && variants.fabricOptions && variants.fabricOptions.length > 0 && (
                     <LineField label="Fabric">
                         <select disabled={disabled} value={line.fabricId ?? ''} onChange={(e) => onChange({ fabricId: e.target.value })} className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                             {variants.fabricOptions.map(f => (
