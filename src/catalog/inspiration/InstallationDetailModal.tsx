@@ -129,7 +129,8 @@ export default function InstallationDetailModal({
                                                 </span>
                                             )}
                                             {installation.roomType && (
-                                                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                                                // Chip room type · fill neutro (Rule DS · no branded como texto sobre paper).
+                                                <span className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-foreground">
                                                     {installation.roomType}
                                                 </span>
                                             )}

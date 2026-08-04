@@ -85,7 +85,8 @@ export default function InspirationGalleryPage({ onNavigateToProduct }: Inspirat
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-foreground leading-tight flex items-center gap-2">
-                        <Sparkles className="h-6 w-6 text-primary" />
+                        {/* Icon en muted-foreground · NO primary sobre paper claro (Rule DS). */}
+                        <Sparkles className="h-6 w-6 text-muted-foreground" />
                         Inspiration
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
@@ -146,7 +147,7 @@ export default function InspirationGalleryPage({ onNavigateToProduct }: Inspirat
                     <button
                         type="button"
                         onClick={() => { setSearch(''); setDesignFirmFilter(''); setRoomTypeFilter('') }}
-                        className="mt-3 text-xs font-semibold text-primary hover:underline"
+                        className="mt-3 text-xs font-semibold text-foreground underline hover:no-underline"
                     >
                         Clear filters
                     </button>
@@ -229,7 +230,8 @@ function InstallationCard({ installation, onOpen }: InstallationCardProps) {
                         </span>
                     )}
                     {installation.roomType && (
-                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        // Chip room type · fill neutro para no pisar el CTA principal (Upload) que sí usa primary (Rule DS).
+                        <span className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-foreground">
                             {installation.roomType}
                         </span>
                     )}

@@ -1422,15 +1422,18 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
             </div>
           )}
 
+          {/* F50 · sample flow (2026-08-03) · v2 · panel permanente al
+              final del sidebar del Product Catalog · muestra draft +
+              in-flight + delivered con badge en el header colapsable.
+              Sync automático con el hook via CustomEvent.
+              F51 fix (2026-08-04) · movido DENTRO del bloque
+              !sidebarCollapsed · antes quedaba flotando cuando el
+              sidebar se colapsaba a w-12 y no había espacio para
+              renderizarlo correctamente. */}
+          <div className="-mx-0">
+            <SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />
+          </div>
           </>}
-
-    {/* F50 · sample flow (2026-08-03) · v2 · panel permanente al final
-        del sidebar del Product Catalog · muestra draft + in-flight +
-        delivered con badge en el header colapsable. Sync automático con
-        el hook via CustomEvent. */}
-    <div className="-mx-0">
-      <SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />
-    </div>
     </>
   )
 

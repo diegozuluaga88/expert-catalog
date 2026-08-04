@@ -80,10 +80,10 @@ export default function MyDealerInfoPage() {
         <div className="space-y-4">
             <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-            {/* Header */}
+            {/* Header · icon en foreground, NO primary sobre fondo claro (Rule DS). */}
             <header>
                 <h1 className="text-2xl font-bold text-foreground leading-tight flex items-center gap-2">
-                    <Handshake className="h-6 w-6 text-primary" />
+                    <Handshake className="h-6 w-6 text-muted-foreground" />
                     My dealer info
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
@@ -141,7 +141,11 @@ interface DealerRelationshipCardProps {
 
 function DealerRelationshipCard({ relationship, alreadyAsked, onAskRep }: DealerRelationshipCardProps) {
     const manufacturer = MANUFACTURERS.find((m) => m.id === relationship.manufacturerSlug)
-    const manufacturerName = manufacturer?.name ?? relationship.manufacturerSlug
+    // Fallback capitalizado · si el slug del SEED no matchea con ningún
+    // MANUFACTURERS.id (ej. "egan", "kimball" no están en el registry),
+    // capitalizamos el slug para no mostrar "egan" en minúscula.
+    const manufacturerName = manufacturer?.name
+        ?? relationship.manufacturerSlug.replace(/(^|-)([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase())
     const outdatedDays = daysSince(relationship.lastUpdatedAt)
     const isOutdated = outdatedDays > OUTDATED_DAYS
 
@@ -164,9 +168,10 @@ function DealerRelationshipCard({ relationship, alreadyAsked, onAskRep }: Dealer
 
             {/* Body */}
             <div className="flex flex-1 flex-col gap-3 p-4">
-                {/* Discount + freight + credit */}
+                {/* Discount + freight + credit · valores en foreground · peso y
+                    tamaño distinguen jerarquía · NO color primary (Rule DS). */}
                 <div className="grid grid-cols-2 gap-3">
-                    <MetricBlock label="Discount" value={`${relationship.discountTier}%`} accent="primary" />
+                    <MetricBlock label="Discount" value={`${relationship.discountTier}%`} large />
                     <MetricBlock label="Freight" value={relationship.freightTerms} />
                     {relationship.creditLimitUsd !== undefined && (
                         <MetricBlock
@@ -229,18 +234,19 @@ function DealerRelationshipCard({ relationship, alreadyAsked, onAskRep }: Dealer
 interface MetricBlockProps {
     label: string
     value: string
-    accent?: 'primary'
+    /** Jerarquiza el valor con tamaño (18px) · sin usar branded color. */
+    large?: boolean
     warning?: boolean
 }
 
-function MetricBlock({ label, value, accent, warning }: MetricBlockProps) {
+function MetricBlock({ label, value, large, warning }: MetricBlockProps) {
     return (
         <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-            <p className={`mt-0.5 text-sm font-bold leading-tight ${
-                warning ? 'text-amber-700 dark:text-amber-400'
-                : accent === 'primary' ? 'text-primary'
-                : 'text-foreground'
+            <p className={`mt-0.5 font-bold leading-tight tabular-nums ${
+                large ? 'text-lg' : 'text-sm'
+            } ${
+                warning ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'
             }`}>
                 {value}
             </p>
@@ -255,7 +261,8 @@ function RepBlock({ label, rep }: { label: string; rep: DealerRep }) {
         <div className="rounded-md border border-border bg-background p-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
             <div className="mt-1 flex items-start gap-2">
-                <div className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                {/* Rep avatar · neutro sobre card claro · NO branded color en fill. */}
+                <div className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                     {rep.photoUrl ? (
                         <img src={rep.photoUrl} alt={rep.name} className="h-full w-full rounded-full object-cover" />
                     ) : (
@@ -266,11 +273,12 @@ function RepBlock({ label, rep }: { label: string; rep: DealerRep }) {
                     <p className="text-xs font-bold text-foreground truncate">{rep.name}</p>
                     <p className="text-[10px] text-muted-foreground truncate">{rep.title}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
-                        <a href={`mailto:${rep.email}`} className="inline-flex items-center gap-1 hover:text-primary hover:underline">
+                        {/* Hover state usa foreground (no primary) para respetar la regla en fondos claros. */}
+                        <a href={`mailto:${rep.email}`} className="inline-flex items-center gap-1 hover:text-foreground hover:underline">
                             <Mail className="h-3 w-3" />
                             {rep.email}
                         </a>
-                        <a href={`tel:${rep.phone}`} className="inline-flex items-center gap-1 hover:text-primary hover:underline">
+                        <a href={`tel:${rep.phone}`} className="inline-flex items-center gap-1 hover:text-foreground hover:underline">
                             <Phone className="h-3 w-3" />
                             {rep.phone}
                         </a>

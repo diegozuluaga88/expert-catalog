@@ -439,7 +439,8 @@ function EmailPreviewModal({ open, onClose, repName, relationships }: EmailPrevi
                             <header className="flex items-start justify-between gap-3 border-b border-border p-4">
                                 <div>
                                     <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                                        <Mail className="h-4 w-4 text-primary" />
+                                        {/* Icon neutro · el header del modal está sobre card claro (Rule DS). */}
+                                        <Mail className="h-4 w-4 text-muted-foreground" />
                                         Email preview · monthly cadence
                                     </h2>
                                     <p className="mt-0.5 text-[11px] text-muted-foreground">This is what {repName} will receive · not sent to anyone.</p>
