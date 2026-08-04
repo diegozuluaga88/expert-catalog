@@ -121,21 +121,11 @@ export default function ProductCatalogCardV2({
         </div>
       )}
 
-      {/* Previously selected badge · siempre visible cuando aplica ·
-          signal de historia que no se debe esconder on-hover. */}
-      {!isDiscontinued && historyEntry && (
-        <span
-          className="pointer-events-none absolute left-3 bottom-3 z-10 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-background shadow-sm backdrop-blur"
-          style={{ bottom: 'calc(100% - (75% - 12px))' }}
-          title={`Previously selected ${historyEntry.occurrences} ${historyEntry.occurrences === 1 ? 'time' : 'times'} · ${historyEntry.totalUnits} total units`}
-        >
-          <History className="h-2.5 w-2.5" />
-          Previously selected
-        </span>
-      )}
-
       {/* Hero image + overlays on-hover (checkbox select, favorite,
-          add-to-project). Click en imagen abre el detail panel. */}
+          add-to-project). Click en imagen abre el detail panel.
+          F53 fix · el badge "Previously selected" ahora vive DENTRO
+          del container de la imagen (bottom-left) para no invadir el
+          body del card. Signal permanente · no se esconde on-hover. */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <img
           src={product.images[0]}
@@ -148,6 +138,16 @@ export default function ProductCatalogCardV2({
           }`}
           loading="lazy"
         />
+
+        {!isDiscontinued && historyEntry && (
+          <span
+            className="pointer-events-none absolute left-3 bottom-3 z-10 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-background shadow-sm backdrop-blur"
+            title={`Previously selected ${historyEntry.occurrences} ${historyEntry.occurrences === 1 ? 'time' : 'times'} · ${historyEntry.totalUnits} total units`}
+          >
+            <History className="h-2.5 w-2.5" />
+            Previously selected
+          </span>
+        )}
 
         {/* Overlay top-left · checkbox select (on hover). */}
         <button
