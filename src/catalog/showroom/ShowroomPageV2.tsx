@@ -494,7 +494,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   }
 
   const taxonomyLabel = (t: Taxonomy) =>
-    t === 'products' ? 'Products' : t === 'materials' ? 'Materials' : 'Spaces'
+    // F58a.1 · rename UI-facing 'Spaces' → 'Inspiration' · el key interno
+    // 'spaces' se mantiene (evita refactor deep del state · useCustomSpaces,
+    // SpaceType, SpaceBundle no cambian). Solo el label visible cambia.
+    t === 'products' ? 'Products' : t === 'materials' ? 'Materials' : 'Inspiration'
 
   // Dataset por taxonomía (Products | Materials) y facetas derivadas de ese subconjunto
   const taxoProducts = useMemo(
@@ -784,9 +787,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
                     taxonomy === 'spaces' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
-                  title="Space Type Settings · pre-armados por tipo de espacio"
+                  title="Inspiration · space type settings + design references con productos taggeados"
+                  aria-label="Inspiration (previously Spaces)"
                 >
-                  Spaces
+                  Inspiration
                 </button>
               </div>
               <button
@@ -1305,7 +1309,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   </button>
                 )}
               </div>
-              <FilterSection title="Space Profile" defaultOpen>
+              <FilterSection title="Profile" defaultOpen>
                 {(['CCO', 'GW', 'CI'] as const).map((sp) =>
                   checkRow(sp, spacesSelectedProfiles, setSpacesSelectedProfiles)
                 )}

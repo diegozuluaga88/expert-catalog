@@ -104,11 +104,15 @@ export default function SpaceTypesPage({
                         <MapPin className="h-5 w-5 text-foreground" />
                     </div>
                     <div>
-                        <h2 className="text-base font-bold text-foreground">Space Type Settings</h2>
+                        {/* F58a.1 · rename UI · "Space Type Settings" → "Inspiration"
+                            (label narrativo · el nombre técnico interno SpaceType/
+                            SpaceBundle se mantiene en el code). */}
+                        <h2 className="text-base font-bold text-foreground">Inspiration</h2>
                         <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-                            Pre-configured furniture bundles for common workplace scenarios · Focus Rooms, Work Cafes,
-                            Huddle Rooms, Meeting Rooms, and more. Each setting comes with an item list, estimated cost
-                            range and can be added to your selection in one click.
+                            Pre-configured furniture bundles + real installations tagged with products, for common
+                            workplace scenarios · Focus Rooms, Work Cafes, Huddle Rooms, Meeting Rooms, and more.
+                            Each setting comes with an item list, estimated cost range and can be added to your
+                            selection in one click.
                         </p>
                     </div>
                 </div>

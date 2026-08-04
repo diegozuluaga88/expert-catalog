@@ -31,6 +31,9 @@ import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
 // F51 · B.2 · P3 Miller Knoll skeleton · se renderiza cuando la URL
 // trae ?mkPreview=1 · scaffolding editable (screenshots pendientes).
 import LibraryPageV2MK from './LibraryPageV2MK'
+// F58a.1 · panel Inspiration en la sidebar del MRL · reemplaza el
+// sub-tab Inspiration que existía a nivel CatalogPageV2.
+import InspirationPanel from '../spaces/InspirationPanel'
 
 interface LibraryPageV2Props {
   onSelectManufacturer: (m: Manufacturer) => void
@@ -149,7 +152,13 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
       activeTags={activeTags}
       onTagsChange={setActiveTags}
       onSearchClick={() => setSearchPaletteOpen(true)}
-      bottomSlot={<SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />}
+      bottomSlot={<>
+        {/* F58a.1 · InspirationPanel · widget nuevo para acceder al toggle
+            Inspiration del Product Catalog desde el MRL sin tener que
+            navegar out. Collapsed by default para no empujar los filtros. */}
+        <InspirationPanel />
+        <SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />
+      </>}
     />
   )
 
