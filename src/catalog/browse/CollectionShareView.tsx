@@ -25,6 +25,9 @@ import { useCollections } from './useCollections'
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 import type { Product } from '../types'
 import { formatPrice } from '../data/catalogues'
+// F51 · B.3 · toggle groupBy compartido con ShowroomPageV2 · agrupar
+// una colección por color o category en la vista read-only del share.
+import { CollectionGroupByToggle, groupProductsBy, type CollectionGroupBy } from './collectionGrouping'
 
 interface CollectionShareViewProps {
     /** URLSearchParams del window · si el consumidor los pasa, no dependemos de window. */
@@ -37,6 +40,8 @@ export default function CollectionShareView({ search, onExit }: CollectionShareV
     const decoded = useMemo(() => decodeCollectionShareLink(params), [params])
     const { createCollection, addToCollection } = useCollections()
     const [imported, setImported] = useState(false)
+    // F51 · B.3 · groupBy visual · mismo pattern del ShowroomPageV2.
+    const [groupBy, setGroupBy] = useState<CollectionGroupBy>('flat')
 
     if (!decoded.ok) {
         return (
@@ -126,7 +131,7 @@ export default function CollectionShareView({ search, onExit }: CollectionShareV
                     </Button>
                 </header>
 
-                {/* Grid */}
+                {/* Grid o Empty */}
                 {products.length === 0 ? (
                     <EmptyState>
                         <EmptyStateIcon>
@@ -138,11 +143,41 @@ export default function CollectionShareView({ search, onExit }: CollectionShareV
                         </EmptyStateDescription>
                     </EmptyState>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {products.map((p) => (
-                            <ReadonlyCard key={p.id} product={p} />
-                        ))}
-                    </div>
+                    <>
+                        {/* F51 · B.3 · toggle groupBy · solo se muestra si el
+                            grid tiene material para agrupar (>1 producto). */}
+                        {products.length > 1 && (
+                            <div className="mb-4 flex justify-end">
+                                <CollectionGroupByToggle value={groupBy} onChange={setGroupBy} />
+                            </div>
+                        )}
+
+                        {groupBy === 'flat' ? (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {products.map((p) => (
+                                    <ReadonlyCard key={p.id} product={p} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-8">
+                                {groupProductsBy(products, groupBy).map(([groupKey, groupProducts]) => (
+                                    <section key={groupKey}>
+                                        <header className="mb-3 flex items-baseline gap-2 border-b border-border pb-1">
+                                            <h2 className="text-sm font-bold text-foreground">{groupKey}</h2>
+                                            <span className="text-[11px] text-muted-foreground tabular-nums">
+                                                {groupProducts.length} {groupProducts.length === 1 ? 'product' : 'products'}
+                                            </span>
+                                        </header>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                            {groupProducts.map((p) => (
+                                                <ReadonlyCard key={p.id} product={p} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

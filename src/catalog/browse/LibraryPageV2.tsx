@@ -28,6 +28,9 @@ import SearchCommandPalette from '../search/SearchCommandPalette'
 // slide-over completo para el flujo de tracking.
 import SampleTrackingPanel from '../components/SampleTrackingPanel'
 import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
+// F51 · B.2 · P3 Miller Knoll skeleton · se renderiza cuando la URL
+// trae ?mkPreview=1 · scaffolding editable (screenshots pendientes).
+import LibraryPageV2MK from './LibraryPageV2MK'
 
 interface LibraryPageV2Props {
   onSelectManufacturer: (m: Manufacturer) => void
@@ -35,7 +38,26 @@ interface LibraryPageV2Props {
 
 const STORAGE_KEY_VIEW = 'catalog-view-mode'
 
+// F51 · B.2 · MK-preview flag · hoisted fuera del componente para evitar
+// early-return antes de los hooks. Se computa una vez por mount.
+const isMKPreview = typeof window !== 'undefined'
+  && new URLSearchParams(window.location.search).get('mkPreview') === '1'
+
 export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Props) {
+  // Short-circuit al skeleton MK · no hay hooks arriba de este return.
+  // El componente MK tiene sus propios hooks internos.
+  if (isMKPreview) {
+    return (
+      <LibraryPageV2MK
+        onSelectManufacturer={onSelectManufacturer}
+        onBackToClassic={() => {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('mkPreview')
+          window.location.href = url.toString()
+        }}
+      />
+    )
+  }
   const [activeTab, setActiveTab] = useState<LibraryTab>('products')
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem(STORAGE_KEY_VIEW) as ViewMode) ?? 'shelf'

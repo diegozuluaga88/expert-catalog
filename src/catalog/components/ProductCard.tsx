@@ -21,7 +21,15 @@ export default function ProductCard({ product, onClick, onAddToProject, onReques
 
   return (
     <div
-      className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200"
+      // F51 · B.1 · P2 drag from binder · el card del MRL es draggable ·
+      // drop target = ProjectCard en el tab My Projects. Reusa el
+      // protocol `application/x-product-id` del ProjectDetailView picker.
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/x-product-id', product.id)
+        e.dataTransfer.effectAllowed = 'copy'
+      }}
+      className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing"
     >
       <button
         type="button"

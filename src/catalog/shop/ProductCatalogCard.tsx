@@ -65,10 +65,19 @@ export default function ProductCatalogCard({
   const usedInCount = settingsUsingThis.length
   return (
     <article
+      // F51 · B.1 · P2 drag from binder · el card es draggable. El drop
+      // target es cada project card en el tab My Projects. Discontinued
+      // products no se pueden arrastrar. Protocol: `application/x-product-id`
+      // (mismo del ProjectDetailView picker · pattern reusado).
+      draggable={!isDiscontinued}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/x-product-id', product.id)
+        e.dataTransfer.effectAllowed = 'copy'
+      }}
       className={`group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 ${
         isDiscontinued
           ? 'border-border/60 opacity-75 grayscale-[40%]'
-          : 'border-border hover:border-foreground/20 hover:shadow-sm'
+          : 'border-border hover:border-foreground/20 hover:shadow-sm cursor-grab active:cursor-grabbing'
       }`}
       aria-disabled={isDiscontinued}
     >

@@ -9,6 +9,7 @@ import ProjectDetailView from './ProjectDetailView'
 import CreateProjectModal from './CreateProjectModal'
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 import { useDialogs } from '../../components/dialogs/DialogsContext'
+import { useToast, ToastContainer } from '../../components/AuthToast'
 
 export default function ProjectsPage() {
     const {
@@ -34,6 +35,30 @@ export default function ProjectsPage() {
     const [createModalOpen, setCreateModalOpen] = useState(false)
     const activeProject = activeProjectId ? getProject(activeProjectId) : undefined
     const { prompt, confirm } = useDialogs()
+    const { toasts, addToast, dismissToast } = useToast()
+
+    // F51 · B.1 · P2 drag from binder · handler compartido para el drop
+    // de un producto en un project card. Quick-add al primer room/zone
+    // (defaults) con qty=1 · el user puede editar después. Si el project
+    // no tiene rooms todavía, avisamos y sugerimos abrirlo.
+    const handleDropProduct = (project: Project, productId: string) => {
+        const product = UNIFIED_PRODUCTS.find((p) => p.id === productId)
+        const productName = product?.name ?? 'Product'
+        const firstRoom = project.rooms[0]
+        const firstZone = firstRoom?.zones[0]
+        if (!firstRoom || !firstZone) {
+            addToast('info', `"${project.name}" has no rooms yet · open the project to create one.`, {
+                label: 'Open project',
+                onClick: () => setActiveProjectId(project.id),
+            })
+            return
+        }
+        addItem(project.id, firstRoom.id, firstZone.id, productId, 1)
+        addToast('success', `${productName} added to ${project.name} · ${firstRoom.name} › ${firstZone.name}`, {
+            label: 'Open project',
+            onClick: () => setActiveProjectId(project.id),
+        })
+    }
 
     if (activeProject) {
         return (
@@ -88,6 +113,7 @@ export default function ProjectsPage() {
                             key={p.id}
                             project={p}
                             onOpen={() => setActiveProjectId(p.id)}
+                            onDropProduct={(productId) => handleDropProduct(p, productId)}
                             onRename={async () => {
                                 const name = await prompt({
                                     title: 'Rename project',
@@ -115,6 +141,8 @@ export default function ProjectsPage() {
                 </div>
             )}
 
+            <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
             <CreateProjectModal
                 open={createModalOpen}
                 onClose={() => setCreateModalOpen(false)}
@@ -134,16 +162,54 @@ interface ProjectCardProps {
     onRename: () => void
     onDelete: () => void
     onDuplicate: () => void
+    /** F51 · B.1 · drop de un producto desde MRL / Product Catalog. */
+    onDropProduct?: (productId: string) => void
 }
 
-function ProjectCard({ project, onOpen, onRename, onDelete, onDuplicate }: ProjectCardProps) {
+function ProjectCard({ project, onOpen, onRename, onDelete, onDuplicate, onDropProduct }: ProjectCardProps) {
     const totalUnits = projectTotalUnits(project)
     const totalLines = projectTotalLines(project)
     // Preview · muestra hasta 3 nombres de room como pills.
     const previewRooms = project.rooms.slice(0, 3)
     const overflow = Math.max(0, project.rooms.length - previewRooms.length)
+    const [dragOver, setDragOver] = useState(false)
     return (
-        <article className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card hover:border-foreground/20 hover:shadow-sm transition-all">
+        <article
+            // F51 · B.1 · drop target de productos arrastrados desde el
+            // catálogo. Highlight verde cuando drag over; al drop llama
+            // onDropProduct con el productId extraído del dataTransfer.
+            onDragOver={(e) => {
+                if (!onDropProduct) return
+                if (e.dataTransfer.types.includes('application/x-product-id')) {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'copy'
+                    if (!dragOver) setDragOver(true)
+                }
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+                setDragOver(false)
+                if (!onDropProduct) return
+                const productId = e.dataTransfer.getData('application/x-product-id')
+                if (productId) {
+                    e.preventDefault()
+                    onDropProduct(productId)
+                }
+            }}
+            className={`group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all ${
+                dragOver
+                    ? 'border-foreground border-2 shadow-lg ring-2 ring-foreground/20 scale-[1.02]'
+                    : 'border-border hover:border-foreground/20 hover:shadow-sm'
+            }`}
+        >
+            {/* Drop overlay · aparece SOLO durante dragOver activo. */}
+            {dragOver && (
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/90">
+                    <div className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background shadow-lg">
+                        Drop to add to {project.name}
+                    </div>
+                </div>
+            )}
             <button
                 type="button"
                 onClick={onOpen}
