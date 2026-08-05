@@ -2,12 +2,19 @@
 // Alternate al grid de ProductCatalogCardV2 en el Product Catalog. Renderea
 // los brands del filtered set como binders verticales tipo estantería de
 // biblioteca · mismo look que el MRL pero adaptado a la naturaleza del
-// catálogo (click = toggle filter, no navegación · sin volume expansion).
+// catálogo (sin volume expansion, sin My Binders).
+//
+// F61.1 · click en binder = drill-in · filtra a esa marca única + switch
+// a grid view para que el user vea los productos inmediatamente. Antes
+// era toggle sin cambiar de vista · el user reportó que "no vi productos".
+// Ambos onClick del body y onToggleBinder del círculo disparan el mismo
+// onSelectBrand · un solo path predecible.
 //
 // Reusa BinderSpineV2 / BinderWideV2 directamente (bypass del BinderLibraryV2
 // wrapper que integra useMyBinders · concepto exclusivo del MRL). El
 // checkmark visual del binder (isInMyBinders prop) se re-semantiza a
-// "brand is currently in the filter" para dar feedback bidireccional.
+// "brand is currently in the filter" · útil cuando el user vuelve al shelf
+// desde grid con un brand ya seleccionado.
 //
 // Layout · chunks de 8 binders por row · cada row wrappea los binders +
 // wood shelf plank al fondo (mismo pattern visual de ShelfViewV2).
@@ -30,12 +37,13 @@ interface CatalogShelfViewProps {
      *  que recibe. */
     manufacturers: Manufacturer[]
     /** Brands actualmente en el filter del sidebar · usado para el checkmark
-     *  visual del binder (state sync bidireccional). */
+     *  visual del binder cuando el user vuelve al shelf desde otra vista. */
     selectedBrands: Set<string>
-    /** Toggle único · fires desde click en el binder body y desde click en
-     *  el círculo (checkbox visual del BinderSpine). Ambos hacen lo mismo:
-     *  toggle del brand en el filter. */
-    onToggleBrand: (brandName: string) => void
+    /** F61.1 · drill-in único · fires desde click en el binder body y desde
+     *  click en el círculo (checkbox visual del BinderSpine). El consumer
+     *  típicamente hace: set selectedBrands = {brandName} + switch a grid view
+     *  + reset page · el user termina viendo los productos de esa marca. */
+    onSelectBrand: (brandName: string) => void
     /** Callback opcional para el CTA "Clear filters" del empty state cuando
      *  el shelf queda vacío por filters muy específicos. */
     onClearFilters?: () => void
@@ -46,7 +54,7 @@ const BINDERS_PER_SHELF = 8
 export default function CatalogShelfView({
     manufacturers,
     selectedBrands,
-    onToggleBrand,
+    onSelectBrand,
     onClearFilters,
 }: CatalogShelfViewProps) {
     // Chunk en rows de BINDERS_PER_SHELF · no hay volume expansion (decisión
@@ -97,9 +105,9 @@ export default function CatalogShelfView({
                                         <BinderWideV2
                                             key={m.id}
                                             manufacturer={m}
-                                            onClick={() => onToggleBrand(m.name)}
+                                            onClick={() => onSelectBrand(m.name)}
                                             isInMyBinders={selected}
-                                            onToggleBinder={() => onToggleBrand(m.name)}
+                                            onToggleBinder={() => onSelectBrand(m.name)}
                                         />
                                     )
                                 }
@@ -107,9 +115,9 @@ export default function CatalogShelfView({
                                     <BinderSpineV2
                                         key={m.id}
                                         manufacturer={m}
-                                        onClick={() => onToggleBrand(m.name)}
+                                        onClick={() => onSelectBrand(m.name)}
                                         isInMyBinders={selected}
-                                        onToggleBinder={() => onToggleBrand(m.name)}
+                                        onToggleBinder={() => onSelectBrand(m.name)}
                                         size="md"
                                     />
                                 )

@@ -1676,12 +1676,24 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
           </div>
 
           {/* F61 · shelf view · reemplaza el grid + pagination + empty state
-              del grid con CatalogShelfView cuando el user elige "shelf". */}
+              del grid con CatalogShelfView cuando el user elige "shelf".
+              F61.1 · click en binder = drill-in · setea el brand como único
+              filtro + switch a grid view · el user ve los productos de esa
+              marca inmediatamente (antes se quedaba en shelf sin ver nada). */}
           {catalogViewMode === 'shelf' && (
             <CatalogShelfView
               manufacturers={shelfManufacturers}
               selectedBrands={selectedBrands}
-              onToggleBrand={(name) => toggleFilter(setSelectedBrands, name)}
+              onSelectBrand={(name) => {
+                setSelectedBrands(new Set([name]))
+                setPage(1)
+                handleCatalogViewModeChange('grid')
+                const count = facetCounts.byBrand.get(name) ?? 0
+                addToast(
+                  'info',
+                  `Showing ${count} ${count === 1 ? 'product' : 'products'} from ${name}`,
+                )
+              }}
               onClearFilters={clearAll}
             />
           )}
