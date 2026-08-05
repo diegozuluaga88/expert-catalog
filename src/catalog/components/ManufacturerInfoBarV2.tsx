@@ -32,40 +32,58 @@ import {
 } from '../data/dealerRelationships'
 import RepDashboardSlideOver from './RepDashboardSlideOver'
 
+type InfoBarSection = 'relationship' | 'filter' | 'resources' | 'links' | 'contacts'
+
 interface ManufacturerInfoBarV2Props {
     manufacturer: Manufacturer
     /** Idem v1 · `'stack'` (default) vertical con separadores · `'grid'` full-width. */
     layout?: 'stack' | 'grid'
+    /** F60 · restringe qué sections renderizar · undefined = todas (backwards
+     *  compat para MRL). Útil para el BrandProfileSlideOver que renderea
+     *  cada section dentro de collapsibles separados. */
+    only?: readonly InfoBarSection[]
+    /** F60 · si true, no aplica el container border/bg · ideal cuando el
+     *  consumer ya tiene su propio wrapper (ej. collapsible del slide-over).
+     *  Sigue conservando el layout vertical con divide entre sections. */
+    bare?: boolean
 }
 
 const FILTER_LABELS = ['Standard', 'GSA', 'QS'] as const
 
-export default function ManufacturerInfoBarV2({ manufacturer, layout = 'stack' }: ManufacturerInfoBarV2Props) {
+export default function ManufacturerInfoBarV2({ manufacturer, layout = 'stack', only, bare = false }: ManufacturerInfoBarV2Props) {
     const { currentTenant } = useTenant()
     const relationship = getDealerRelationship(currentTenant, manufacturer.id)
 
     const filterOpts = manufacturer.filterOptions?.filter((o) =>
         FILTER_LABELS.some((l) => l.toLowerCase() === o.toLowerCase()),
     ) ?? []
-    const hasFilter = filterOpts.length > 0
-    const hasResources = (manufacturer.brandResources?.length ?? 0) > 0
-    const hasLinks = (manufacturer.links?.length ?? 0) > 0
-    const hasContacts = (manufacturer.contacts?.length ?? 0) > 0
-    const hasRelationship = relationship !== null
 
-    if (!hasFilter && !hasResources && !hasLinks && !hasContacts && !hasRelationship) {
+    // F60 · includes helper · si `only` viene set, filtra secciones.
+    const includes = (s: InfoBarSection) => !only || only.includes(s)
+
+    const showFilter = includes('filter') && filterOpts.length > 0
+    const showResources = includes('resources') && (manufacturer.brandResources?.length ?? 0) > 0
+    const showLinks = includes('links') && (manufacturer.links?.length ?? 0) > 0
+    const showContacts = includes('contacts') && (manufacturer.contacts?.length ?? 0) > 0
+    const showRelationship = includes('relationship') && relationship !== null
+
+    if (!showFilter && !showResources && !showLinks && !showContacts && !showRelationship) {
         return null
     }
 
     const isStack = layout === 'stack'
-    const containerClass = isStack
-        ? 'mt-6 rounded-xl border border-border bg-card/50 p-5 flex flex-col divide-y divide-border'
-        : 'mt-10 rounded-xl border border-border bg-card/50 p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4'
+    const containerClass = bare
+        ? isStack
+            ? 'flex flex-col divide-y divide-border'
+            : 'grid gap-6 md:grid-cols-2 lg:grid-cols-4'
+        : isStack
+            ? 'mt-6 rounded-xl border border-border bg-card/50 p-5 flex flex-col divide-y divide-border'
+            : 'mt-10 rounded-xl border border-border bg-card/50 p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4'
     const sectionPadClass = isStack ? 'py-4 first:pt-0 last:pb-0' : ''
 
     return (
         <section aria-label="Brand information" className={containerClass}>
-            {hasRelationship && (
+            {showRelationship && (
                 <div className={sectionPadClass}>
                     <DealerRelationshipSection
                         relationship={relationship!}
@@ -74,10 +92,10 @@ export default function ManufacturerInfoBarV2({ manufacturer, layout = 'stack' }
                     />
                 </div>
             )}
-            {hasFilter && <div className={sectionPadClass}><FilterSection options={filterOpts} /></div>}
-            {hasResources && <div className={sectionPadClass}><ResourcesSection resources={manufacturer.brandResources!} /></div>}
-            {hasLinks && <div className={sectionPadClass}><LinksSection links={manufacturer.links!} /></div>}
-            {hasContacts && <div className={sectionPadClass}><ContactsSection contacts={manufacturer.contacts!} /></div>}
+            {showFilter && <div className={sectionPadClass}><FilterSection options={filterOpts} /></div>}
+            {showResources && <div className={sectionPadClass}><ResourcesSection resources={manufacturer.brandResources!} /></div>}
+            {showLinks && <div className={sectionPadClass}><LinksSection links={manufacturer.links!} /></div>}
+            {showContacts && <div className={sectionPadClass}><ContactsSection contacts={manufacturer.contacts!} /></div>}
         </section>
     )
 }
