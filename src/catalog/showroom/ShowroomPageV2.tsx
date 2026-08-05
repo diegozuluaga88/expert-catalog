@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft, Sparkles, Plus, Pencil } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft, Sparkles, Plus, Pencil, Info } from 'lucide-react'
 import type { Category, Manufacturer, Product, ProductSortKey, SpaceType, SpaceTypeSetting } from '../types'
 import SpaceTypesPage, { SPACES_COST_BUCKETS, type SpacesFilters, type SpacesSortKey } from '../spaces/SpaceTypesPage'
 import SpaceTypeDetailPage from '../spaces/SpaceTypeDetailPage'
@@ -17,6 +17,9 @@ import BulkActionsBar from '../shop/BulkActionsBar'
 import CompareModal from '../shop/CompareModal'
 import ProductDetailPanel from '../browse/ProductDetailPanel'
 import ManufacturerPage from '../browse/ManufacturerPage'
+// F59 · brand profile slide-over · alternate al swap full-page para
+// preservar el flow de curación del catálogo.
+import BrandProfileSlideOver from '../components/BrandProfileSlideOver'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs, setCatalogs, resetCatalogs } from '../data/catalogs'
 import type { Catalog, CatalogStatus } from '../types'
@@ -325,6 +328,14 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   const [showIngest, setShowIngest] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [brandName, setBrandName] = useState<string | null>(null)
+  // F59 · brand profile slide-over state · null = closed. Se usa en 3
+  // triggers: info icon del brand row, brand name en product cards, y
+  // el botón "View brand profile" cuando 1 brand está seleccionada.
+  const [brandProfileTarget, setBrandProfileTarget] = useState<Manufacturer | null>(null)
+  const openBrandProfileByName = (name: string) => {
+    const m = getManufacturerByName(name)
+    if (m) setBrandProfileTarget(m)
+  }
   // Sidebar refactor · sync state local (antes vivía en ShowroomCatalogsBar)
   const [syncingId, setSyncingId] = useState<number | null>(null)
   const [syncToast, setSyncToast] = useState<SyncToast | null>(null)
@@ -1110,6 +1121,9 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
               // hay matches en el subset actual — el row se muestra dim.
               const brandCount = facetCounts.byBrand.get(b) ?? 0
               const dim = brandCount === 0 && !checked
+              // F59 · info icon solo se muestra si getManufacturerByName resuelve ·
+              // no todos los brands del catalog matchean con MANUFACTURERS registry.
+              const brandMeta = getManufacturerByName(b)
               return (
                 <div key={b} className="flex items-center gap-2">
                   {/* F50 · Wave 3.a · checkbox real (keyboard-accessible) + count. */}
@@ -1125,6 +1139,18 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                     <span className="truncate flex-1">{b}</span>
                     <span className="tabular-nums text-[11px] text-muted-foreground shrink-0">{brandCount}</span>
                   </label>
+                  {/* F59 · info icon · abre el brand profile slide-over */}
+                  {brandMeta && (
+                    <button
+                      type="button"
+                      onClick={() => setBrandProfileTarget(brandMeta)}
+                      title={`View ${b} brand profile`}
+                      aria-label={`View ${b} brand profile`}
+                      className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Info className="h-3 w-3" />
+                    </button>
+                  )}
                   {cat && (
                     <>
                       {needsSync && !isSyncing && (
@@ -1446,10 +1472,12 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
         <button
           type="button"
-          onClick={() => setBrandName([...selectedBrands][0])}
-          className="text-xs font-medium text-muted-foreground underline transition-colors hover:text-foreground"
+          onClick={() => openBrandProfileByName([...selectedBrands][0])}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors self-start"
+          title={`Open ${[...selectedBrands][0]} brand profile`}
         >
-          View {[...selectedBrands][0]} brand page →
+          <Info className="h-3 w-3" />
+          View {[...selectedBrands][0]} brand profile
         </button>
       )}
 
@@ -1608,6 +1636,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             onRequestSwatch={handleRequestSwatch}
                             onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                             onAddToProject={(prod) => setAddToProjectProduct(prod)}
+                            onBrandClick={openBrandProfileByName}
                           />
                         ))}
                       </div>
@@ -1635,6 +1664,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   onRequestSwatch={handleRequestSwatch}
                   onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                   onAddToProject={(prod) => setAddToProjectProduct(prod)}
+                  onBrandClick={openBrandProfileByName}
                 />
               ))}
             </div>
@@ -1736,6 +1766,15 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         onImportComplete={() => setShowImport(false)}
+      />
+
+      {/* F59 · brand profile slide-over · open state via brandProfileTarget.
+          Trigger paths: info icon en cada brand row del sidebar filter, brand
+          name clickeable en cada product card, y el botón "View brand profile"
+          que aparece cuando exactamente 1 brand está seleccionada. */}
+      <BrandProfileSlideOver
+        manufacturer={brandProfileTarget}
+        onClose={() => setBrandProfileTarget(null)}
       />
 
       {/* Phase 5 Fix #14 · Upload Quote/PO/ACK · AI mapping → draft */}

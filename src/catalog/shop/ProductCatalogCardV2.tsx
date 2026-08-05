@@ -65,6 +65,9 @@ interface ProductCatalogCardV2Props {
    *  Cuando llega, aparece el icon FolderPlus on hover en el overlay
    *  del hero. Fallback seguro: si no llega, no se renderea. */
   onAddToProject?: (product: Product) => void
+  /** F59 · click en el brand name (row 1 del body) abre el brand profile
+   *  slide-over. Si no llega, el brand name queda como span read-only. */
+  onBrandClick?: (brandName: string) => void
 }
 
 /* F53 · className compartido para los overlays on-hover del hero.
@@ -88,6 +91,7 @@ export default function ProductCatalogCardV2({
   onOpen,
   onRequestSwatch,
   onAddToProject,
+  onBrandClick,
 }: ProductCatalogCardV2Props) {
   const catalogs = useCatalogs()
   const itemStatus = resolveItemStatus(product, catalogs)
@@ -201,7 +205,20 @@ export default function ProductCatalogCardV2({
             una sola línea horizontal para eliminar el hueco visual
             asimétrico anterior). */}
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-muted-foreground truncate">{product.brand}</span>
+          {/* F59 · brand name clickeable si viene onBrandClick · abre el
+              brand profile slide-over sin sacar al user del catálogo. */}
+          {onBrandClick ? (
+            <button
+              type="button"
+              onClick={() => onBrandClick(product.brand ?? '')}
+              className="truncate text-muted-foreground hover:text-foreground hover:underline transition-colors focus-visible:outline-none focus-visible:text-foreground focus-visible:underline"
+              title={`View ${product.brand} brand profile`}
+            >
+              {product.brand}
+            </button>
+          ) : (
+            <span className="text-muted-foreground truncate">{product.brand}</span>
+          )}
           <span
             className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground"
             title="Internal SKU · click on product to view manufacturer SKU as well"
