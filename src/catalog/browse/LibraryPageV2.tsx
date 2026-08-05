@@ -239,7 +239,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
               onClearFilter={() => setShowMyBindersOnly(false)}
             />
           ) : (
-            <GridView manufacturers={filtered} onSelect={onSelectManufacturer} />
+            <GridView manufacturers={filtered} onSelect={onSelectManufacturer} onToast={addToast} />
           )}
         </div>
       </div>
