@@ -1,12 +1,33 @@
 import { useState } from 'react'
-import { ChevronLeft, CheckCircle2, ChevronDown, Sparkles, Pencil, Copy, Trash2, Plus } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, ChevronDown, Sparkles, Pencil, Copy, Trash2, Plus, Layers, Image as ImageIcon } from 'lucide-react'
 import { settingsForSpaceType } from '../data/spaceTypes'
 import { findProductStub, PRODUCT_STUBS } from '../data/productGroups'
 import type { SpaceType, SpaceTypeSetting } from '../types'
 import SpaceBundleCard from './SpaceBundleCard'
+import SpacePhotoCard from './SpacePhotoCard'
 import ProductIcon from './ProductIcon'
 import { useQuote } from '../../quote/QuoteContext'
 import { formatPrice } from '../data/catalogues'
+
+type ViewMode = 'bundle' | 'photo'
+
+/** F58a.3 · decide qué views están disponibles para un setting.
+ *  `photo` requiere imageUrl + al menos 1 imageOverlay.
+ *  `bundle` requiere al menos 1 item con stub válido (los uploads suelen
+ *  usar product ids reales que no están en PRODUCT_STUBS · en ese caso
+ *  bundle view no tiene contenido rico y la ocultamos). */
+function availableViews(setting: SpaceTypeSetting): { photo: boolean; bundle: boolean } {
+    const photo = !!setting.imageUrl && !!setting.bundle.imageOverlay?.length
+    const bundle = setting.bundle.items.some(bi => !!findProductStub(bi.itemId))
+    return { photo, bundle }
+}
+
+function defaultViewMode(setting: SpaceTypeSetting, avail: { photo: boolean; bundle: boolean }): ViewMode {
+    if (avail.photo && !avail.bundle) return 'photo'
+    if (avail.bundle && !avail.photo) return 'bundle'
+    // Ambas · isUserUpload manda; si no, bundle por default.
+    return setting.isUserUpload ? 'photo' : 'bundle'
+}
 
 interface Props {
     spaceType: SpaceType
@@ -49,6 +70,14 @@ export default function SpaceTypeDetailPage({
     // Fase 3.1 · state del variant expander en las mini cards de Bundle products.
     // Key = `${settingId}-${itemIndex}` (unique por card).
     const [expandedVariants, setExpandedVariants] = useState<Set<string>>(new Set())
+    // F58a.3 · per-setting view mode override (defaults se calculan on-the-fly).
+    const [viewModeById, setViewModeById] = useState<Record<string, ViewMode>>({})
+    const getViewMode = (setting: SpaceTypeSetting, avail: { photo: boolean; bundle: boolean }): ViewMode => {
+        return viewModeById[setting.id] ?? defaultViewMode(setting, avail)
+    }
+    const setViewMode = (id: string, mode: ViewMode) => {
+        setViewModeById(prev => ({ ...prev, [id]: mode }))
+    }
 
     const toggleVariants = (key: string) => {
         setExpandedVariants(prev => {
@@ -127,6 +156,9 @@ export default function SpaceTypeDetailPage({
             <div className="space-y-10">
                 {settings.map(setting => {
                     const custom = isCustom ? isCustom(setting.id) : !!setting.isCustom
+                    const avail = availableViews(setting)
+                    const viewMode = getViewMode(setting, avail)
+                    const showToggle = avail.photo && avail.bundle
                     return (
                     <section key={setting.id} className="space-y-4">
                         {/* Fase 5 · Toolbar sobre la card (visible solo para custom) */}
@@ -199,13 +231,51 @@ export default function SpaceTypeDetailPage({
                                 </div>
                             </div>
                         )}
-                        <SpaceBundleCard
-                            setting={setting}
-                            spaceType={spaceType}
-                            onAddToSelection={handleAdd}
-                        />
+                        {/* F58a.3 · View mode toggle · solo cuando ambas views tienen contenido */}
+                        {showToggle && (
+                            <div
+                                role="tablist"
+                                aria-label="Setting view mode"
+                                className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5"
+                            >
+                                {(['bundle', 'photo'] as const).map(m => {
+                                    const active = viewMode === m
+                                    const label = m === 'bundle' ? 'Bundle view' : 'Photo view'
+                                    const Icon = m === 'bundle' ? Layers : ImageIcon
+                                    return (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={active}
+                                            onClick={() => setViewMode(setting.id, m)}
+                                            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[11px] font-semibold transition-colors ${active ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                        >
+                                            <Icon className="h-3 w-3" />
+                                            {label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
+                        {viewMode === 'photo' ? (
+                            <SpacePhotoCard
+                                setting={setting}
+                                spaceType={spaceType}
+                                onAddToSelection={handleAdd}
+                            />
+                        ) : (
+                            <SpaceBundleCard
+                                setting={setting}
+                                spaceType={spaceType}
+                                onAddToSelection={handleAdd}
+                            />
+                        )}
 
-                        {/* Bundle products grid · mini cards por item del bundle */}
+                        {/* Bundle products grid · mini cards por item del bundle
+                            (solo en bundle view · en photo view los tagged
+                            products ya salen en el side panel de la card) */}
+                        {viewMode === 'bundle' && (
                         <div>
                             <div className="flex items-baseline justify-between mb-3 px-1">
                                 <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -304,6 +374,7 @@ export default function SpaceTypeDetailPage({
                                 })}
                             </div>
                         </div>
+                        )}
                     </section>
                     )
                 })}
