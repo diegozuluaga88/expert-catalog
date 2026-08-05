@@ -19,11 +19,10 @@ import AckDetail from "./AckDetail"
 import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
-// F52 · D · home global de "My Dealer Info" como page top-level ·
-// convención settings-like (avatar dropdown del Navbar).
-import MyDealerInfoPage from "./catalog/dealerinfo/MyDealerInfoPage"
+// F58b.3 · MyDealerInfoPage ya no es page top-level · su content se
+// embebe en la tab Manufacturers del modal My Setup (CatalogImportModal).
 
-type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail' | 'dealer-info'
+type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
 
 export interface ConvertedDocument {
   id: string
@@ -64,14 +63,10 @@ function App() {
     }
   }, [shareParams])
 
-  // F52 · listener del CustomEvent que dispara ManufacturerInfoBarV2
-  // cuando el user hace click en "See all my terms →". Deja el
-  // ManufacturerInfoBarV2 desacoplado del sistema de rutas del App.
-  useEffect(() => {
-    const handler = () => setCurrentPage('dealer-info')
-    window.addEventListener('expert-hub:navigate-to-dealer-info', handler)
-    return () => window.removeEventListener('expert-hub:navigate-to-dealer-info', handler)
-  }, [])
+  // F58b.3 · listener 'expert-hub:navigate-to-dealer-info' removido ·
+  // el ManufacturerInfoBarV2 ahora dispara 'expert-hub:open-setup-modal'
+  // que el CatalogPageV2 shell escucha para abrir el modal My Setup en
+  // la tab Manufacturers con filter pre-seteado.
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page as Page)
@@ -156,20 +151,6 @@ function App() {
             onNavigate={handleNavigate}
             onNavigateToWorkspace={() => setCurrentPage('transactions')}
           />
-        )
-      case 'dealer-info':
-        return (
-          <>
-            <Navbar
-              onLogout={handleLogout}
-              activeTab="Dealer Info"
-              onNavigateToWorkspace={() => setCurrentPage('transactions')}
-              onNavigate={handleNavigate}
-            />
-            <div className="pt-24 px-4 max-w-screen-2xl mx-auto">
-              <MyDealerInfoPage />
-            </div>
-          </>
         )
       default:
         return (

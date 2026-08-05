@@ -27,6 +27,8 @@ import SearchCommandPalette from '../search/SearchCommandPalette'
 // F50 · sample flow (MRL adapt · 2026-08-03) · v2 · widget del sidebar +
 // slide-over completo para el flujo de tracking.
 import SampleTrackingPanel from '../components/SampleTrackingPanel'
+// F58b.2 · widget shortcut al modal "My Setup" desde el MRL sidebar.
+import ManageSetupPanel from '../manage/ManageSetupPanel'
 import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
 // F51 · B.2 · P3 Miller Knoll skeleton · se renderiza cuando la URL
 // trae ?mkPreview=1 · scaffolding editable (screenshots pendientes).
@@ -157,6 +159,9 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
             Inspiration del Product Catalog desde el MRL sin tener que
             navegar out. Collapsed by default para no empujar los filtros. */}
         <InspirationPanel />
+        {/* F58b.2 · ManageSetupPanel · shortcut al modal My Setup
+            (Catalogs · Manufacturers · Buying preferences) desde el MRL. */}
+        <ManageSetupPanel />
         <SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />
       </>}
     />

@@ -1362,9 +1362,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                 type="button"
                 onClick={() => setShowImport(true)}
                 className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                title="Catalogs, manufacturers and buying preferences"
               >
                 <Settings2 className="h-4 w-4" />
-                Manage Catalogs
+                My Setup
               </button>
             </div>
           </div>

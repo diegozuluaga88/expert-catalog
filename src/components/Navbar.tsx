@@ -3,20 +3,16 @@ import { useAuth } from '../context/AuthContext'
 import { useCatalogVersion } from '../context/CatalogVersionContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Handshake, Menu as MenuIcon, X as XIcon } from 'lucide-react'
+import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Menu as MenuIcon, X as XIcon } from 'lucide-react'
 // F56b · HeadlessUI Dialog para el mobile drawer que colapsa las 4
 // nav tabs top-level en <md · focus trap + escape gratis.
 import { Dialog, Transition } from '@headlessui/react'
 import logoLightBrand from '../assets/logo-light-brand.png'
 import logoDarkBrand from '../assets/logo-dark-brand.png'
 import ChangePasswordModal from './auth/ChangePasswordModal'
-// F52 · D · badge indicator del avatar cuando hay updates pendientes o
-// info outdated · lee las mismas fuentes que MyDealerInfoPage.
-import {
-    getRelationshipsForDealer,
-    DEALER_REL_CHANGE_EVENT,
-    UPDATE_REQUESTS_CHANGE_EVENT,
-} from '../catalog/data/dealerRelationships'
+// F58b.3 · el badge amber del avatar + item "My Dealer Info" del dropdown
+// se eliminaron · el signal se movió al ManageSetupPanel del MRL sidebar
+// (y al badge del tab Manufacturers del modal My Setup).
 
 type NavTab = 'OCR' | 'Feedback'
 
@@ -32,33 +28,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
     const { user } = useAuth()
     const { selectedTenants, tenants, toggleTenant, selectAll } = useTenant()
 
-    // F52 · D · badge indicator para el avatar. Se activa si hay info
-    // outdated (>180 días) o update-requests pendientes que el dealer
-    // envió a algún rep. Escucha ambos eventos globales para refresh
-    // automático sin recargar.
-    const activeTenant = selectedTenants[0]
-    const [dealerBadgeActive, setDealerBadgeActive] = useState(false)
-    useEffect(() => {
-        const recompute = () => {
-            try {
-                const rels = getRelationshipsForDealer(activeTenant || '')
-                const anyOutdated = rels.some((r) => {
-                    const days = Math.floor((Date.now() - new Date(r.lastUpdatedAt).getTime()) / 86400000)
-                    return days > 180
-                })
-                const raw = localStorage.getItem('dealer-info-update-requests-v1')
-                const requestsCount = raw ? (JSON.parse(raw) as unknown[]).length : 0
-                setDealerBadgeActive(anyOutdated || requestsCount > 0)
-            } catch { setDealerBadgeActive(false) }
-        }
-        recompute()
-        window.addEventListener(DEALER_REL_CHANGE_EVENT, recompute)
-        window.addEventListener(UPDATE_REQUESTS_CHANGE_EVENT, recompute)
-        return () => {
-            window.removeEventListener(DEALER_REL_CHANGE_EVENT, recompute)
-            window.removeEventListener(UPDATE_REQUESTS_CHANGE_EVENT, recompute)
-        }
-    }, [activeTenant])
     // F49 · v1 (actual) vs v2 (refactor UX) · el dropdown del tab "Catalog"
     // permite a los stakeholders comparar la versión estable con la que va
     // avanzando el refactor sin bloquear ninguna de las dos.
@@ -330,15 +299,8 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                                     <div className="w-8 h-8 rounded-full bg-ai flex items-center justify-center text-white text-xs font-bold hidden">
                                         {displayName.charAt(0).toUpperCase()}
                                     </div>
-                                    {/* F52 · D · badge dot amber si hay dealer info outdated o
-                                        update-requests pendientes · signal permanente en el avatar. */}
-                                    {dealerBadgeActive && (
-                                        <span
-                                            className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-amber-500"
-                                            title="Dealer info needs attention"
-                                            aria-label="Dealer info needs attention"
-                                        />
-                                    )}
+                                    {/* F58b.3 · badge amber removido · el signal
+                                        se mueve al ManageSetupPanel del MRL. */}
                                 </div>
                                 <div className="hidden md:block text-left">
                                     <div className="text-xs font-semibold text-foreground leading-tight truncate max-w-[100px]">{displayName}</div>
@@ -355,23 +317,11 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                                             <div className="text-sm font-medium text-foreground">{displayName}</div>
                                             <div className="text-xs text-muted-foreground">{user?.email || 'sara.chen@strata.com'}</div>
                                         </div>
-                                        {/* F52 · D · home global de "My Dealer Info" · convención
-                                            settings-like (avatar dropdown). Badge amber al lado
-                                            del label si hay algo que atender. */}
-                                        <button
-                                            onClick={() => { setIsUserMenuOpen(false); onNavigate('dealer-info'); }}
-                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
-                                        >
-                                            <Handshake className="h-4 w-4" />
-                                            <span className="flex-1 text-left">My Dealer Info</span>
-                                            {dealerBadgeActive && (
-                                                <span
-                                                    className="inline-flex h-2 w-2 rounded-full bg-amber-500"
-                                                    aria-label="needs attention"
-                                                />
-                                            )}
-                                        </button>
-                                        <div className="my-1 border-t border-border" />
+                                        {/* F58b.3 · item "My Dealer Info" removido
+                                            del avatar dropdown · consolidado en el
+                                            modal "My Setup" (tab Manufacturers) que
+                                            se abre desde Product Catalog CTA o el
+                                            ManageSetupPanel del MRL sidebar. */}
                                         <button
                                             onClick={() => { setIsUserMenuOpen(false); setShowChangePassword(true); }}
                                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { AlertTriangle, Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, ImageIcon, Plus, RefreshCw, Server, Settings2, SlidersHorizontal, Trash2, Users, X } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, ChevronRight, CloudUpload, FileSearch, Globe, Handshake, ImageIcon, Plus, RefreshCw, Server, Settings2, SlidersHorizontal, Trash2, Users, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useCatalogs, setCatalogs } from '../data/catalogs';
@@ -16,6 +16,10 @@ import {
     summarizePreferences,
     type TenantPreferences,
 } from './tenantPreferences';
+// F58b.1 · 4a tab "Manufacturers" absorbe la MyDealerInfoPage · el
+// content full de la page se embebe con variant='full' + optional filter.
+import MyDealerInfoPage from '../dealerinfo/MyDealerInfoPage';
+import { getRelationshipsForDealer } from '../data/dealerRelationships';
 
 // Helper for classes
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -29,14 +33,22 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 // 'sync' tab fusionado (era Edit & Sync + Delete · ahora "Catalogs" con
 // ambas acciones inline · Diego ask 2026-06-30 · evita redundancia visual).
-export type ManageTab = 'add' | 'sync' | 'preferences';
+// F58b.1 · agregada 4a tab "manufacturers" que absorbe MyDealerInfoPage ·
+// header del modal renamed "Manage Catalogs" → "My Setup".
+export type ManageTab = 'add' | 'sync' | 'manufacturers' | 'preferences';
+
+const LAST_TAB_STORAGE_KEY = 'expert-hub-my-setup-last-tab';
 
 interface CatalogImportModalProps {
     isOpen: boolean;
     onClose: () => void;
     onImportComplete: (data: unknown) => void;
-    /** Default tab al abrir el modal. 'add' default · 'sync' cuando trigger viene de un sync icon. */
+    /** Default tab al abrir el modal. Si viene set, gana sobre el last-tab
+     *  persistido en localStorage. */
     initialTab?: ManageTab;
+    /** F58b.1 · lista de brand names para pre-filtrar la tab Manufacturers.
+     *  Usado por el link "See all my terms →" del ManufacturerInfoBarV2. */
+    filterByBrands?: string[];
 }
 
 type ImportStep = 'select' | 'configure' | 'processing' | 'complete';
@@ -81,9 +93,20 @@ const MOCK_TENANTS = [
     { id: 't-4', name: 'Retail Showrooms' },
 ];
 
-export default function CatalogImportModal({ isOpen, onClose, onImportComplete, initialTab = 'add' }: CatalogImportModalProps) {
-    // Tab state · Fix #4
-    const [activeTab, setActiveTab] = useState<ManageTab>(initialTab);
+export default function CatalogImportModal({ isOpen, onClose, onImportComplete, initialTab, filterByBrands }: CatalogImportModalProps) {
+    // Tab state · Fix #4 · F58b.1 · si no viene initialTab explícito, resolvemos
+    // desde el last-tab persistido (per-user session) para que reabrir el modal
+    // caiga en el mismo tab que la última vez · UX baseline "sticky tabs".
+    const resolveInitialTab = (): ManageTab => {
+        if (initialTab) return initialTab;
+        if (typeof window === 'undefined') return 'add';
+        try {
+            const raw = window.localStorage.getItem(LAST_TAB_STORAGE_KEY) as ManageTab | null;
+            if (raw === 'add' || raw === 'sync' || raw === 'manufacturers' || raw === 'preferences') return raw;
+        } catch { /* silent */ }
+        return 'add';
+    };
+    const [activeTab, setActiveTab] = useState<ManageTab>(resolveInitialTab);
 
     const [step, setStep] = useState<ImportStep>('select');
     const [sourceType, setSourceType] = useState<SourceType>('url');
@@ -130,7 +153,10 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
     // ver los catalogs en su estado actual al reabrir).
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(initialTab);
+            // F58b.1 · el resolveInitialTab decide entre initialTab explícito
+            // y el last-tab persistido. Se re-corre en cada open para respetar
+            // el override cuando el consumer lo pasa.
+            setActiveTab(resolveInitialTab());
             setStep('select');
             setSourceType('url');
             setProcessStage('scanning');
@@ -144,7 +170,20 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
             setConfirmDeleteId(null);
             setTabToast(null);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, initialTab]);
+
+    // F58b.1 · persist del tab activo · reabrir el modal cae en el mismo tab
+    // que la última vez a menos que el consumer pase initialTab explícito.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem(LAST_TAB_STORAGE_KEY, activeTab);
+        } catch { /* silent */ }
+    }, [activeTab]);
+
+    // F58b.1 · badge del tab Manufacturers · count de relationships del tenant.
+    const relationshipsCount = getRelationshipsForDealer(String(currentTenant) || '').length;
 
     // Sync handler para la tab "Edit & Sync" · ahora usa setCatalogs() del store
     // reactivo · cambio se refleja en TODOS los surfaces (chips del bar, badges
@@ -336,7 +375,7 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                 <div className="flex items-center justify-between p-4">
                                     <Dialog.Title className="text-lg font-semibold text-foreground flex items-center gap-2">
                                         <Settings2 className="w-5 h-5 text-zinc-500" />
-                                        Manage Catalogs
+                                        My Setup
                                     </Dialog.Title>
                                     {!(activeTab === 'add' && step === 'processing') && (
                                         <button onClick={onClose} className="p-1 rounded-full hover:bg-muted text-zinc-500 transition-colors" aria-label="Close">
@@ -362,7 +401,14 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                             badgeCount={manageCatalogs.filter(c => c.status === 'Update Avail.').length}
                                         />
                                         <TabButton
-                                            label="Preferences"
+                                            label="Manufacturers"
+                                            icon={Handshake}
+                                            active={activeTab === 'manufacturers'}
+                                            onClick={() => setActiveTab('manufacturers')}
+                                            badgeCount={relationshipsCount}
+                                        />
+                                        <TabButton
+                                            label="Buying preferences"
                                             icon={SlidersHorizontal}
                                             active={activeTab === 'preferences'}
                                             onClick={() => setActiveTab('preferences')}
@@ -452,6 +498,16 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
                                                 ))}
                                             </ul>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* ─── MANUFACTURERS TAB (F58b.1 · absorbe MyDealerInfoPage) ── */}
+                                {activeTab === 'manufacturers' && (
+                                    <div className="p-6">
+                                        <MyDealerInfoPage
+                                            variant="full"
+                                            filterByBrands={filterByBrands}
+                                        />
                                     </div>
                                 )}
 

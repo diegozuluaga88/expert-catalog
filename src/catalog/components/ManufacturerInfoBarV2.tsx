@@ -67,7 +67,11 @@ export default function ManufacturerInfoBarV2({ manufacturer, layout = 'stack' }
         <section aria-label="Brand information" className={containerClass}>
             {hasRelationship && (
                 <div className={sectionPadClass}>
-                    <DealerRelationshipSection relationship={relationship!} dealerName={currentTenant} />
+                    <DealerRelationshipSection
+                        relationship={relationship!}
+                        dealerName={currentTenant}
+                        manufacturerName={manufacturer.name}
+                    />
                 </div>
             )}
             {hasFilter && <div className={sectionPadClass}><FilterSection options={filterOpts} /></div>}
@@ -98,9 +102,11 @@ function SectionHeader({ label, accent }: { label: string; accent?: boolean }) {
 function DealerRelationshipSection({
     relationship,
     dealerName,
+    manufacturerName,
 }: {
     relationship: DealerRelationship
     dealerName: string
+    manufacturerName: string
 }) {
     const { discountTier, freightTerms, primaryRep, accountManager, creditLimitUsd, notes, lastUpdatedAt } = relationship
     const [repDashboardOpen, setRepDashboardOpen] = useState(false)
@@ -154,15 +160,17 @@ function DealerRelationshipSection({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-                {/* F52 · link contextual al home global · pattern del PRD ·
-                    "See all my terms" navega al MyDealerInfoPage (page
-                    top-level accesible desde avatar dropdown). Dispara
-                    CustomEvent que App.tsx escucha para setCurrentPage. */}
+                {/* F58b.3 · link contextual al modal My Setup · tab Manufacturers.
+                    Antes navegaba al MyDealerInfoPage top-level; ahora abre el
+                    modal consolidado con filtro pre-seteado al manufacturer
+                    actual · el CatalogPageV2 shell escucha el event. */}
                 <button
                     type="button"
-                    onClick={() => window.dispatchEvent(new CustomEvent('expert-hub:navigate-to-dealer-info'))}
+                    onClick={() => window.dispatchEvent(new CustomEvent('expert-hub:open-setup-modal', {
+                        detail: { tab: 'manufacturers', filterByBrands: [manufacturerName] },
+                    }))}
                     className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                    title="Open the full dealer info page (all your manufacturers)"
+                    title="Open My Setup · filtered to this manufacturer"
                 >
                     <Handshake className="h-3 w-3" />
                     See all my terms →

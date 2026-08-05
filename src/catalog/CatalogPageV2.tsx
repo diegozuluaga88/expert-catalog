@@ -31,6 +31,10 @@ import { useSampleRequests } from './browse/useSampleRequests'
 // y Samples · si solo hay uno con content, va directo sin tabs bar.
 import WorkspaceDrawer from './components/WorkspaceDrawer'
 import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
+// F58b.1 · modal My Setup montado al shell para que pueda abrirse desde
+// cualquier mode (MRL sidebar ManageSetupPanel · ManufacturerInfoBarV2 ·
+// Product Catalog CTA) via el event `expert-hub:open-setup-modal`.
+import CatalogImportModal, { type ManageTab } from './manage/CatalogImportModal'
 // F58a.1 · el sub-tab Inspiration se eliminó · su content se consolidó
 // en el toggle "Inspiration" del Product Catalog (antes Spaces · mismo
 // componente SpaceTypesPage) + un panel InspirationPanel en la sidebar
@@ -84,6 +88,11 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   // usamos para saber si el user ya está en la vista de materiales y
   // renderizar botón directo (en vez del dropdown) en el slide-over.
   const [showroomTaxonomy, setShowroomTaxonomy] = useState<'products' | 'materials' | 'spaces'>('products')
+  // F58b.1 · My Setup modal · single instance al nivel del shell. Se abre
+  // desde el CTA local del ShowroomPageV2 (state propio) O desde eventos
+  // globales · aquí manejamos los eventos globales · el detail puede
+  // incluir { tab?: ManageTab, filterByBrands?: string[] }.
+  const [setupModal, setSetupModal] = useState<{ open: boolean; initialTab?: ManageTab; filterByBrands?: string[] }>({ open: false })
   // F50 · sample flow (MRL adapt) · agrega el material al draft y
   // muestra un toast. El "Review draft" abre el tab Product Catalog
   // (que tiene el slide-over de tracking · ShowroomPageV2 lo monta).
@@ -180,13 +189,25 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
       }, 50)
       addToast('info', 'Opened Inspiration in Product Catalog · switch back to MRL from the tab bar.')
     }
+    // F58b.1 · abre el modal My Setup desde cualquier lugar del app.
+    // El detail puede pasar { tab: ManageTab, filterByBrands: string[] }.
+    const toOpenSetup = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as { tab?: ManageTab; filterByBrands?: string[] } | undefined
+      setSetupModal({
+        open: true,
+        initialTab: detail?.tab,
+        filterByBrands: detail?.filterByBrands,
+      })
+    }
     window.addEventListener('expert-hub:navigate-to-mrl', toMRL)
     window.addEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
     window.addEventListener('expert-hub:navigate-to-showroom-inspiration', toShowroomInspiration)
+    window.addEventListener('expert-hub:open-setup-modal', toOpenSetup)
     return () => {
       window.removeEventListener('expert-hub:navigate-to-mrl', toMRL)
       window.removeEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
       window.removeEventListener('expert-hub:navigate-to-showroom-inspiration', toShowroomInspiration)
+      window.removeEventListener('expert-hub:open-setup-modal', toOpenSetup)
     }
   }, [])
 
@@ -427,6 +448,18 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
           setAddToProjectProduct(null)
         }}
       />
+      {/* F58b.1 · My Setup modal · single shell-level instance abierta por
+          eventos globales (MRL sidebar · ManufacturerInfoBarV2 · terceros). El
+          CTA de ShowroomPageV2 sigue teniendo su instancia local (dispatch al
+          mismo event no es necesario · ambos usan el mismo store LazyMap). */}
+      <CatalogImportModal
+        isOpen={setupModal.open}
+        onClose={() => setSetupModal({ open: false })}
+        onImportComplete={() => setSetupModal({ open: false })}
+        initialTab={setupModal.initialTab}
+        filterByBrands={setupModal.filterByBrands}
+      />
+
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </>
   )
