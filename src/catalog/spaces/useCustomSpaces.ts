@@ -116,7 +116,12 @@ function migrateFromLegacyInstallations(tenantSlug: string): SpaceTypeSetting[] 
 }
 
 /** Input reducido para crear un custom setting · el hook completa id/timestamps
- *  y arma el bundle desde items sueltos. */
+ *  y arma el bundle desde items sueltos.
+ *
+ *  F58a.4 · absorbe el flow del UploadInstallationModal · fields opcionales
+ *  para el path "Upload photo & tag" del CreateEditSpaceModal. Cuando
+ *  `imageUrl` viene set + `imageOverlay` con tags, el setting resultante
+ *  queda con isUserUpload=true y renderiza en Photo view por default. */
 export interface CreateCustomSpaceInput {
     code: string                    // "F-CUSTOM-1", "WC-LUX-2"
     name: string
@@ -134,6 +139,20 @@ export interface CreateCustomSpaceInput {
         productBrand?: string
         productImageUrl?: string
         estimatedPrice?: number
+    }>
+    /** F58a.4 · Photo-tag path. dataURL de la foto uploaded (persist en
+     *  localStorage) · si viene set, el setting resultante marca isUserUpload. */
+    imageUrl?: string
+    /** F58a.4 · Design firm attribution para uploads que provienen de
+     *  installations reales de un partner (Gensler · HOK · etc). */
+    designFirm?: string
+    /** F58a.4 · Overlays clickeables sobre la imagen · cada tag apunta a un
+     *  productId + coord xPct/yPct 0-100. */
+    imageOverlay?: Array<{
+        productId: string
+        xPct: number
+        yPct: number
+        note?: string
     }>
 }
 
@@ -184,23 +203,31 @@ function inputToSetting(input: CreateCustomSpaceInput): SpaceTypeSetting {
         (sum, it) => sum + ((it.estimatedPrice ?? 0) * it.qty),
         0,
     )
+    const isPhotoUpload = !!input.imageUrl
     const bundle: SpaceBundle = {
         id: `bundle-${id}`,
         settingId: id,
         items: bundleItems,
-        estimatedCostMin: Math.floor(totalEstimate * 0.9),
-        estimatedCostMax: Math.ceil(totalEstimate * 1.1),
-        currency: 'USD',
+        // Uploads no llevan cost estimate (los items entran por tags, qty=1, no
+        // hay pricing precomputed) · dejamos 0-0 para que el card no exponga
+        // números fake. Bundle mode preserva el estimate ±10% habitual.
+        estimatedCostMin: isPhotoUpload ? 0 : Math.floor(totalEstimate * 0.9),
+        estimatedCostMax: isPhotoUpload ? 0 : Math.ceil(totalEstimate * 1.1),
+        currencyId: 'USD',
+        imageOverlay: input.imageOverlay,
     }
     return {
         id,
         code: input.code,
         name: input.name,
         spaceTypeId: input.spaceTypeId,
+        imageUrl: input.imageUrl,
         description: input.description,
         notes: input.notes,
         bundle,
         isCustom: true,
+        isUserUpload: isPhotoUpload || undefined,
+        designFirm: input.designFirm,
         createdAt: now,
         updatedAt: now,
     }
