@@ -226,6 +226,10 @@ const SEED: DealerRelationship[] = [
 
 const OVERRIDES_KEY = 'dealer-rel-overrides-v1'
 const UPDATE_REQUESTS_KEY = 'dealer-info-update-requests-v1'
+// F58c.1 · relationships que el dealer agrega desde el modal My Setup ·
+// no pertenecen al SEED · persisten en localStorage per-tenant y se
+// mergean con el SEED al leer (mismo pattern que overrides).
+const CUSTOM_RELATIONSHIPS_KEY = 'dealer-rel-custom-v1'
 
 type OverrideValue = Partial<Pick<DealerRelationship,
     'discountTier' | 'freightTerms' | 'notes' | 'creditLimitUsd' | 'lastUpdatedAt'
@@ -285,6 +289,65 @@ export function clearAllOverrides(): void {
 
 export const DEALER_REL_CHANGE_EVENT = 'catalog:dealer-rel-change'
 
+/* F58c.1 · Custom relationships (dealer-added) ─────────────────────── */
+
+function loadCustomRelationships(): DealerRelationship[] {
+    try {
+        const raw = localStorage.getItem(CUSTOM_RELATIONSHIPS_KEY)
+        if (!raw) return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed as DealerRelationship[] : []
+    } catch {
+        return []
+    }
+}
+
+function saveCustomRelationships(list: DealerRelationship[]): void {
+    try {
+        localStorage.setItem(CUSTOM_RELATIONSHIPS_KEY, JSON.stringify(list))
+    } catch { /* quota · noop */ }
+}
+
+/** Dealer agrega una relationship nueva desde el modal My Setup ·
+ *  persist como custom, no toca el SEED. Devuelve true si se agregó,
+ *  false si ya existía una relationship (SEED o custom) para el mismo
+ *  (dealerSlug, manufacturerSlug). */
+export function addCustomRelationship(rel: DealerRelationship): boolean {
+    const custom = loadCustomRelationships()
+    const existsInCustom = custom.some(
+        r => r.dealerSlug === rel.dealerSlug && r.manufacturerSlug === rel.manufacturerSlug,
+    )
+    const existsInSeed = SEED.some(
+        r => r.dealerSlug === rel.dealerSlug && r.manufacturerSlug === rel.manufacturerSlug,
+    )
+    if (existsInCustom || existsInSeed) return false
+    custom.push({ ...rel, lastUpdatedAt: new Date().toISOString() })
+    saveCustomRelationships(custom)
+    try { window.dispatchEvent(new CustomEvent(DEALER_REL_CHANGE_EVENT)) } catch { /* noop */ }
+    return true
+}
+
+/** Elimina una custom relationship (no afecta al SEED). Silent no-op si
+ *  la pareja no existe en custom. Los overrides asociados quedan huérfanos
+ *  pero no molestan porque no matchean con nada al leer. */
+export function removeCustomRelationship(dealerSlug: string, manufacturerSlug: string): void {
+    const custom = loadCustomRelationships()
+    const next = custom.filter(
+        r => !(r.dealerSlug === dealerSlug && r.manufacturerSlug === manufacturerSlug),
+    )
+    if (next.length === custom.length) return
+    saveCustomRelationships(next)
+    try { window.dispatchEvent(new CustomEvent(DEALER_REL_CHANGE_EVENT)) } catch { /* noop */ }
+}
+
+/** Introspection · util para el UI del edit-mode que decide si mostrar
+ *  el botón Remove (solo para custom, no para SEED). */
+export function isCustomRelationship(dealerSlug: string, manufacturerSlug: string): boolean {
+    return loadCustomRelationships().some(
+        r => r.dealerSlug === dealerSlug && r.manufacturerSlug === manufacturerSlug,
+    )
+}
+
 /* Update-requests inbox · el dealer pide, el rep resuelve */
 
 export interface UpdateRequest {
@@ -343,7 +406,9 @@ export function clearUpdateRequest(dealerSlug: string, manufacturerSlug: string)
     } catch { /* noop */ }
 }
 
-/** Devuelve la relación del dealer con el manufacturer, o null si no existe. */
+/** Devuelve la relación del dealer con el manufacturer, o null si no existe.
+ *  F58c.1 · busca en SEED primero, luego en custom. Los overrides aplican
+ *  a ambos. */
 export function getDealerRelationship(
     dealerTenant: string,
     manufacturerId: string,
@@ -351,26 +416,33 @@ export function getDealerRelationship(
     const dealerSlug = toDealerSlug(dealerTenant)
     const found = SEED.find(
         (r) => r.dealerSlug === dealerSlug && r.manufacturerSlug === manufacturerId,
+    ) ?? loadCustomRelationships().find(
+        (r) => r.dealerSlug === dealerSlug && r.manufacturerSlug === manufacturerId,
     )
     if (!found) return null
     return applyOverrideToRel(found, loadOverrides())
 }
 
-/** Devuelve todas las relaciones de un dealer (útil para el rep dashboard mock). */
+/** Devuelve todas las relaciones de un dealer (útil para el rep dashboard mock).
+ *  F58c.1 · incluye SEED + custom (dealer-added desde el modal My Setup). */
 export function getRelationshipsForDealer(dealerTenant: string): DealerRelationship[] {
     const dealerSlug = toDealerSlug(dealerTenant)
     const overrides = loadOverrides()
-    return SEED
-        .filter((r) => r.dealerSlug === dealerSlug)
-        .map((r) => applyOverrideToRel(r, overrides))
+    const seedRels = SEED.filter((r) => r.dealerSlug === dealerSlug)
+    const customRels = loadCustomRelationships().filter((r) => r.dealerSlug === dealerSlug)
+    return [...seedRels, ...customRels].map((r) => applyOverrideToRel(r, overrides))
 }
 
-/** Devuelve todas las relaciones que un rep primario atiende (mock del rep dashboard). */
+/** Devuelve todas las relaciones que un rep primario atiende (mock del rep dashboard).
+ *  F58c.1 · incluye SEED + custom · si un dealer agrega un manufacturer y setea
+ *  a otro rep como primaryRep, ese rep también las ve en su dashboard. */
 export function getRelationshipsForRep(repEmail: string): DealerRelationship[] {
     const overrides = loadOverrides()
-    return SEED
-        .filter((r) => r.primaryRep.email.toLowerCase() === repEmail.toLowerCase())
-        .map((r) => applyOverrideToRel(r, overrides))
+    const target = repEmail.toLowerCase()
+    const seedRels = SEED.filter((r) => r.primaryRep.email.toLowerCase() === target)
+    const customRels = loadCustomRelationships()
+        .filter((r) => r.primaryRep.email.toLowerCase() === target)
+    return [...seedRels, ...customRels].map((r) => applyOverrideToRel(r, overrides))
 }
 
 /** Formato humano · "2 days ago", "1 month ago", etc. */

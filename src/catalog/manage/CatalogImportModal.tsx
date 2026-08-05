@@ -19,7 +19,7 @@ import {
 // F58b.1 · 4a tab "Manufacturers" absorbe la MyDealerInfoPage · el
 // content full de la page se embebe con variant='full' + optional filter.
 import MyDealerInfoPage from '../dealerinfo/MyDealerInfoPage';
-import { getRelationshipsForDealer } from '../data/dealerRelationships';
+import { getRelationshipsForDealer, DEALER_REL_CHANGE_EVENT } from '../data/dealerRelationships';
 
 // Helper for classes
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -183,6 +183,16 @@ export default function CatalogImportModal({ isOpen, onClose, onImportComplete, 
     }, [activeTab]);
 
     // F58b.1 · badge del tab Manufacturers · count de relationships del tenant.
+    // F58c.1 · reactivo · escucha DEALER_REL_CHANGE_EVENT para refresh cuando
+    // el user add/remove custom manufacturers desde el tab.
+    const [relTick, setRelTick] = useState(0);
+    useEffect(() => {
+        const handler = () => setRelTick(t => t + 1);
+        window.addEventListener(DEALER_REL_CHANGE_EVENT, handler);
+        return () => window.removeEventListener(DEALER_REL_CHANGE_EVENT, handler);
+    }, []);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _relTick = relTick;
     const relationshipsCount = getRelationshipsForDealer(String(currentTenant) || '').length;
 
     // Sync handler para la tab "Edit & Sync" · ahora usa setCatalogs() del store
