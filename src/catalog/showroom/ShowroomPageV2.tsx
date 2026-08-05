@@ -1771,10 +1771,34 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       {/* F59 · brand profile slide-over · open state via brandProfileTarget.
           Trigger paths: info icon en cada brand row del sidebar filter, brand
           name clickeable en cada product card, y el botón "View brand profile"
-          que aparece cuando exactamente 1 brand está seleccionada. */}
+          que aparece cuando exactamente 1 brand está seleccionada.
+          F60 · onApplyFilters hace union con los filters del catalog: agrega
+          la brand (si no estaba) + las categorías seleccionadas · nunca
+          reemplaza otros filtros (Status, Collection, Price Range, etc). */}
       <BrandProfileSlideOver
         manufacturer={brandProfileTarget}
         onClose={() => setBrandProfileTarget(null)}
+        onApplyFilters={(brandName, categoryNames) => {
+          setSelectedBrands(prev => {
+            if (prev.has(brandName)) return prev
+            const next = new Set(prev)
+            next.add(brandName)
+            return next
+          })
+          if (categoryNames.length > 0) {
+            setSelectedCategories(prev => {
+              const next = new Set(prev)
+              categoryNames.forEach(n => next.add(n))
+              return next
+            })
+          }
+          setBrandProfileTarget(null)
+          const catCount = categoryNames.length
+          addToast(
+            'success',
+            `Filtered by ${catCount} ${catCount === 1 ? 'category' : 'categories'} in ${brandName}`,
+          )
+        }}
       />
 
       {/* Phase 5 Fix #14 · Upload Quote/PO/ACK · AI mapping → draft */}
