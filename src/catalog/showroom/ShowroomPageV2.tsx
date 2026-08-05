@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft, Sparkles, Plus, Pencil, Info } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, Check, ArrowLeft, Heart, RefreshCw, Upload, Settings2, Trash2, GitCompare, FolderPlus, FileText, PanelLeftClose, PanelLeft, Sparkles, Plus, Pencil, Info, LayoutGrid, Library } from 'lucide-react'
 import type { Category, Manufacturer, Product, ProductSortKey, SpaceType, SpaceTypeSetting } from '../types'
 import SpaceTypesPage, { SPACES_COST_BUCKETS, type SpacesFilters, type SpacesSortKey } from '../spaces/SpaceTypesPage'
 import SpaceTypeDetailPage from '../spaces/SpaceTypeDetailPage'
@@ -20,6 +20,8 @@ import ManufacturerPage from '../browse/ManufacturerPage'
 // F59 · brand profile slide-over · alternate al swap full-page para
 // preservar el flow de curación del catálogo.
 import BrandProfileSlideOver from '../components/BrandProfileSlideOver'
+// F61 · shelf view mode · bookshelf mirror del MRL para el Product Catalog.
+import CatalogShelfView from './CatalogShelfView'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs, setCatalogs, resetCatalogs } from '../data/catalogs'
 import type { Catalog, CatalogStatus } from '../types'
@@ -349,6 +351,20 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
     setGridDensity(v)
     saveGridDensity(v)
   }
+  // F61 · view mode del Product Catalog · 'grid' (default) usa las cards de
+  // ProductCatalogCardV2 · 'shelf' renderea binders tipo estantería del MRL.
+  // Persist en localStorage `catalog-view-mode-v2` (mismo pattern que gridDensity).
+  const [catalogViewMode, setCatalogViewMode] = useState<'grid' | 'shelf'>(() => {
+    if (typeof window === 'undefined') return 'grid'
+    try {
+      const raw = window.localStorage.getItem('catalog-view-mode-v2')
+      return raw === 'shelf' ? 'shelf' : 'grid'
+    } catch { return 'grid' }
+  })
+  const handleCatalogViewModeChange = (v: 'grid' | 'shelf') => {
+    setCatalogViewMode(v)
+    try { window.localStorage.setItem('catalog-view-mode-v2', v) } catch { /* noop */ }
+  }
   // Materials mode usa subset reducido de filtros (sin Status ni Collection)
   const isMaterials = taxonomy === 'materials'
   // Spaces mode oculta search/sort/filters/bulk/pagination · main content muta
@@ -638,6 +654,18 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
     return { byBrand, byCategory, byStatus, byCollection, byFeature, byPricePreset }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taxoProducts, search, selectedBrands, selectedCategories, selectedItemStatuses, selectedCollections, selectedFeatures, selectedPrices, customPriceRange, selectedColors, activeCollectionFilter, collections, catalogs])
+
+  // F61 · brands visibles en el shelf mode · usan la misma independencia
+  // facet-wise que facetCounts.byBrand · así seleccionar category=Chairs
+  // oculta binders de brands sin chairs, pero seleccionar brands no oculta
+  // otros brands (facet independence). Mapea a Manufacturer objects para
+  // el BinderSpineV2 · brands sin match en el registry se descartan.
+  const shelfManufacturers = useMemo(() => {
+    return Array.from(facetCounts.byBrand.keys())
+      .map(name => getManufacturerByName(name))
+      .filter((m): m is Manufacturer => m !== null && m !== undefined)
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [facetCounts.byBrand])
 
   const filtered = useMemo(() => {
     // El filtered "real" no salta ninguna dimensión (todos los filtros aplican).
@@ -1563,49 +1591,111 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
           <>
           {/* F50 · Wave 2 (extensión) · header de la vista con contador de
               resultados y GridDensitySelector. Wave 4 · botón "Sample requests"
-              con badge de count (solo cuando hay pendientes). */}
-          {pageItems.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs text-muted-foreground">
-                Showing {pageItems.length} of {filtered.length} results
-              </span>
-              <div className="flex items-center gap-3">
+              con badge de count (solo cuando hay pendientes).
+              F61 · header re-render siempre (aunque 0 resultados) para
+              exponer el view-mode toggle · Grid/Shelf · que necesita estar
+              visible en todos los estados para poder alternar. */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs text-muted-foreground">
+              {catalogViewMode === 'shelf'
+                ? `${shelfManufacturers.length} ${shelfManufacturers.length === 1 ? 'brand' : 'brands'}`
+                : pageItems.length > 0
+                  ? `Showing ${pageItems.length} of ${filtered.length} results`
+                  : ''}
+            </span>
+            <div className="flex items-center gap-3">
+              {/* F61 · View mode toggle · segmented icon buttons (Grid | Shelf)
+                  Siempre visible en products/materials · Inspiration/spaces no
+                  aplica (SpaceTypes ≠ Manufacturers). */}
+              <div
+                role="radiogroup"
+                aria-label="Catalog view mode"
+                className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5"
+              >
                 <button
                   type="button"
-                  onClick={() => setTrackingOpen(true)}
-                  title="View sample requests"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  role="radio"
+                  aria-checked={catalogViewMode === 'grid'}
+                  onClick={() => handleCatalogViewModeChange('grid')}
+                  title="Grid view · product cards"
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                    catalogViewMode === 'grid'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <PackageIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Sample requests</span>
-                  {sampleRequestsPending > 0 && (
-                    <span className="inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-                      {sampleRequestsPending}
-                    </span>
-                  )}
+                  <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="sr-only">Grid view</span>
                 </button>
-                {activeCollectionFilter !== null && (
-                  <CollectionGroupByToggle
-                    value={collectionGroupBy}
-                    onChange={setCollectionGroupBy}
-                  />
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={catalogViewMode === 'shelf'}
+                  onClick={() => handleCatalogViewModeChange('shelf')}
+                  title="Shelf view · browse by brand binders"
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                    catalogViewMode === 'shelf'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Library className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="sr-only">Shelf view</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTrackingOpen(true)}
+                title="View sample requests"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <PackageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Sample requests</span>
+                {sampleRequestsPending > 0 && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                    {sampleRequestsPending}
+                  </span>
                 )}
+              </button>
+              {/* F61 · GroupBy + Density solo aplican al grid view · en shelf
+                  los binders tienen size fija y no hay agrupación colectiva. */}
+              {catalogViewMode === 'grid' && activeCollectionFilter !== null && (
+                <CollectionGroupByToggle
+                  value={collectionGroupBy}
+                  onChange={setCollectionGroupBy}
+                />
+              )}
+              {catalogViewMode === 'grid' && (
                 <GridDensitySelector
                   value={gridDensity}
                   onChange={handleGridDensityChange}
                   label="Density"
                 />
-              </div>
+              )}
             </div>
+          </div>
+
+          {/* F61 · shelf view · reemplaza el grid + pagination + empty state
+              del grid con CatalogShelfView cuando el user elige "shelf". */}
+          {catalogViewMode === 'shelf' && (
+            <CatalogShelfView
+              manufacturers={shelfManufacturers}
+              selectedBrands={selectedBrands}
+              onToggleBrand={(name) => toggleFilter(setSelectedBrands, name)}
+              onClearFilters={clearAll}
+            />
           )}
 
-          {/* F50 · Wave 2.b · aire editorial · grid density controlado por el
-              usuario (Auto/2/3/4) via GridDensitySelector. Default 'auto'
-              usa 1/2/3 columnas según breakpoint (más aire que v1 · 4-col).
-              F50 · Etapa 8 · cuando hay colección activa + groupBy !== flat,
-              renderea el filtered completo (sin paginación) agrupado por
-              color o categoría. Colecciones típicamente son chicas así que
-              no vale la pena partir un grupo entre páginas. */}
+          {/* F50 · Wave 2.b · grid mode (default) · aire editorial · grid density
+              controlado por el usuario (Auto/2/3/4) via GridDensitySelector.
+              Default 'auto' usa 1/2/3 columnas según breakpoint (más aire que
+              v1 · 4-col). F50 · Etapa 8 · cuando hay colección activa +
+              groupBy !== flat, renderea el filtered completo (sin paginación)
+              agrupado por color o categoría. Colecciones típicamente son
+              chicas así que no vale la pena partir un grupo entre páginas.
+              F61 · envuelto en {catalogViewMode === 'grid'} · en shelf mode
+              este bloque no renderea (grid + empty + pagination). */}
+          {catalogViewMode === 'grid' && (<>
           {activeCollectionFilter !== null && collectionGroupBy !== 'flat' ? (
             (() => {
               const groups = groupProductsBy(filtered, collectionGroupBy)
@@ -1730,6 +1820,8 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
               </button>
             </div>
           </div>
+          </>)}
+          {/* F61 · fin del bloque {catalogViewMode === 'grid'} */}
           </>
           )}
           {/* /isSpaces ? spaces UI : products/materials grid + pagination */}
