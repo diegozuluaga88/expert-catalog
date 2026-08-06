@@ -358,7 +358,12 @@ export default function SmartRuleBuilderModal({ isOpen, onClose, onSaveRule, cur
                                         <button
                                             onClick={handleGenerate}
                                             disabled={!prompt}
-                                            className="px-6 py-2 bg-ai text-white font-medium rounded-lg hover:bg-ai transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                                            // F66.6 · fix contraste · antes bg-ai tenía muy poco
+                                            // contraste sobre bg claro (casi invisible). Ahora violet
+                                            // gradient consistent con el trigger "Add custom rule
+                                            // with AI" del PreferencesPanel. Disabled opacity 60 %
+                                            // (era 50) para que se lea aunque esté disabled.
+                                            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             Generate Rule
                                             <Sparkles className="w-4 h-4" />
