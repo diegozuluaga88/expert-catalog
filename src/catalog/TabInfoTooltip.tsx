@@ -131,7 +131,15 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <p className="text-[11px] text-foreground leading-relaxed whitespace-normal break-words">{content.structure}</p>
                         </div>
 
-                        {/* Features · list with accessible bullets */}
+                        {/* Features · list with accessible bullets.
+                            F64.4 · fixes:
+                            - min-w-0 + break-words en <span> · el flex parent
+                              (li con flex + gap) hacía que el span no shrinkeara
+                              respetando el container · text salía por la derecha
+                              cortando palabras completas ("year-ol" cut).
+                            - Check icon color · text-primary (lime) sobre bg-card
+                              blanco tiene contrast malo (Diego a11y rule) ·
+                              cambio a text-foreground/70 · legible + neutral. */}
                         <div>
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                                 Features
@@ -139,8 +147,8 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <ul role="list" className="space-y-1">
                                 {content.features.map((f, i) => (
                                     <li key={i} className="flex items-start gap-1.5 text-[11px] text-foreground leading-relaxed">
-                                        <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" strokeWidth={2.5} aria-hidden="true" />
-                                        <span>{f}</span>
+                                        <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-foreground/70" strokeWidth={2.5} aria-hidden="true" />
+                                        <span className="min-w-0 whitespace-normal break-words">{f}</span>
                                     </li>
                                 ))}
                             </ul>
