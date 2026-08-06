@@ -49,6 +49,21 @@ export interface TenantPreferences {
 
     // Custom rules (AI-built via SmartRuleBuilderModal)
     customRules: CustomRule[]
+
+    // F66.3 · Pricing rules (integradas del legacy ClientPolicyManager V1).
+    // Al activarlas, el ProductCatalogCardV2 muestra el precio con el
+    // dealer contract aplicado + savings badge. Contract Pricing es la base
+    // (45% off list) · Special Auth suma 5% adicional · Volume Tier y
+    // Q3 Promo requieren quote context (basket total) · solo se toggean
+    // aquí y su effect se aplica cuando el user va al quote/selection.
+    contractPricingActive: boolean       // 45% base off list
+    contractDiscountPct: number          // configurable · default 45
+    specialAuthActive: boolean           // +5% on top of net (project-specific)
+    specialAuthPct: number               // configurable · default 5
+    volumeTierActive: boolean            // +3% when basket total > threshold
+    volumeTierThreshold: number          // USD · default 10000
+    q3PromoActive: boolean               // flat $off promo (seasonal)
+    q3PromoFlatAmount: number            // USD · default 250
 }
 
 export const VERTICAL_OPTIONS: { value: Vertical; label: string }[] = [
@@ -94,7 +109,41 @@ export function defaultPreferences(): TenantPreferences {
         recycledContentEnabled: false,
         recycledContentMin: 30,
         customRules: [],
+        // F66.3 · pricing rules defaults · all off · user opts in from panel
+        contractPricingActive: false,
+        contractDiscountPct: 45,
+        specialAuthActive: false,
+        specialAuthPct: 5,
+        volumeTierActive: false,
+        volumeTierThreshold: 10000,
+        q3PromoActive: false,
+        q3PromoFlatAmount: 250,
     }
+}
+
+/** F66.3 · aplica pricing rules a un base price · devuelve el price final
+ *  después de dealer contract + special auth (los que son per-item · Volume
+ *  Tier y Q3 Promo necesitan basket context y se aplican en el quote). */
+export function applyPerItemPricingRules(basePrice: number, prefs: TenantPreferences): {
+    finalPrice: number
+    savings: number
+    savingsPct: number
+    rulesApplied: string[]
+} {
+    let net = basePrice
+    const rulesApplied: string[] = []
+    if (prefs.contractPricingActive && prefs.contractDiscountPct > 0) {
+        net = net * (1 - prefs.contractDiscountPct / 100)
+        rulesApplied.push(`Contract ${prefs.contractDiscountPct}%`)
+    }
+    if (prefs.specialAuthActive && prefs.specialAuthPct > 0) {
+        net = net * (1 - prefs.specialAuthPct / 100)
+        rulesApplied.push(`Special Auth +${prefs.specialAuthPct}%`)
+    }
+    const finalPrice = Math.round(net)
+    const savings = basePrice - finalPrice
+    const savingsPct = basePrice > 0 ? Math.round((savings / basePrice) * 100) : 0
+    return { finalPrice, savings, savingsPct, rulesApplied }
 }
 
 const STORAGE_KEY_PREFIX = 'expert-catalog.tenant-preferences.'
@@ -144,6 +193,11 @@ export function summarizePreferences(prefs: TenantPreferences): PreferencesSumma
     if (prefs.leedCompliant) active++
     if (prefs.fscCertifiedWood) active++
     if (prefs.recycledContentEnabled) active++
+    // F66.3 · pricing rules cuentan como active preferences
+    if (prefs.contractPricingActive) active++
+    if (prefs.specialAuthActive) active++
+    if (prefs.volumeTierActive) active++
+    if (prefs.q3PromoActive) active++
 
     let compliance = 0
     if (prefs.vertical === 'government') {

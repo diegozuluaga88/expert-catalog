@@ -68,6 +68,12 @@ interface ProductCatalogCardV2Props {
   /** F59 · click en el brand name (row 1 del body) abre el brand profile
    *  slide-over. Si no llega, el brand name queda como span read-only. */
   onBrandClick?: (brandName: string) => void
+  /** F66.3 · dealer pricing override · cuando el user activa Contract Pricing
+   *  (o Special Auth) en tenant preferences, el consumer computa el precio
+   *  final aplicando las rules y lo pasa acá. Si viene set, la card muestra
+   *  finalPrice en vez de product.price y el savings % de las rules en vez
+   *  del list-vs-price discount original. Si no viene, comportamiento legacy. */
+  dealerPricing?: { finalPrice: number; savingsPct: number; rulesApplied: string[] } | null
 }
 
 /* F53 · className compartido para los overlays on-hover del hero.
@@ -92,6 +98,7 @@ export default function ProductCatalogCardV2({
   onRequestSwatch,
   onAddToProject,
   onBrandClick,
+  dealerPricing,
 }: ProductCatalogCardV2Props) {
   const catalogs = useCatalogs()
   const itemStatus = resolveItemStatus(product, catalogs)
@@ -104,6 +111,13 @@ export default function ProductCatalogCardV2({
     ? Math.round(((product.listPrice! - product.price!) / product.listPrice!) * 100)
     : 0
   const primaryTag = pickPrimaryTag(product.tags)
+
+  // F66.3 · dealer pricing override · si el consumer pasa dealerPricing
+  // (Contract Pricing / Special Auth activos), lo priorizamos sobre el
+  // list-vs-price discount original del catalog.
+  const displayPrice = dealerPricing?.finalPrice ?? product.price
+  const displaySavingsPct = dealerPricing?.savingsPct ?? discountPct
+  const showSavings = (dealerPricing && dealerPricing.savingsPct > 0) || hasDiscount
 
   return (
     <article
@@ -280,16 +294,24 @@ export default function ProductCatalogCardV2({
         <div className="mt-auto flex flex-col gap-2 pt-2">
           <div
             className="flex items-baseline gap-2"
-            title={hasDiscount
-              ? `Dealer price ${formatPrice(product.price, product.currencyId)} · list ${formatPrice(product.listPrice!, product.currencyId)} · your dealer discount applied`
-              : `Dealer price ${formatPrice(product.price, product.currencyId)}`}
+            title={dealerPricing
+              ? `With your pricing rules: ${formatPrice(displayPrice, product.currencyId)} · ${dealerPricing.rulesApplied.join(' + ')} applied · list ${formatPrice(product.price, product.currencyId)}`
+              : hasDiscount
+                ? `Dealer price ${formatPrice(product.price, product.currencyId)} · list ${formatPrice(product.listPrice!, product.currencyId)} · your dealer discount applied`
+                : `Dealer price ${formatPrice(product.price, product.currencyId)}`}
           >
             <span className="text-base font-bold text-foreground tabular-nums">
-              {formatPrice(product.price, product.currencyId)}
+              {formatPrice(displayPrice, product.currencyId)}
             </span>
-            {hasDiscount && (
+            {showSavings && displaySavingsPct > 0 && (
               <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                Save {discountPct}%
+                Save {displaySavingsPct}%
+              </span>
+            )}
+            {dealerPricing && dealerPricing.rulesApplied.length > 0 && (
+              <span className="inline-flex items-center rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground"
+                title={dealerPricing.rulesApplied.join(' + ')}>
+                Rules
               </span>
             )}
           </div>

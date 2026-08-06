@@ -278,7 +278,46 @@ export default function PreferencesPanel({
                 )}
             </section>
 
-            {/* SECTION 5 · Custom Rules · AI builder */}
+            {/* F66.3 · SECTION 5 · Pricing rules · integradas del legacy
+                ClientPolicyManager V1. Contract Pricing y Special Auth se
+                aplican per-item al card price display. Volume Tier y Q3 Promo
+                requieren basket context (aplican al total del quote), acá
+                solo se toggean · impact visible cuando el user va a
+                My Selection. */}
+            <section className="space-y-3">
+                <SectionHeader
+                    title="Pricing rules"
+                    description="Dealer contract + special authorizations · applied to card prices when active. Volume tier and Q3 promo apply to your quote totals."
+                />
+                <div className="grid gap-2 sm:grid-cols-2">
+                    <PricingRuleRow
+                        label="Contract pricing"
+                        description={`Base ${prefs.contractDiscountPct}% off list · applies to every product`}
+                        active={prefs.contractPricingActive}
+                        onToggle={(v) => update('contractPricingActive', v)}
+                    />
+                    <PricingRuleRow
+                        label="Special authorization"
+                        description={`Extra ${prefs.specialAuthPct}% off net · project-specific approval`}
+                        active={prefs.specialAuthActive}
+                        onToggle={(v) => update('specialAuthActive', v)}
+                    />
+                    <PricingRuleRow
+                        label="Volume tier"
+                        description={`+3% off when quote total ≥ $${prefs.volumeTierThreshold.toLocaleString()} (applies at quote)`}
+                        active={prefs.volumeTierActive}
+                        onToggle={(v) => update('volumeTierActive', v)}
+                    />
+                    <PricingRuleRow
+                        label="Q3 promo"
+                        description={`Flat $${prefs.q3PromoFlatAmount.toLocaleString()} off · seasonal (applies at quote)`}
+                        active={prefs.q3PromoActive}
+                        onToggle={(v) => update('q3PromoActive', v)}
+                    />
+                </div>
+            </section>
+
+            {/* SECTION 6 · Custom Rules · AI builder */}
             <section className="space-y-3">
                 <SectionHeader
                     title="Custom Rules"
@@ -387,5 +426,45 @@ function CheckRow({ label, checked, onChange }: CheckRowProps) {
             </button>
             {label}
         </label>
+    )
+}
+
+/* F66.3 · PricingRuleRow · card compacta con toggle + description para cada
+ * pricing rule. Silhouette: rounded-lg border · switch primary · description
+ * en muted-foreground · más denso que ToggleRow porque son 4 en una grid 2-col. */
+interface PricingRuleRowProps {
+    label: string
+    description: string
+    active: boolean
+    onToggle: (v: boolean) => void
+}
+
+function PricingRuleRow({ label, description, active, onToggle }: PricingRuleRowProps) {
+    return (
+        <div className={cn(
+            'flex items-start gap-3 rounded-lg border p-3 transition-colors',
+            active ? 'border-primary/40 bg-primary/5' : 'border-border bg-card',
+        )}>
+            <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">{label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{description}</p>
+            </div>
+            <Switch
+                checked={active}
+                onChange={onToggle}
+                className={cn(
+                    'relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors mt-0.5',
+                    active ? 'bg-primary' : 'bg-muted'
+                )}
+            >
+                <span className="sr-only">{label}</span>
+                <span
+                    className={cn(
+                        'inline-block h-3.5 w-3.5 transform rounded-full bg-background shadow transition-transform',
+                        active ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    )}
+                />
+            </Switch>
+        </div>
     )
 }

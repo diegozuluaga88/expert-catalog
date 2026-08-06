@@ -32,7 +32,8 @@ import IngestQuoteModal from '../../quote/IngestQuoteModal'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 // F66.1 · tenant preferences para approved brands re-ranking en sidebar filter.
-import { loadPreferences, TENANT_PREFERENCES_CHANGE_EVENT, type TenantPreferences } from '../manage/tenantPreferences'
+// F66.3 · applyPerItemPricingRules para wire Contract Pricing en card display.
+import { loadPreferences, TENANT_PREFERENCES_CHANGE_EVENT, applyPerItemPricingRules, type TenantPreferences } from '../manage/tenantPreferences'
 import { useTenant } from '../../TenantContext'
 import { simulateSyncDelta, SyncResultToast, type SyncToast } from './ShowroomCatalogsBar'
 // F50 · Wave 1.b · v2 · confirmación al cambiar de taxonomía cuando hay
@@ -195,14 +196,29 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
     if (tenantPrefs.leedCompliant) list.push('LEED v4')
     if (tenantPrefs.fscCertifiedWood) list.push('FSC certified')
     if (tenantPrefs.recycledContentEnabled) list.push(`Recycled ≥ ${tenantPrefs.recycledContentMin}%`)
+    // F66.3 · Pricing rules
+    if (tenantPrefs.contractPricingActive) list.push(`Contract ${tenantPrefs.contractDiscountPct}%`)
+    if (tenantPrefs.specialAuthActive) list.push(`Special Auth +${tenantPrefs.specialAuthPct}%`)
+    if (tenantPrefs.volumeTierActive) list.push('Volume tier')
+    if (tenantPrefs.q3PromoActive) list.push('Q3 promo')
     return list
   }, [tenantPrefs])
 
-  // F66.2 · soft-match helper (productMatchesPreferences) pending para F66.3 ·
+  // F66.2 · soft-match helper (productMatchesPreferences) pending para F66.4 ·
   // agregará badge visual "✓ Matches preferences" en las product cards que
   // satisfacen todos los tag-based checks activos (GSA, LEED, FSC, etc).
   // Por ahora solo aplicamos budget como hard filter (data reliable) y
   // mostramos el chip informativo de active preferences al top del grid.
+
+  // F66.3 · dealer pricing helper · si Contract Pricing (o Special Auth)
+  // están activos, computa el precio final por producto para pasarlo al
+  // card via prop dealerPricing. Retorna null cuando no hay pricing rules
+  // active (card usa comportamiento legacy sin override).
+  const getDealerPricing = (basePrice: number | undefined): { finalPrice: number; savingsPct: number; rulesApplied: string[] } | null => {
+    if (!basePrice) return null
+    if (!tenantPrefs.contractPricingActive && !tenantPrefs.specialAuthActive) return null
+    return applyPerItemPricingRules(basePrice, tenantPrefs)
+  }
 
   const [taxonomy, setTaxonomy] = useState<Taxonomy>('products')
   const [search, setSearch] = useState('')
@@ -1878,6 +1894,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                             onAddToProject={(prod) => setAddToProjectProduct(prod)}
                             onBrandClick={openBrandProfileByName}
+                            dealerPricing={getDealerPricing(p.price)}
                           />
                         ))}
                       </div>
@@ -1906,6 +1923,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   onOpen={(prod) => { recordView(prod.id); setDetailId(prod.id) }}
                   onAddToProject={(prod) => setAddToProjectProduct(prod)}
                   onBrandClick={openBrandProfileByName}
+                  dealerPricing={getDealerPricing(p.price)}
                 />
               ))}
             </div>
