@@ -294,13 +294,13 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
             onSelectCategory={(c) =>
               navigate({ page: 'category', manufacturer: nav.manufacturer, category: c })
             }
-            // F65 · Library scope cleanup · variant='v1' (era 'v2') · v1 no
-            // muestra la sección "Your dealer relationship" (discount% ·
-            // freight · credit · rep contact) que es Strata superset scope.
-            // Library tab = MRL legacy · esa info sale del scope literal.
-            // Products tab (ShowroomPageV2 con BrandProfileSlideOver) sigue
-            // con v2 · muestra la relación dealer.
-            variant="v1"
+            // F65.2b · REVERT variant='v1' → 'v2' (user feedback) · la
+            // sección "Your dealer relationship" SÍ debe verse en ambos
+            // tabs (Library + Products) pero marcada con role-gate chip
+            // ("visible to specific roles only") · para demo purposes.
+            // La info es útil para el dealer decidir cual brand explorar
+            // aunque esté en Library scope.
+            variant="v2"
           />
         ) : null
       case 'category':

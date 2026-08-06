@@ -20,7 +20,7 @@
 // para el dealer).
 
 import { ArrowTopRightOnSquareIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline'
-import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake } from 'lucide-react'
+import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake, Lock } from 'lucide-react'
 import type { Manufacturer } from '../types'
 import { useState } from 'react'
 import { useTenant } from '../../TenantContext'
@@ -130,7 +130,7 @@ function DealerRelationshipSection({
     const [repDashboardOpen, setRepDashboardOpen] = useState(false)
     return (
         <div>
-            <div className="mb-3 flex items-baseline justify-between gap-2">
+            <div className="mb-2 flex items-baseline justify-between gap-2 flex-wrap">
                 <SectionHeader label="Your dealer relationship" accent />
                 <span
                     className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
@@ -139,6 +139,15 @@ function DealerRelationshipSection({
                     <Clock className="h-3 w-3" aria-hidden="true" />
                     Updated {formatRelativeDate(lastUpdatedAt)}
                 </span>
+            </div>
+            {/* F65.2b · role-gate chip · marca visualmente que esta sección
+                está restringida a ciertos roles dentro del dealer (demo
+                purposes · no enforcement real). Alinea con la disclosure
+                "Private info · not visible to other dealers" del <p> abajo. */}
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                title="Only Dealer Admin, Sales Rep and Purchaser roles can see this section. Other dealer users (design staff, viewers) don't have access.">
+                <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+                Restricted · Dealer Admin · Sales Rep · Purchaser
             </div>
             <p className="mb-3 text-[11px] text-muted-foreground">
                 Private info for <span className="font-semibold text-foreground">{dealerName}</span> with this manufacturer. Not visible to other dealers.
