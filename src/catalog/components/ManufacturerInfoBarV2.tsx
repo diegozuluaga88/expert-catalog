@@ -20,13 +20,15 @@
 // para el dealer).
 
 import { ArrowTopRightOnSquareIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline'
-import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake, Lock } from 'lucide-react'
+import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake, Lock, Pencil, Check, X as XIcon } from 'lucide-react'
 import type { Manufacturer } from '../types'
 import { useState } from 'react'
 import { useTenant } from '../../TenantContext'
 import {
     getDealerRelationship,
     formatRelativeDate,
+    applyRelationshipOverride,
+    toDealerSlug,
     type DealerRelationship,
     type DealerRep,
 } from '../data/dealerRelationships'
@@ -128,17 +130,70 @@ function DealerRelationshipSection({
 }) {
     const { discountTier, freightTerms, primaryRep, accountManager, creditLimitUsd, notes, lastUpdatedAt } = relationship
     const [repDashboardOpen, setRepDashboardOpen] = useState(false)
+
+    // F65.3 · inline edit state · applica override via applyRelationshipOverride
+    // sobre los 4 fields overrideables (discountTier, freightTerms, notes,
+    // creditLimitUsd). Reps quedan readonly · los cambia el rep desde el
+    // RepDashboardSlideOver. Enter edit con el pencil icon del header.
+    const [editing, setEditing] = useState(false)
+    const [draftDiscount, setDraftDiscount] = useState<string>(String(discountTier))
+    const [draftFreight, setDraftFreight] = useState<string>(freightTerms)
+    const [draftCredit, setDraftCredit] = useState<string>(creditLimitUsd?.toString() ?? '')
+    const [draftNotes, setDraftNotes] = useState<string>(notes ?? '')
+
+    const enterEdit = () => {
+        setDraftDiscount(String(discountTier))
+        setDraftFreight(freightTerms)
+        setDraftCredit(creditLimitUsd?.toString() ?? '')
+        setDraftNotes(notes ?? '')
+        setEditing(true)
+    }
+    const cancelEdit = () => setEditing(false)
+
+    const discountNum = Number.parseInt(draftDiscount, 10)
+    const creditNum = draftCredit.trim() === '' ? undefined : Number.parseInt(draftCredit.replace(/[,$\s]/g, ''), 10)
+    const isDiscountValid = Number.isFinite(discountNum) && discountNum >= 0 && discountNum <= 100
+    const isCreditValid = creditNum === undefined || (Number.isFinite(creditNum) && creditNum >= 0)
+    const isFreightValid = draftFreight.trim() !== ''
+    const canSave = isDiscountValid && isCreditValid && isFreightValid
+
+    const handleSave = () => {
+        if (!canSave) return
+        applyRelationshipOverride(toDealerSlug(dealerName), relationship.manufacturerSlug, {
+            discountTier: discountNum,
+            freightTerms: draftFreight.trim(),
+            notes: draftNotes.trim() || undefined,
+            creditLimitUsd: creditNum,
+        })
+        setEditing(false)
+    }
+
     return (
         <div>
             <div className="mb-2 flex items-baseline justify-between gap-2 flex-wrap">
                 <SectionHeader label="Your dealer relationship" accent />
-                <span
-                    className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
-                    title={`Last updated on ${new Date(lastUpdatedAt).toLocaleDateString()}`}
-                >
-                    <Clock className="h-3 w-3" aria-hidden="true" />
-                    Updated {formatRelativeDate(lastUpdatedAt)}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span
+                        className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
+                        title={`Last updated on ${new Date(lastUpdatedAt).toLocaleDateString()}`}
+                    >
+                        <Clock className="h-3 w-3" aria-hidden="true" />
+                        Updated {formatRelativeDate(lastUpdatedAt)}
+                    </span>
+                    {/* F65.3 · Edit toggle · aparece en el header row · click enter
+                        edit mode · click cancel exit. Solo visible cuando NO editing. */}
+                    {!editing && (
+                        <button
+                            type="button"
+                            onClick={enterEdit}
+                            aria-label="Edit dealer relationship"
+                            title="Edit terms · notes editable freely, other fields update the local override"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            <Pencil className="h-3 w-3" />
+                        </button>
+                    )}
+                </div>
             </div>
             {/* F65.2b · role-gate chip · marca visualmente que esta sección
                 está restringida a ciertos roles dentro del dealer (demo
@@ -153,36 +208,118 @@ function DealerRelationshipSection({
                 Private info for <span className="font-semibold text-foreground">{dealerName}</span> with this manufacturer. Not visible to other dealers.
             </p>
 
-            {/* Discount + freight + credit · 3 chips lado a lado */}
+            {/* F65.3 · Discount + freight + credit · display o inputs según edit mode */}
             <div className="mb-4 grid gap-2 sm:grid-cols-3">
-                <MetricChip
-                    icon={<Percent className="h-3.5 w-3.5" />}
-                    label="Discount tier"
-                    value={`${discountTier}% off list`}
-                />
-                <MetricChip
-                    icon={<Truck className="h-3.5 w-3.5" />}
-                    label="Freight terms"
-                    value={freightTerms}
-                />
-                {creditLimitUsd !== undefined && (
+                {editing ? (
+                    <MetricEditInput
+                        icon={<Percent className="h-3.5 w-3.5" />}
+                        label="Discount tier"
+                        value={draftDiscount}
+                        onChange={setDraftDiscount}
+                        suffix="% off list"
+                        type="number"
+                        invalid={!isDiscountValid}
+                    />
+                ) : (
+                    <MetricChip
+                        icon={<Percent className="h-3.5 w-3.5" />}
+                        label="Discount tier"
+                        value={`${discountTier}% off list`}
+                    />
+                )}
+                {editing ? (
+                    <MetricEditInput
+                        icon={<Truck className="h-3.5 w-3.5" />}
+                        label="Freight terms"
+                        value={draftFreight}
+                        onChange={setDraftFreight}
+                        placeholder="e.g. Prepay & add, FOB origin"
+                        type="text"
+                        invalid={!isFreightValid}
+                    />
+                ) : (
+                    <MetricChip
+                        icon={<Truck className="h-3.5 w-3.5" />}
+                        label="Freight terms"
+                        value={freightTerms}
+                    />
+                )}
+                {editing ? (
+                    <MetricEditInput
+                        icon={<CreditCard className="h-3.5 w-3.5" />}
+                        label="Credit limit"
+                        value={draftCredit}
+                        onChange={setDraftCredit}
+                        prefix="$"
+                        placeholder="Optional"
+                        type="text"
+                        invalid={!isCreditValid}
+                    />
+                ) : creditLimitUsd !== undefined ? (
                     <MetricChip
                         icon={<CreditCard className="h-3.5 w-3.5" />}
                         label="Credit limit"
                         value={`$${creditLimitUsd.toLocaleString()}`}
                     />
-                )}
+                ) : null}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
                 <RepCard label="Primary rep" rep={primaryRep} highlight />
                 {accountManager && <RepCard label="Account manager" rep={accountManager} />}
             </div>
+            {editing && (
+                <p className="mt-2 text-[10px] text-muted-foreground italic">
+                    Rep info is managed by the manufacturer's rep · use the Rep dashboard preview below to see how it's updated.
+                </p>
+            )}
 
-            {notes && (
+            {/* Notes · display o textarea según edit mode */}
+            {editing ? (
+                <div className="mt-3 rounded-md border border-primary/40 bg-primary/5 p-2.5 space-y-1.5">
+                    <div className="flex items-baseline justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Notes</p>
+                        <span className="text-[10px] text-muted-foreground">Only your team sees this</span>
+                    </div>
+                    <textarea
+                        value={draftNotes}
+                        onChange={(e) => setDraftNotes(e.target.value)}
+                        rows={3}
+                        maxLength={500}
+                        placeholder="Add internal notes · rebate terms, contact preferences, project history, etc."
+                        className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none resize-y"
+                    />
+                    <p className="text-[10px] text-muted-foreground text-right tabular-nums">
+                        {draftNotes.length} / 500
+                    </p>
+                </div>
+            ) : notes ? (
                 <div className="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-foreground/85">
                     <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <span>{notes}</span>
+                </div>
+            ) : null}
+
+            {/* F65.3 · Edit mode Save/Cancel bar · aparece solo en edit mode */}
+            {editing && (
+                <div className="mt-3 flex items-center gap-2 justify-end border-t border-border pt-3">
+                    <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                    >
+                        <XIcon className="h-3.5 w-3.5" />
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={!canSave}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Check className="h-3.5 w-3.5" />
+                        Save changes
+                    </button>
                 </div>
             )}
 
@@ -232,6 +369,46 @@ function MetricChip({ icon, label, value }: { icon: React.ReactNode; label: stri
                 {label}
             </div>
             <div className="text-sm font-bold text-foreground">{value}</div>
+        </div>
+    )
+}
+
+/* F65.3 · Edit variant del MetricChip · misma silhouette (rounded-lg border
+ * bg-background p-2.5) pero con input editable + validation state. Suffix
+ * (ej. "% off list") o prefix (ej. "$") opcionales para preservar el
+ * formato display. */
+function MetricEditInput({
+    icon, label, value, onChange, suffix, prefix, placeholder, type, invalid,
+}: {
+    icon: React.ReactNode
+    label: string
+    value: string
+    onChange: (v: string) => void
+    suffix?: string
+    prefix?: string
+    placeholder?: string
+    type: 'text' | 'number'
+    invalid?: boolean
+}) {
+    return (
+        <div className={`rounded-lg border ${invalid ? 'border-destructive' : 'border-primary/40'} bg-primary/5 p-2.5`}>
+            <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-muted-foreground" aria-hidden="true">{icon}</span>
+                {label}
+            </div>
+            <div className="flex items-baseline gap-1">
+                {prefix && <span className="text-sm font-bold text-foreground">{prefix}</span>}
+                <input
+                    type={type}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    min={type === 'number' ? 0 : undefined}
+                    max={type === 'number' ? 100 : undefined}
+                    className="w-full min-w-0 flex-1 rounded border border-input bg-background px-1.5 py-0.5 text-sm font-bold text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                />
+                {suffix && <span className="text-[10px] text-muted-foreground whitespace-nowrap">{suffix}</span>}
+            </div>
         </div>
     )
 }
