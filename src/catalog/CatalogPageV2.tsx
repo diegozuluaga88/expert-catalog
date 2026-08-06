@@ -404,10 +404,14 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                   accesible desde el avatar dropdown del Navbar. */}
             </div>
           )
-          const hideTopBar = mode === 'showroom'
+          // F66.4 · unificar posición del modeTabBar · siempre top-right del
+          // shell (antes era: browse/quotes/projects arriba centrado · showroom
+          // dentro del header title via headerAside · causaba jump visual al
+          // cambiar de tab). Ahora single source of truth · flex justify-end
+          // envuelve el pill · mismo lugar en los 4 modes.
           return (
             <>
-              {!hideTopBar && modeTabBar}
+              <div className="flex justify-end">{modeTabBar}</div>
               {mode === 'browse' ? (
                 renderBrowse()
               ) : mode === 'quotes' ? (
@@ -415,7 +419,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
               ) : mode === 'projects' ? (
                 <ProjectsPage />
               ) : (
-                <ShowroomPageV2 headerAside={modeTabBar} />
+                <ShowroomPageV2 />
               )}
             </>
           )
