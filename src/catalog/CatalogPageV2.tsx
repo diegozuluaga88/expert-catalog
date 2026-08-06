@@ -354,7 +354,7 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
             // scroll de página completo). max-w-full + overflow-x-auto lo
             // contiene · scrollbar-none oculta la barra visual. flex-nowrap
             // asegura que los tabs NO wrappean.
-            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 max-w-full overflow-x-auto flex-nowrap scrollbar-none"
+            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 max-w-full overflow-x-auto md:overflow-visible flex-nowrap scrollbar-none"
                  style={{ scrollbarWidth: 'none' }}>
               {/* F64 · rename tabs · align al PRD vocab (Library → Binder → Products).
                   "MRL" → "Library" (legacy scope · discovery + sample + Binders).

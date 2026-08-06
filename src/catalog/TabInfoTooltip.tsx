@@ -78,10 +78,14 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
             </span>
 
             {/* Popover · F64.1 delay reducido de 200ms → 80ms para feedback
-                más ágil. Tooltip visible on hover del wrapping span. */}
+                más ágil. Tooltip visible on hover del wrapping span.
+                F64.2 · z-[9999] (era z-[70]) · el tab pill container tenía
+                overflow-x-auto que clippeaba + otros elementos con z-[80]
+                lo tapaban. Combined con md:overflow-visible en el pill
+                container (CatalogPageV2) queda garantizado que se ve arriba. */}
             <div
                 role="tooltip"
-                className={`pointer-events-none absolute top-full ${positionClass} z-[70] mt-2 w-[340px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-[80ms] group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
+                className={`pointer-events-none absolute top-full ${positionClass} z-[9999] mt-2 w-[340px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-[80ms] group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
             >
                 {/* Arrow */}
                 <div className={`absolute -top-1.5 ${arrowClass} h-3 w-3 rotate-45 border-l border-t border-border bg-card`} />
