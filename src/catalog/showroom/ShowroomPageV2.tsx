@@ -167,6 +167,43 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
   )
   const isApprovedBrand = (name: string): boolean => approvedBrandSet.has(name.toLowerCase())
 
+  // F66.2 · active preference labels · lista de preferences activas para el
+  // chip informativo al top del grid. Genera strings human-readable para
+  // display (no para lookup). Excluye approvedBrands (F66.1 ya lo maneja
+  // via badge en sidebar) y customRules (F66.3 pending).
+  const activePreferenceLabels = useMemo(() => {
+    const list: string[] = []
+    if (tenantPrefs.maxProjectBudget !== null && tenantPrefs.maxProjectBudget > 0) {
+      list.push(`Budget under $${tenantPrefs.maxProjectBudget.toLocaleString()}`)
+    }
+    if (tenantPrefs.maxLeadTimeDays && tenantPrefs.maxLeadTimeDays !== 30 && tenantPrefs.flagItemsExceedingSla) {
+      list.push(`Lead ≤ ${tenantPrefs.maxLeadTimeDays}d`)
+    }
+    // Compliance vertical-specific
+    if (tenantPrefs.vertical === 'government') {
+      if (tenantPrefs.gsaScheduleOnly) list.push('GSA schedule')
+      if (tenantPrefs.buyAmericanCompliant) list.push('Buy American')
+    } else if (tenantPrefs.vertical === 'healthcare') {
+      if (tenantPrefs.gpoApproved) list.push('GPO approved')
+      if (tenantPrefs.antimicrobialFinishes) list.push('Antimicrobial')
+    } else if (tenantPrefs.vertical === 'architectural') {
+      if (tenantPrefs.adFirmApprovalWorkflow) list.push('A&D approval')
+      if (tenantPrefs.sampleRequestRequired) list.push('Sample-first workflow')
+    }
+    // Sustainability
+    if (tenantPrefs.greenguardGold) list.push('Greenguard Gold')
+    if (tenantPrefs.leedCompliant) list.push('LEED v4')
+    if (tenantPrefs.fscCertifiedWood) list.push('FSC certified')
+    if (tenantPrefs.recycledContentEnabled) list.push(`Recycled ≥ ${tenantPrefs.recycledContentMin}%`)
+    return list
+  }, [tenantPrefs])
+
+  // F66.2 · soft-match helper (productMatchesPreferences) pending para F66.3 ·
+  // agregará badge visual "✓ Matches preferences" en las product cards que
+  // satisfacen todos los tag-based checks activos (GSA, LEED, FSC, etc).
+  // Por ahora solo aplicamos budget como hard filter (data reliable) y
+  // mostramos el chip informativo de active preferences al top del grid.
+
   const [taxonomy, setTaxonomy] = useState<Taxonomy>('products')
   const [search, setSearch] = useState('')
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set())
@@ -641,6 +678,15 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
     if (activeCollectionFilter !== null) {
       const col = collections.find((c) => c.id === activeCollectionFilter)
       if (!col || !col.productIds.includes(p.id)) return false
+    }
+    // F66.2 · hard filter por maxProjectBudget de tenantPrefs · el producto
+    // se excluye si su price excede el budget. Solo aplica cuando
+    // maxProjectBudget está set (no null y > 0). Compliance / sustainability
+    // quedan como soft matches (badge visual) porque no todos los products
+    // tienen esas tags en el data model actual.
+    if (tenantPrefs.maxProjectBudget !== null && tenantPrefs.maxProjectBudget > 0) {
+      const price = p.price ?? 0
+      if (price > tenantPrefs.maxProjectBudget) return false
     }
     return true
   }
@@ -1565,6 +1611,30 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
       {/* F64 · TabIntroBanner · dismissible per-session · explica el 2-tab
           framing (Products es Strata superset preview vs Library scope legacy). */}
       <TabIntroBanner variant="products" />
+
+      {/* F66.2 · Active preferences chip · summary de tenant preferences en
+          effect (budget hard filter + tag-based soft matches). Click abre
+          My Setup modal → Buying preferences tab para configurar/editar. */}
+      {activePreferenceLabels.length > 0 && (
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('expert-hub:open-setup-modal', {
+            detail: { tab: 'preferences' },
+          }))}
+          className="inline-flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors self-start"
+          title="Configure buying preferences in My Setup"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-foreground" />
+          <span className="text-left">
+            <span className="font-semibold">
+              {activePreferenceLabels.length} buying {activePreferenceLabels.length === 1 ? 'preference' : 'preferences'} active
+            </span>
+            <span className="ml-1.5 text-muted-foreground">
+              · {activePreferenceLabels.join(' · ')}
+            </span>
+          </span>
+        </button>
+      )}
 
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
         <button
