@@ -283,7 +283,9 @@ export default function PreferencesPanel({
                 aplican per-item al card price display. Volume Tier y Q3 Promo
                 requieren basket context (aplican al total del quote), acá
                 solo se toggean · impact visible cuando el user va a
-                My Selection. */}
+                My Selection.
+                F66.4b · valores editables inline (% / $ / threshold) para que
+                el user configure cada rule sin hardcoded defaults. */}
             <section className="space-y-3">
                 <SectionHeader
                     title="Pricing rules"
@@ -292,27 +294,43 @@ export default function PreferencesPanel({
                 <div className="grid gap-2 sm:grid-cols-2">
                     <PricingRuleRow
                         label="Contract pricing"
-                        description={`Base ${prefs.contractDiscountPct}% off list · applies to every product`}
                         active={prefs.contractPricingActive}
                         onToggle={(v) => update('contractPricingActive', v)}
+                        description={
+                            <>
+                                Base <NumericField value={prefs.contractDiscountPct} onChange={(v) => update('contractDiscountPct', v)} min={0} max={100} width="w-11" suffix="%" /> off list · applies to every product
+                            </>
+                        }
                     />
                     <PricingRuleRow
                         label="Special authorization"
-                        description={`Extra ${prefs.specialAuthPct}% off net · project-specific approval`}
                         active={prefs.specialAuthActive}
                         onToggle={(v) => update('specialAuthActive', v)}
+                        description={
+                            <>
+                                Extra <NumericField value={prefs.specialAuthPct} onChange={(v) => update('specialAuthPct', v)} min={0} max={50} width="w-11" suffix="%" /> off net · project-specific approval
+                            </>
+                        }
                     />
                     <PricingRuleRow
                         label="Volume tier"
-                        description={`+3% off when quote total ≥ $${prefs.volumeTierThreshold.toLocaleString()} (applies at quote)`}
                         active={prefs.volumeTierActive}
                         onToggle={(v) => update('volumeTierActive', v)}
+                        description={
+                            <>
+                                +<NumericField value={prefs.volumeTierPct} onChange={(v) => update('volumeTierPct', v)} min={0} max={50} width="w-11" suffix="%" /> off when quote total ≥ <NumericField value={prefs.volumeTierThreshold} onChange={(v) => update('volumeTierThreshold', v)} min={0} max={1_000_000} step={1000} width="w-20" prefix="$" /> (applies at quote)
+                            </>
+                        }
                     />
                     <PricingRuleRow
                         label="Q3 promo"
-                        description={`Flat $${prefs.q3PromoFlatAmount.toLocaleString()} off · seasonal (applies at quote)`}
                         active={prefs.q3PromoActive}
                         onToggle={(v) => update('q3PromoActive', v)}
+                        description={
+                            <>
+                                Flat <NumericField value={prefs.q3PromoFlatAmount} onChange={(v) => update('q3PromoFlatAmount', v)} min={0} max={100_000} step={50} width="w-20" prefix="$" /> off · seasonal (applies at quote)
+                            </>
+                        }
                     />
                 </div>
             </section>
@@ -430,11 +448,16 @@ function CheckRow({ label, checked, onChange }: CheckRowProps) {
 }
 
 /* F66.3 · PricingRuleRow · card compacta con toggle + description para cada
- * pricing rule. Silhouette: rounded-lg border · switch primary · description
- * en muted-foreground · más denso que ToggleRow porque son 4 en una grid 2-col. */
+ * pricing rule.
+ * F66.4b · description es ReactNode (permite NumericField inputs inline) +
+ * contraste mejorado del active state · antes bg-primary/5 border-primary/40
+ * era muy sutil (lime tint apenas visible) + prima el brand color sobre
+ * fondo claro (a11y concern). Ahora active = border-foreground/50 bg-card +
+ * dot indicator lime discreto · inactive = border-border/60 bg-muted/20
+ * opacity 70. Switch mantiene primary (brand identity accent). */
 interface PricingRuleRowProps {
     label: string
-    description: string
+    description: React.ReactNode
     active: boolean
     onToggle: (v: boolean) => void
 }
@@ -443,11 +466,18 @@ function PricingRuleRow({ label, description, active, onToggle }: PricingRuleRow
     return (
         <div className={cn(
             'flex items-start gap-3 rounded-lg border p-3 transition-colors',
-            active ? 'border-primary/40 bg-primary/5' : 'border-border bg-card',
+            active
+                ? 'border-foreground/40 bg-card shadow-sm'
+                : 'border-border/60 bg-muted/20 opacity-70',
         )}>
             <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground">{label}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{description}</p>
+                <div className="flex items-center gap-1.5">
+                    {active && (
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" aria-hidden="true" />
+                    )}
+                    <p className="text-sm font-semibold text-foreground">{label}</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{description}</p>
             </div>
             <Switch
                 checked={active}
@@ -466,5 +496,46 @@ function PricingRuleRow({ label, description, active, onToggle }: PricingRuleRow
                 />
             </Switch>
         </div>
+    )
+}
+
+/* F66.4b · NumericField · mini input inline usado dentro de descriptions
+ * para editar el valor de cada pricing rule. Compact style · sin label
+ * (heredado del context). Auto-select on focus para overtype rápido. */
+interface NumericFieldProps {
+    value: number
+    onChange: (v: number) => void
+    min?: number
+    max?: number
+    step?: number
+    width: string  // e.g. 'w-11' | 'w-20'
+    prefix?: string
+    suffix?: string
+}
+
+function NumericField({ value, onChange, min = 0, max, step = 1, width, prefix, suffix }: NumericFieldProps) {
+    return (
+        <span className="inline-flex items-center gap-0.5 align-middle">
+            {prefix && <span className="text-muted-foreground text-[11px]">{prefix}</span>}
+            <input
+                type="number"
+                value={value}
+                min={min}
+                max={max}
+                step={step}
+                onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') { onChange(0); return }
+                    const n = Number.parseFloat(raw)
+                    if (Number.isFinite(n)) onChange(n)
+                }}
+                onFocus={(e) => e.target.select()}
+                className={cn(
+                    'h-5 rounded border border-input bg-background px-1 text-center text-[11px] font-semibold text-foreground tabular-nums focus:border-ring focus:outline-none',
+                    width,
+                )}
+            />
+            {suffix && <span className="text-muted-foreground text-[11px]">{suffix}</span>}
+        </span>
     )
 }

@@ -60,8 +60,9 @@ export interface TenantPreferences {
     contractDiscountPct: number          // configurable · default 45
     specialAuthActive: boolean           // +5% on top of net (project-specific)
     specialAuthPct: number               // configurable · default 5
-    volumeTierActive: boolean            // +3% when basket total > threshold
+    volumeTierActive: boolean            // +N% when basket total > threshold
     volumeTierThreshold: number          // USD · default 10000
+    volumeTierPct: number                // % · default 3
     q3PromoActive: boolean               // flat $off promo (seasonal)
     q3PromoFlatAmount: number            // USD · default 250
 }
@@ -116,6 +117,7 @@ export function defaultPreferences(): TenantPreferences {
         specialAuthPct: 5,
         volumeTierActive: false,
         volumeTierThreshold: 10000,
+        volumeTierPct: 3,
         q3PromoActive: false,
         q3PromoFlatAmount: 250,
     }
