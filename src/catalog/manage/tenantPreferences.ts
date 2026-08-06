@@ -123,6 +123,39 @@ export function defaultPreferences(): TenantPreferences {
     }
 }
 
+/** F66.7 · aplica quote-level pricing rules (Volume Tier + Q3 Promo) al
+ *  subtotal de un draft/selection. Volume Tier · % off cuando subtotal
+ *  >= threshold. Q3 Promo · flat $ off unconditional (cuando active).
+ *  Returns breakdown para display en el UI.
+ *  Nota · Contract Pricing + Special Auth se aplican per-item en las
+ *  cards (via applyPerItemPricingRules) · no aparecen acá. */
+export function applyQuoteRules(subtotal: number, prefs: TenantPreferences): {
+    subtotal: number
+    volumeTierDiscount: number
+    q3PromoDiscount: number
+    finalTotal: number
+    totalSavings: number
+    rulesApplied: Array<{ label: string; discount: number }>
+} {
+    const rulesApplied: Array<{ label: string; discount: number }> = []
+    let net = subtotal
+    let volumeTierDiscount = 0
+    if (prefs.volumeTierActive && subtotal >= prefs.volumeTierThreshold && prefs.volumeTierPct > 0) {
+        volumeTierDiscount = Math.round(net * (prefs.volumeTierPct / 100))
+        net -= volumeTierDiscount
+        rulesApplied.push({ label: `Volume tier ${prefs.volumeTierPct}%`, discount: volumeTierDiscount })
+    }
+    let q3PromoDiscount = 0
+    if (prefs.q3PromoActive && prefs.q3PromoFlatAmount > 0) {
+        q3PromoDiscount = Math.min(prefs.q3PromoFlatAmount, net)
+        net -= q3PromoDiscount
+        rulesApplied.push({ label: 'Q3 promo (flat)', discount: q3PromoDiscount })
+    }
+    const finalTotal = Math.max(0, Math.round(net))
+    const totalSavings = subtotal - finalTotal
+    return { subtotal, volumeTierDiscount, q3PromoDiscount, finalTotal, totalSavings, rulesApplied }
+}
+
 /** F66.5 · deterministic mock cert detection · el data model actual (Product)
  *  no tiene un field `certifications`. Para el demo de tag-based preferences,
  *  usamos un hash del product.id + cert key para simular qué products tienen

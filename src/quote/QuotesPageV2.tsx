@@ -22,6 +22,9 @@ import { formatLeadTime } from './helpers'
 import { findSpaceTypeById } from '../catalog/data/spaceTypes'
 import { formatPrice } from '../catalog/data/catalogues'
 import { useToast, ToastContainer } from '../components/AuthToast'
+// F66.7 · quote-level pricing rules · Volume Tier + Q3 Promo applied al total.
+import { applyQuoteRules, loadPreferences, TENANT_PREFERENCES_CHANGE_EVENT, type TenantPreferences } from '../catalog/manage/tenantPreferences'
+import { useTenant } from '../TenantContext'
 
 type QuoteSection = 'drafts' | 'submitted'
 
@@ -371,6 +374,19 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
     const maxLead = Math.max(0, ...draft.items.map(it => it.leadTimeDays))
     const { buyerInfo } = draft
 
+    // F66.7 · tenant preferences · load per-tenant + subscribe al change event ·
+    // usado para computar Volume Tier + Q3 Promo discounts al quote total.
+    const { currentTenant } = useTenant()
+    const [tenantPrefs, setTenantPrefs] = useState<TenantPreferences>(() => loadPreferences(currentTenant))
+    useEffect(() => {
+        setTenantPrefs(loadPreferences(currentTenant))
+        const handler = () => setTenantPrefs(loadPreferences(currentTenant))
+        window.addEventListener(TENANT_PREFERENCES_CHANGE_EVENT, handler)
+        return () => window.removeEventListener(TENANT_PREFERENCES_CHANGE_EVENT, handler)
+    }, [currentTenant])
+    const quoteBreakdown = applyQuoteRules(total, tenantPrefs)
+    const hasRules = quoteBreakdown.rulesApplied.length > 0
+
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window === 'undefined') return 'flat'
         return (window.localStorage.getItem(VIEW_MODE_KEY) as ViewMode) || 'flat'
@@ -613,8 +629,41 @@ function DraftDetail({ draft, isSubmitted, quotedHistory, onSubmit, onUpdateItem
                     <div className="grid grid-cols-3 gap-4 border-b border-border pb-3">
                         <Stat label="Total units" value={`${totalUnits}`} />
                         <Stat label="Estimated lead" value={formatLeadTime(maxLead)} />
-                        <Stat label="Selection total" value={`${formatPrice(total)}`} highlight />
+                        <Stat
+                            label={hasRules ? 'Selection total' : 'Selection total'}
+                            value={`${formatPrice(quoteBreakdown.finalTotal)}`}
+                            highlight
+                        />
                     </div>
+                    {/* F66.7 · breakdown de pricing rules aplicadas al quote total.
+                        Solo aparece cuando Volume Tier o Q3 Promo están active + tienen
+                        discount > 0. Muestra subtotal, cada rule con su savings, y el
+                        final total en bold. */}
+                    {hasRules && (
+                        <div className="mt-3 border-b border-border pb-3 space-y-1 text-xs">
+                            <div className="flex items-center justify-between text-muted-foreground">
+                                <span>Subtotal</span>
+                                <span className="tabular-nums">{formatPrice(quoteBreakdown.subtotal)}</span>
+                            </div>
+                            {quoteBreakdown.rulesApplied.map((rule, i) => (
+                                <div key={i} className="flex items-center justify-between text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1">
+                                        <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
+                                        {rule.label}
+                                    </span>
+                                    <span className="tabular-nums text-emerald-700 dark:text-emerald-400">
+                                        −{formatPrice(rule.discount)}
+                                    </span>
+                                </div>
+                            ))}
+                            <div className="flex items-center justify-between pt-1 border-t border-border/60 text-foreground font-semibold">
+                                <span>Total savings</span>
+                                <span className="tabular-nums text-emerald-700 dark:text-emerald-400">
+                                    −{formatPrice(quoteBreakdown.totalSavings)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                     {!isSubmitted ? (
                         <button type="button" onClick={onSubmit} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
                             <CheckCircle2 className="h-4 w-4" />
