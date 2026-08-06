@@ -30,23 +30,9 @@ interface TooltipProps {
     align?: Align
 }
 
-/** Style + label for the role chip. */
-function chipStyle(role: TabRole): { label: string; className: string; tooltip: string } {
-    switch (role) {
-        case 'reference':
-            return {
-                label: 'Reference',
-                className: 'bg-muted text-muted-foreground border-border',
-                tooltip: 'Legacy section preserved to show how the current catalog was built.',
-            }
-        case 'current':
-            return {
-                label: 'Current version',
-                className: 'bg-primary/90 text-primary-foreground border-primary',
-                tooltip: 'Consolidated tab that inherits UI + features from the reference tabs.',
-            }
-    }
-}
+// F64.5 · chipStyle function removida · el chip Reference/Current Version
+// del header del popover fue eliminado (user ask). TabRole type se mantiene
+// exportado en TabInfo por retrocompat pero no se usa para render.
 
 /** Icon-only trigger · a small Info button that unfolds the popover on hover.
  *  Diego ask · previously the whole tab triggered the tooltip and popovers
@@ -61,7 +47,8 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
         : align === 'end' ? 'right-2'
         : 'left-1/2 -translate-x-1/2'
 
-    const chip = chipStyle(content.role)
+    // F64.5 · chipStyle(content.role) removido · el chip Reference/Current
+    // Version fue eliminado del header (user ask · noise visual innecesario).
 
     return (
         <span className="group/tt relative inline-flex items-center">
@@ -93,17 +80,14 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                 <div className={`absolute -top-1.5 ${arrowClass} h-3 w-3 rotate-45 border-l border-t border-border bg-card`} />
 
                 <div className="relative rounded-xl border border-border bg-card shadow-xl">
-                    {/* Header · title + role chip */}
+                    {/* Header · title only.
+                        F64.5 · chip "Reference / Current version" eliminado (user
+                        ask) · era noise visual + confusion (post-F64 los tabs se
+                        distinguen por nombre + banner introductory, no necesitan
+                        chip categorization). El type TabRole queda como field
+                        legacy en la interface pero no se renderea. */}
                     <div className="border-b border-border px-3.5 py-2.5">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="text-sm font-bold text-foreground leading-tight">{content.title}</h4>
-                            <span
-                                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap flex-shrink-0 ${chip.className}`}
-                                title={chip.tooltip}
-                            >
-                                {chip.label}
-                            </span>
-                        </div>
+                        <h4 className="text-sm font-bold text-foreground leading-tight">{content.title}</h4>
                     </div>
 
                     <div className="px-3.5 py-3 space-y-3">
