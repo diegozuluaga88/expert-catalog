@@ -123,6 +123,55 @@ export function defaultPreferences(): TenantPreferences {
     }
 }
 
+/** F66.5 · deterministic mock cert detection · el data model actual (Product)
+ *  no tiene un field `certifications`. Para el demo de tag-based preferences,
+ *  usamos un hash del product.id + cert key para simular qué products tienen
+ *  cada certificación. Distribución realista (GSA ~40% de products, LEED ~40%,
+ *  Greenguard ~30%, FSC ~20%, etc). Consistente en runs (el hash es
+ *  determinístico) · in production reemplaza con `product.certifications[]`. */
+export function productHasMockCert(productId: string, cert: string): boolean {
+    if (!productId) return false
+    let hash = 0
+    const key = `${productId}-${cert}`
+    for (let i = 0; i < key.length; i++) {
+        hash = ((hash << 5) - hash + key.charCodeAt(i)) & 0xffffffff
+    }
+    const distributions: Record<string, number> = {
+        gsa: 40,
+        leed: 40,
+        greenguard: 30,
+        fsc: 20,
+        antimicrobial: 20,
+        'buy-american': 35,
+        gpo: 25,
+    }
+    const threshold = distributions[cert] ?? 30
+    return Math.abs(hash) % 100 < threshold
+}
+
+/** F66.5 · verifica si un product satisface TODAS las tag-based preferences
+ *  activas del tenant. Fail-open cuando no hay ninguna preference tag-based
+ *  activa (retorna false porque no hay nada que match). Retorna true solo
+ *  cuando hay ≥1 preference tag-based active AND el product tiene mock cert
+ *  para todas ellas. Usado para el badge visual "Matches your preferences"
+ *  en las product cards. */
+export function productMatchesTagPreferences(productId: string, prefs: TenantPreferences): boolean {
+    const activeCerts: string[] = []
+    if (prefs.vertical === 'government') {
+        if (prefs.gsaScheduleOnly) activeCerts.push('gsa')
+        if (prefs.buyAmericanCompliant) activeCerts.push('buy-american')
+    }
+    if (prefs.vertical === 'healthcare') {
+        if (prefs.gpoApproved) activeCerts.push('gpo')
+        if (prefs.antimicrobialFinishes) activeCerts.push('antimicrobial')
+    }
+    if (prefs.greenguardGold) activeCerts.push('greenguard')
+    if (prefs.leedCompliant) activeCerts.push('leed')
+    if (prefs.fscCertifiedWood) activeCerts.push('fsc')
+    if (activeCerts.length === 0) return false
+    return activeCerts.every(cert => productHasMockCert(productId, cert))
+}
+
 /** F66.3 · aplica pricing rules a un base price · devuelve el price final
  *  después de dealer contract + special auth (los que son per-item · Volume
  *  Tier y Q3 Promo necesitan basket context y se aplican en el quote). */

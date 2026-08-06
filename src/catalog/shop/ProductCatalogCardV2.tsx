@@ -74,6 +74,11 @@ interface ProductCatalogCardV2Props {
    *  finalPrice en vez de product.price y el savings % de las rules en vez
    *  del list-vs-price discount original. Si no viene, comportamiento legacy. */
   dealerPricing?: { finalPrice: number; savingsPct: number; rulesApplied: string[] } | null
+  /** F66.5 · el product satisface TODAS las tag-based preferences activas
+   *  del tenant (GSA, LEED, FSC, etc). Cuando true, muestra un pequeño
+   *  badge "Matches your prefs" cerca del precio. Cuando false o null, no
+   *  se muestra (nothing to communicate). */
+  matchesPreferences?: boolean
 }
 
 /* F53 · className compartido para los overlays on-hover del hero.
@@ -99,6 +104,7 @@ export default function ProductCatalogCardV2({
   onAddToProject,
   onBrandClick,
   dealerPricing,
+  matchesPreferences,
 }: ProductCatalogCardV2Props) {
   const catalogs = useCatalogs()
   const itemStatus = resolveItemStatus(product, catalogs)
@@ -312,6 +318,16 @@ export default function ProductCatalogCardV2({
               <span className="inline-flex items-center rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground"
                 title={dealerPricing.rulesApplied.join(' + ')}>
                 Rules
+              </span>
+            )}
+            {/* F66.5 · soft-match badge · el product satisface todas las
+                tag-based preferences activas del tenant (GSA/LEED/FSC/etc). */}
+            {matchesPreferences && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400"
+                title="Matches all your active buying preferences (compliance & sustainability)"
+              >
+                ✓ Match
               </span>
             )}
           </div>

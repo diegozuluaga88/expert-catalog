@@ -33,7 +33,8 @@ import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
 // F66.1 · tenant preferences para approved brands re-ranking en sidebar filter.
 // F66.3 · applyPerItemPricingRules para wire Contract Pricing en card display.
-import { loadPreferences, TENANT_PREFERENCES_CHANGE_EVENT, applyPerItemPricingRules, type TenantPreferences } from '../manage/tenantPreferences'
+// F66.5 · productMatchesTagPreferences para soft-match badge en cards.
+import { loadPreferences, TENANT_PREFERENCES_CHANGE_EVENT, applyPerItemPricingRules, productMatchesTagPreferences, type TenantPreferences } from '../manage/tenantPreferences'
 import { useTenant } from '../../TenantContext'
 import { simulateSyncDelta, SyncResultToast, type SyncToast } from './ShowroomCatalogsBar'
 // F50 · Wave 1.b · v2 · confirmación al cambiar de taxonomía cuando hay
@@ -1895,6 +1896,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             onAddToProject={(prod) => setAddToProjectProduct(prod)}
                             onBrandClick={openBrandProfileByName}
                             dealerPricing={getDealerPricing(p.price)}
+                            matchesPreferences={productMatchesTagPreferences(p.id, tenantPrefs)}
                           />
                         ))}
                       </div>
@@ -1924,6 +1926,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                   onAddToProject={(prod) => setAddToProjectProduct(prod)}
                   onBrandClick={openBrandProfileByName}
                   dealerPricing={getDealerPricing(p.price)}
+                  matchesPreferences={productMatchesTagPreferences(p.id, tenantPrefs)}
                 />
               ))}
             </div>
