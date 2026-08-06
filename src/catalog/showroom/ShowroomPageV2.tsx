@@ -989,22 +989,17 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
             </div>
           )}
 
-          {/* ───── FILTERS ───── */}
+          {/* ───── BINDERS ───── (antes "FILTERS" · rename F63)
+              Las colecciones son binders per-tenant · agrupan products
+              curados manualmente (via el heart de cada card). NO son
+              filter-state saves · el Clear button de filters se mueve
+              al header de FILTERS de abajo (donde sí aplica). */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <SlidersHorizontal className="h-3 w-3" />
-                Filters
+                <Library className="h-3 w-3" />
+                Binders
               </h3>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Clear
-                </button>
-              )}
             </div>
 
             {/* F50 · Wave 6 · v2 · Collections (P7 del PRD) · reemplaza el
@@ -1078,15 +1073,15 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                           type="button"
                           onClick={async () => {
                             const nextName = await prompt({
-                              title: 'Rename collection',
-                              label: 'Collection name',
+                              title: 'Rename binder',
+                              label: 'Binder name',
                               initialValue: c.name,
                               submitLabel: 'Save',
                             })
                             if (nextName) renameCollection(c.id, nextName)
                           }}
                           aria-label={`Rename ${c.name}`}
-                          title="Rename collection"
+                          title="Rename binder"
                           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
                         >
                           <Pencil className="h-3 w-3" />
@@ -1096,8 +1091,8 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                           onClick={async () => {
                             const ok = await confirm({
                               title: `Delete "${c.name}"?`,
-                              description: 'Products stay in the catalog. Only the collection grouping is removed.',
-                              confirmLabel: 'Delete collection',
+                              description: 'Products stay in the catalog. Only the binder grouping is removed.',
+                              confirmLabel: 'Delete binder',
                               danger: true,
                             })
                             if (ok) {
@@ -1106,7 +1101,7 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                             }
                           }}
                           aria-label={`Delete ${c.name}`}
-                          title="Delete collection"
+                          title="Delete binder"
                           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -1120,19 +1115,39 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                 type="button"
                 onClick={async () => {
                   const name = await prompt({
-                    title: 'New collection',
-                    label: 'Collection name',
+                    title: 'New binder',
+                    label: 'Binder name',
                     placeholder: 'e.g. Lounge Chairs',
-                    submitLabel: 'Create collection',
+                    submitLabel: 'Create binder',
                   })
                   if (name) createCollection(name)
                 }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <FolderPlus className="h-3 w-3" />
-                New collection
+                New binder
               </button>
             </div>
+
+          {/* F63 · Nuevo header FILTERS · separa los filters de query (Category,
+              Brand, Status, Collection, Features, Price, Color) del bloque
+              Binders de arriba. Clear button se mueve acá porque semanticamente
+              limpia filters, no binders. */}
+          <div className="flex items-center justify-between mt-4 mb-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <SlidersHorizontal className="h-3 w-3" />
+              Filters
+            </h3>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
           {/* F50 · Wave 2.d · v2 · Category abierto por defecto (era cerrado).
               Wave 3.b · counts al lado de cada opción (facet independence). */}
