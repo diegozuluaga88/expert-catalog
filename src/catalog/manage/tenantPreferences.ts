@@ -1,12 +1,20 @@
 // Tenant Buying Preferences · Phase 5 (Diego ask · 2026-06-30).
 // Configuración estructurada per tenant que el dealer ajusta en el modal
-// Manage Catalogs > Preferences tab. UI demo only · summary badge muestra
-// "N rules active" pero NO se conecta a los filtros del catalog (scope acotado).
+// My Setup > Buying preferences tab.
+//
+// F66 update · antes era "UI demo only" · ahora las preferences afectan
+// activamente los filtros del Products tab (approvedBrands re-rank en
+// F66.1 · compliance/sustainability/budget en F66.2). MRL tab sigue con
+// scope minimal · solo approvedBrands aplica ahí. Ver plan cuddly-*.md.
 //
 // Persistencia · localStorage per tenant · mismo pattern que QuoteContext drafts
 // (key: `expert-catalog.tenant-preferences.{tenantSlug}`).
 
 import type { CustomRule } from './SmartRuleBuilderModal'
+
+/** F66 · custom event dispatcher · savePreferences lo emite para que los
+ *  consumers (ShowroomPageV2, LibraryPageV2) sincronicen sin refresh. */
+export const TENANT_PREFERENCES_CHANGE_EVENT = 'expert-catalog:tenant-preferences-change'
 
 export type Vertical = 'corporate' | 'healthcare' | 'government' | 'architectural' | 'education'
 
@@ -109,6 +117,10 @@ export function savePreferences(tenantSlug: string, prefs: TenantPreferences): v
     } catch {
         /* quota / disabled · noop */
     }
+    // F66 · notifica a consumers (ShowroomPageV2 filters, MRL, etc)
+    try {
+        window.dispatchEvent(new CustomEvent(TENANT_PREFERENCES_CHANGE_EVENT))
+    } catch { /* SSR · noop */ }
 }
 
 export interface PreferencesSummary {

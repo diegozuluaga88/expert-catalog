@@ -31,6 +31,9 @@ import { useQuote } from '../../quote/QuoteContext'
 import IngestQuoteModal from '../../quote/IngestQuoteModal'
 import type { ItemStatus } from '../types'
 import CatalogImportModal from '../manage/CatalogImportModal'
+// F66.1 · tenant preferences para approved brands re-ranking en sidebar filter.
+import { loadPreferences, TENANT_PREFERENCES_CHANGE_EVENT, type TenantPreferences } from '../manage/tenantPreferences'
+import { useTenant } from '../../TenantContext'
 import { simulateSyncDelta, SyncResultToast, type SyncToast } from './ShowroomCatalogsBar'
 // F50 · Wave 1.b · v2 · confirmación al cambiar de taxonomía cuando hay
 // filtros activos. Este archivo es un duplicado completo de ShowroomPage.tsx
@@ -148,6 +151,22 @@ interface ShowroomPageV2Props {
 }
 
 export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}) {
+  // F66.1 · tenant preferences · load per-tenant + subscribe to change event
+  // para reflejar approvedBrands re-ranking en el sidebar sin refresh.
+  const { currentTenant } = useTenant()
+  const [tenantPrefs, setTenantPrefs] = useState<TenantPreferences>(() => loadPreferences(currentTenant))
+  useEffect(() => {
+    setTenantPrefs(loadPreferences(currentTenant))
+    const handler = () => setTenantPrefs(loadPreferences(currentTenant))
+    window.addEventListener(TENANT_PREFERENCES_CHANGE_EVENT, handler)
+    return () => window.removeEventListener(TENANT_PREFERENCES_CHANGE_EVENT, handler)
+  }, [currentTenant])
+  const approvedBrandSet = useMemo(
+    () => new Set((tenantPrefs.approvedBrands ?? []).map(b => b.toLowerCase())),
+    [tenantPrefs.approvedBrands],
+  )
+  const isApprovedBrand = (name: string): boolean => approvedBrandSet.has(name.toLowerCase())
+
   const [taxonomy, setTaxonomy] = useState<Taxonomy>('products')
   const [search, setSearch] = useState('')
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set())
@@ -533,7 +552,21 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
     () => UNIFIED_PRODUCTS.filter((p) => (taxonomy === 'materials' ? !!p.isMaterial : !p.isMaterial)),
     [taxonomy]
   )
-  const brands = useMemo(() => Array.from(new Set(taxoProducts.map((p) => p.brand!).filter(Boolean))), [taxoProducts])
+  // F66.1 · sort brands · approved primero (per tenantPrefs.approvedBrands) ·
+  // luego alfabético dentro de cada grupo. Hybrid re-ranking (no filter): las
+  // brands non-approved siguen visibles al scroll, solo cambia el orden +
+  // badge visual "Approved" en las approved rows.
+  const brands = useMemo(() => {
+    const uniques = Array.from(new Set(taxoProducts.map((p) => p.brand!).filter(Boolean)))
+    return uniques.sort((a, b) => {
+      const aApproved = isApprovedBrand(a)
+      const bApproved = isApprovedBrand(b)
+      if (aApproved && !bApproved) return -1
+      if (!aApproved && bApproved) return 1
+      return a.localeCompare(b)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxoProducts, approvedBrandSet])
   // F50 · Etapa 9 (P1 search) · manufacturers derivados por brand para
   // alimentar el SearchCommandPalette (necesita los objetos completos, no
   // solo el nombre).
@@ -1169,6 +1202,10 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
               // F59 · info icon solo se muestra si getManufacturerByName resuelve ·
               // no todos los brands del catalog matchean con MANUFACTURERS registry.
               const brandMeta = getManufacturerByName(b)
+              // F66.1 · approved brand badge · si el brand está en la whitelist
+              // del tenantPrefs.approvedBrands, aparece un dot verde + tooltip
+              // indicando aprobación (no filter, solo visual hint).
+              const approved = isApprovedBrand(b)
               return (
                 <div key={b} className="flex items-center gap-2">
                   {/* F50 · Wave 3.a · checkbox real (keyboard-accessible) + count. */}
@@ -1181,7 +1218,17 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                       onChange={() => toggleFilter(setSelectedBrands, b)}
                       className="h-4 w-4 shrink-0 cursor-pointer rounded border-input accent-primary"
                     />
-                    <span className="truncate flex-1">{b}</span>
+                    <span className="truncate flex-1 inline-flex items-center gap-1">
+                      {b}
+                      {approved && (
+                        <span
+                          className="inline-flex items-center rounded bg-emerald-500/15 px-1 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400"
+                          title="Approved by your organization's buying preferences"
+                        >
+                          ✓ approved
+                        </span>
+                      )}
+                    </span>
                     <span className="tabular-nums text-[11px] text-muted-foreground shrink-0">{brandCount}</span>
                   </label>
                   {/* F59 · info icon · abre el brand profile slide-over */}
