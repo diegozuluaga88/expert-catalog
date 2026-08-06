@@ -463,28 +463,35 @@ interface PricingRuleRowProps {
 }
 
 function PricingRuleRow({ label, description, active, onToggle }: PricingRuleRowProps) {
+    // F66.4c · fix contraste del switch inactive · antes container tenía
+    // opacity-70 que dimmaba TAMBIÉN el switch · el switch quedaba invisible.
+    // Ahora dim vía text-color (muted-foreground) del label/description en vez
+    // de opacity del container · switch mantiene opacidad completa +
+    // bg-foreground/25 en off (más oscuro que bg-muted · legible).
     return (
         <div className={cn(
             'flex items-start gap-3 rounded-lg border p-3 transition-colors',
             active
                 ? 'border-foreground/40 bg-card shadow-sm'
-                : 'border-border/60 bg-muted/20 opacity-70',
+                : 'border-border/60 bg-muted/20',
         )}>
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                     {active && (
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" aria-hidden="true" />
                     )}
-                    <p className="text-sm font-semibold text-foreground">{label}</p>
+                    <p className={cn('text-sm font-semibold', active ? 'text-foreground' : 'text-muted-foreground')}>{label}</p>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{description}</p>
+                <p className={cn('text-[11px] mt-1 leading-snug', active ? 'text-muted-foreground' : 'text-muted-foreground/70')}>{description}</p>
             </div>
             <Switch
                 checked={active}
                 onChange={onToggle}
                 className={cn(
-                    'relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors mt-0.5',
-                    active ? 'bg-primary' : 'bg-muted'
+                    'relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full border transition-colors mt-0.5',
+                    active
+                        ? 'bg-primary border-primary'
+                        : 'bg-foreground/20 border-foreground/25'
                 )}
             >
                 <span className="sr-only">{label}</span>
