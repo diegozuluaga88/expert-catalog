@@ -1,3 +1,22 @@
+/**
+ * ⚠️ DEPRECATED · V1 legacy wrapper (2026-06)
+ * ────────────────────────────────────────────
+ * Este wrapper vive solo para retrocompat con `CatalogPage.tsx` (V1).
+ * NO usar en V2. En V2, el modal `CatalogImportModal` (F58b · "My Setup")
+ * absorbió + expandió esta funcionalidad con las 4 tabs actuales (Add ·
+ * Catalogs · Manufacturers · Buying preferences).
+ *
+ * Los sub-tabs de este wrapper (Library / Rules / SmartQuote) se
+ * migraron:
+ *
+ *   • Library → CatalogImportModal tab "Catalogs" (F58b)
+ *   • Rules   → PreferencesPanel section "Pricing rules" (F66.3)
+ *              + ClientPolicyManager DEPRECATED (ver su header)
+ *   • SmartQuote → sin equivalente V2 · SmartQuoteHub pendiente
+ *
+ * Non-goal · V1 intocada. Este file no se elimina para no romper V1.
+ * Cuando V1 sea decommissioned, eliminar este file + `ClientPolicyManager`.
+ */
 import { useState } from 'react'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'

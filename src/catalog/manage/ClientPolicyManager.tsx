@@ -1,3 +1,26 @@
+/**
+ * ⚠️ DEPRECATED · V1 legacy component (2026-06)
+ * ────────────────────────────────────────────
+ * Este componente vive solo para retrocompat con `CatalogPage.tsx` (V1).
+ * NO usar en V2 (LibraryPageV2 · ShowroomPageV2 · CatalogPageV2).
+ *
+ * Su funcionalidad fue migrada a los 5 sub-sprints del F66:
+ *
+ *   • F66.3 · 4 pricing rules toggles (Contract Pricing · Special Auth ·
+ *     Volume Tier · Q3 Promo) → integradas al `PreferencesPanel` como
+ *     nueva section "Pricing rules".
+ *   • F66.3 · `applyPerItemPricingRules` helper → per-item Contract +
+ *     Special Auth wired al `ProductCatalogCardV2` price display.
+ *   • F66.7 · `applyQuoteRules` helper → Volume Tier + Q3 Promo wired
+ *     al quote total del `DraftDetail` en `QuotesPageV2`.
+ *   • F66.4b · valores editables inline (`NumericField`) · el user
+ *     configura % / $ threshold sin hardcoded defaults.
+ *   • F66.4c · contraste + a11y correction del active/inactive state.
+ *
+ * Non-goal · V1 intocada. Este file no se elimina para no romper
+ * `ManageCatalogs.tsx` V1 que lo consume. Cuando V1 sea decommissioned,
+ * eliminar este file + `ManageCatalogs.tsx` + refs en `CatalogPage.tsx`.
+ */
 import React, { useState, useMemo } from 'react';
 import { Calculator, DollarSign, Info, List, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { Switch } from '@headlessui/react';
