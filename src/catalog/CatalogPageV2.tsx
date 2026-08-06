@@ -13,6 +13,7 @@ import { TabInfoTrigger,
   TAB_INFO_MRL,
   TAB_INFO_PRODUCT_CATALOG,
   TAB_INFO_MY_SELECTION,
+  TAB_INFO_MY_PROJECTS,
 } from './TabInfoTooltip'
 // F50 · Etapa 10 (P2 Project Builder) · v2 · nuevo sub-tab "My Projects".
 import ProjectsPage from './projects/ProjectsPage'
@@ -382,10 +383,12 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
                 )}
                 <TabInfoTrigger content={TAB_INFO_MY_SELECTION} align="end" />
               </button>
-              {/* F50 · Etapa 10 (P2 Project Builder) · v2 · sub-tab "My Projects". */}
+              {/* F50 · Etapa 10 (P2 Project Builder) · v2 · sub-tab "My Projects".
+                  F64.3 · TabInfoTrigger agregado · antes no tenía tooltip. */}
               <button type="button" onClick={() => setMode('projects')} className={tabClass(mode === 'projects')}>
                 <FolderKanban className="h-4 w-4" />
                 My Projects
+                <TabInfoTrigger content={TAB_INFO_MY_PROJECTS} align="end" />
               </button>
               {/* F58a.1 · sub-tab Inspiration eliminado · consolidado en el
                   toggle "Inspiration" del Product Catalog (rename del ex "Spaces")

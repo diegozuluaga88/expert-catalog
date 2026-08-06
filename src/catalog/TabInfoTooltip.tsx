@@ -82,10 +82,12 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                 F64.2 · z-[9999] (era z-[70]) · el tab pill container tenía
                 overflow-x-auto que clippeaba + otros elementos con z-[80]
                 lo tapaban. Combined con md:overflow-visible en el pill
-                container (CatalogPageV2) queda garantizado que se ve arriba. */}
+                container (CatalogPageV2) queda garantizado que se ve arriba.
+                F64.3 · width bump w-[340] → w-[380] + max-w-[calc(100vw-2rem)]
+                para safety cuando el tooltip llega al edge del viewport. */}
             <div
                 role="tooltip"
-                className={`pointer-events-none absolute top-full ${positionClass} z-[9999] mt-2 w-[340px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-[80ms] group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
+                className={`pointer-events-none absolute top-full ${positionClass} z-[9999] mt-2 w-[380px] max-w-[calc(100vw-2rem)] opacity-0 invisible translate-y-1 transition-all duration-150 delay-[80ms] group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
             >
                 {/* Arrow */}
                 <div className={`absolute -top-1.5 ${arrowClass} h-3 w-3 rotate-45 border-l border-t border-border bg-card`} />
@@ -110,7 +112,7 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                                 Purpose
                             </div>
-                            <p className="text-[11px] text-foreground leading-relaxed">{content.whatYouSee}</p>
+                            <p className="text-[11px] text-foreground leading-relaxed whitespace-normal break-words">{content.whatYouSee}</p>
                         </div>
 
                         {/* Data source */}
@@ -118,7 +120,7 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                                 Data source
                             </div>
-                            <p className="text-[11px] text-foreground leading-relaxed">{content.dataSource}</p>
+                            <p className="text-[11px] text-foreground leading-relaxed whitespace-normal break-words">{content.dataSource}</p>
                         </div>
 
                         {/* Layout */}
@@ -126,7 +128,7 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
                             <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                                 Layout
                             </div>
-                            <p className="text-[11px] text-foreground leading-relaxed">{content.structure}</p>
+                            <p className="text-[11px] text-foreground leading-relaxed whitespace-normal break-words">{content.structure}</p>
                         </div>
 
                         {/* Features · list with accessible bullets */}
@@ -230,6 +232,25 @@ export const TAB_INFO_PRODUCT_CATALOG: TabInfo = {
         'Inspiration mode (F58a) · photos with clickable product tags',
         'Sample requests + tracking pipeline (finishes only)',
         'Tenant preferences · approved brands · compliance · sustainability',
+    ],
+}
+
+export const TAB_INFO_MY_PROJECTS: TabInfo = {
+    title: 'My Projects · Project Builder',
+    role: 'current',
+    whatYouSee:
+        'Project canvas · organize products into rooms and zones for a specific job. RFP-response vehicle per Laura · one shareable link per project. Aligns to PRD P2 (Project Tool · confirmed drag-drop).',
+    dataSource:
+        'useProjects hook · per-tenant projects in localStorage · products dragged from Library or Products tabs.',
+    structure:
+        'Project list + canvas view · rooms as containers · zones as sub-groups · products as draggable cards from binders.',
+    features: [
+        'Drag-and-drop from binders (F51 sprint B) · "easy enough for 80-year-old"',
+        'Multi-project per tenant · switch context anytime',
+        'Rooms + zones structure · organize by physical space',
+        'Add-to-project modal from any product card',
+        'localStorage persistence · survives refresh',
+        'Future · hub with contacts + docs + timeline (PRD FLAG 3 · needs Jeff validation)',
     ],
 }
 
