@@ -65,21 +65,23 @@ export function TabInfoTrigger({ content, align = 'center' }: TooltipProps) {
 
     return (
         <span className="group/tt relative inline-flex items-center">
-            {/* Trigger · discreet (i) icon */}
-            <button
-                type="button"
-                tabIndex={-1}
+            {/* F64.1 · Trigger cambia de <button> a <span> · antes era button
+                nested dentro del tab button (HTML inválido · hover behavior
+                undefined en browsers · Chrome no fireaba tooltip). Span con
+                role="img" preserva semantics + hover funciona ok. */}
+            <span
+                role="img"
                 aria-label={`About ${content.title}`}
-                className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
-                onClick={e => e.stopPropagation()}
+                className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-muted-foreground group-hover/tt:text-foreground group-hover/tt:bg-foreground/10 transition-colors cursor-help"
             >
                 <Info className="h-3 w-3" strokeWidth={2} />
-            </button>
+            </span>
 
-            {/* Popover */}
+            {/* Popover · F64.1 delay reducido de 200ms → 80ms para feedback
+                más ágil. Tooltip visible on hover del wrapping span. */}
             <div
                 role="tooltip"
-                className={`pointer-events-none absolute top-full ${positionClass} z-[70] mt-2 w-[340px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-200 group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
+                className={`pointer-events-none absolute top-full ${positionClass} z-[70] mt-2 w-[340px] opacity-0 invisible translate-y-1 transition-all duration-150 delay-[80ms] group-hover/tt:pointer-events-auto group-hover/tt:opacity-100 group-hover/tt:visible group-hover/tt:translate-y-0`}
             >
                 {/* Arrow */}
                 <div className={`absolute -top-1.5 ${arrowClass} h-3 w-3 rotate-45 border-l border-t border-border bg-card`} />
@@ -154,19 +156,21 @@ export default function TabInfoTooltip({ content, children }: { content: TabInfo
    ═══════════════════════════════════════════════════════════════════════ */
 
 export const TAB_INFO_MRL: TabInfo = {
-    title: 'MRL · Manufacturer Reference Library',
+    title: 'Library · MRL legacy scope',
     role: 'reference',
     whatYouSee:
-        'Classic hierarchical view: brand → category → product with rich detail and documentation.',
+        'The MRL you know · modernized. Discovery + sample request + your saved Binders. Aligns to the PRD literal (no specification, no quoting, no pricing).',
     dataSource:
-        'manufacturers.ts · Allermuir, Allsteel, AIS + acoustics Camira, HBF, Luum, Mayer.',
+        'MANUFACTURERS registry · same brand binders as MRL classic + your tenant-scoped Binders (formerly Favorites · renamed F63).',
     structure:
-        'Library → Brand page (hero + contacts) → Category grid → 5-tab detail modal.',
+        'Sidebar with Binders + Filters + My Setup shortcut · Grid or Shelf view toggle · Brand card → Binder page → Product detail.',
     features: [
-        'Brand pages with sales & A&D contacts',
-        'Product detail with specs and performance',
-        'PDF documents (guarantees, brochures, certs)',
-        'Symbol folders (AutoCAD, Revit, SketchUp)',
+        'Grid + Shelf view · bookshelf metaphor preserved (F61)',
+        'Binders section (F63) · your saved product groupings per tenant',
+        'My Setup panel · dealer terms + preferences (F58b · consolidated)',
+        'Sample requests · finishes only guard (per PRD Section 01)',
+        'Inspiration panel (F58a) · reference installations with tagged products',
+        'Modernized card design · hero image + hover overlays (F62)',
     ],
 }
 
@@ -205,22 +209,23 @@ export const TAB_INFO_FIGMA: TabInfo = {
 }
 
 export const TAB_INFO_PRODUCT_CATALOG: TabInfo = {
-    title: 'Product Catalog · Unified Showroom',
+    title: 'Products · Strata Preview',
     role: 'current',
     whatYouSee:
-        'The consolidated storefront. Combines the browse patterns from MRL + Figma + Dealer tabs and adds Spaces.',
+        'Superset preview · what MRL could do with Strata capabilities. Adds spec-building, pricing rules, dealer terms, admin config and quote drafts on top of the discovery flow.',
     dataSource:
-        'unifiedProducts + SPACE_TYPES + PRODUCT_STUBS + custom spaces (localStorage) + finishes/options (silver-aligned).',
+        'unifiedProducts + SPACE_TYPES (Inspiration · F58a) + custom Binders + dealer relationships + tenant preferences (localStorage per tenant).',
     structure:
-        'Sidebar with 3-way toggle (Products / Materials / Spaces) + facet filters + main grid. Spaces mode → bundle detail.',
+        '3-way toggle (Products / Materials / Inspiration) + Grid or Shelf view + density selector · sidebar with Binders + Filters · My Setup 4-tab modal for admin.',
     features: [
-        'Reunites UI + features from all reference tabs',
-        '3-way toggle · Products / Materials / Spaces',
-        'Space Types with pre-configured bundles',
-        'Custom Spaces · full CRUD per dealer',
-        'Silver-aligned configurable options + finishes',
-        'Multi-tenant scoped custom catalogs',
-        'Add all N items to Selection in one click',
+        'Grid + Shelf view (F61) · click binder = drill-in filter',
+        'Brand profile slide-over · quick look without leaving flow (F59+F60)',
+        'Category multi-select from brand profile · Apply filter (F60)',
+        'My Setup modal (F58b) · Add · Catalogs · Manufacturers · Preferences',
+        'Dealer edit notes + add manufacturer relationships (F58c)',
+        'Inspiration mode (F58a) · photos with clickable product tags',
+        'Sample requests + tracking pipeline (finishes only)',
+        'Tenant preferences · approved brands · compliance · sustainability',
     ],
 }
 
@@ -228,16 +233,16 @@ export const TAB_INFO_MY_SELECTION: TabInfo = {
     title: 'My Selection · Draft submissions',
     role: 'current',
     whatYouSee:
-        'The active tenant\'s selections · multi-line items, auto-filled buyer info, submit flow. Neutral about downstream intent (Quote / PO / RFQ) — the dealer decides after submission.',
+        'Active tenant\'s draft selections · multi-line items, auto-filled buyer info, submit flow. Part of the Strata superset (Products tab flow) · NOT in scope for Library. Neutral about downstream intent (Quote / PO / RFQ) — the dealer decides after submission.',
     dataSource:
         'QuoteContext · multi-draft per tenant in `expert-hub-quotes-{slug}` localStorage.',
     structure:
-        '2-col · drafts list + detail with Buyer info + Line items + Totals.',
+        '2-col · drafts list + detail with Buyer info + Line items + Totals · Reference number Q-YYYY-NNN-TENANT.',
     features: [
         'Multi-draft · N parallel selections per tenant',
         'Auto-filled buyer info (user + tenant)',
-        'Toggle Flat list / By Space Setting',
-        'Reference number Q-YYYY-NNN-TENANT',
+        'Toggle Flat list / By Space Setting grouping',
+        'Reference number Q-YYYY-NNN-TENANT auto-generated',
         'localStorage persistence · survives refresh',
     ],
 }
