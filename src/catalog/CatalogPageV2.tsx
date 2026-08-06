@@ -294,7 +294,13 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
             onSelectCategory={(c) =>
               navigate({ page: 'category', manufacturer: nav.manufacturer, category: c })
             }
-            variant="v2"
+            // F65 · Library scope cleanup · variant='v1' (era 'v2') · v1 no
+            // muestra la sección "Your dealer relationship" (discount% ·
+            // freight · credit · rep contact) que es Strata superset scope.
+            // Library tab = MRL legacy · esa info sale del scope literal.
+            // Products tab (ShowroomPageV2 con BrandProfileSlideOver) sigue
+            // con v2 · muestra la relación dealer.
+            variant="v1"
           />
         ) : null
       case 'category':
@@ -422,9 +428,14 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
           vista v2 (MRL root, deep MRL, Product Catalog, My Selection,
           My Projects). Auto-open cuando se agrega al cart (pattern del
           MiniCartDrawer preservado). */}
+      {/* F65 · Library scope cleanup · hideCart={mode === 'browse'} · en
+          Library tab el cart/quote flow queda oculto (Strata superset scope)
+          · sample requests siguen visibles porque el sample flow SÍ está en
+          scope para Library (finishes sample per PRD Section 01). */}
       <WorkspaceDrawer
         onViewSelection={() => setMode('quotes')}
         onOpenSampleTracking={() => setSampleTrackingOpen(true)}
+        hideCart={mode === 'browse'}
       />
       <SampleTrackingSlideOver
         open={sampleTrackingOpen}

@@ -259,12 +259,11 @@ export default function ProductDetailPage({
                 producto es el elemento visualmente más pesado). */}
             <div className="mb-5">
               <div className="flex items-center gap-3 flex-wrap mb-4">
-                <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg hover:opacity-95 transition-all">
-                  <ArrowTopRightOnSquareIcon className="w-4 h-4" strokeWidth={2.5} />
-                  See Details
-                </button>
-                {/* F50 · Etapa 10.d (MRL adapt) · botón secundario Add to
-                    project · outline para no competir con el CTA primary. */}
+                {/* F65 · Library scope cleanup · "See Details" CTA removido ·
+                    era un botón muerto (sin onClick handler) que leía como
+                    quote-flow stub · viola el scope Library (discovery only).
+                    Los CTAs relevantes son Add to project (P2) + Request sample
+                    (P5) · both preserved abajo. */}
                 {onAddToProject && (
                   <button
                     type="button"

@@ -35,11 +35,18 @@ interface WorkspaceDrawerProps {
     onViewSelection: () => void
     /** Callback para abrir el SampleTrackingSlideOver. */
     onOpenSampleTracking: () => void
+    /** F65 · scope cleanup · cuando true, la sección Selection del cart
+     *  queda oculta (no cart items en el badge count, no tab Selection).
+     *  Se usa cuando el user está en Library tab (mode='browse') · el
+     *  cart/quote flow es Strata superset (Products tab scope). Sample
+     *  requests siguen visibles porque el sample flow SÍ está in-scope
+     *  para Library (finishes sample per PRD). */
+    hideCart?: boolean
 }
 
 type TabKey = 'selection' | 'samples'
 
-export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking }: WorkspaceDrawerProps) {
+export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking, hideCart = false }: WorkspaceDrawerProps) {
     const { activeDraft, lastAdded, clearLastAdded } = useQuote()
     const { draftItems, requests } = useSampleRequests()
 
@@ -78,8 +85,12 @@ export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking 
 
     /* ─── Derived state ──────────────────────────────────────────── */
 
-    const cartHasItems = !!(activeDraft && activeDraft.items.length > 0)
-    const cartUnits = activeDraft?.items.reduce((s, it) => s + it.qty, 0) ?? 0
+    // F65 · hideCart force cart-related state a "empty" (aunque haya items
+    // en el QuoteContext) · el FAB no cuenta cart items + drawer no muestra
+    // tab Selection. Los items reales del cart no se pierden · quedan en
+    // localStorage · vuelven a aparecer cuando el user cambia a Products tab.
+    const cartHasItems = !hideCart && !!(activeDraft && activeDraft.items.length > 0)
+    const cartUnits = hideCart ? 0 : (activeDraft?.items.reduce((s, it) => s + it.qty, 0) ?? 0)
 
     const draftUnits = draftItems.reduce((s, it) => s + it.qty, 0)
     const pending = requests.filter((r) => r.status === 'pending')
