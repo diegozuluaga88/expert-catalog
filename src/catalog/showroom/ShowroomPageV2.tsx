@@ -22,6 +22,8 @@ import ManufacturerPage from '../browse/ManufacturerPage'
 import BrandProfileSlideOver from '../components/BrandProfileSlideOver'
 // F61 · shelf view mode · bookshelf mirror del MRL para el Product Catalog.
 import CatalogShelfView from './CatalogShelfView'
+// F64 · banner intro dismissible que explica el 2-tab framing.
+import TabIntroBanner from '../components/TabIntroBanner'
 import { resolveInternalSku, resolveManufacturerSku, resolveItemStatus } from '../browse/catalogSku'
 import { useCatalogs, setCatalogs, resetCatalogs } from '../data/catalogs'
 import type { Catalog, CatalogStatus } from '../types'
@@ -1506,11 +1508,16 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
           top mode-switch bar is injected here to save vertical space. */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Product Catalog</h1>
+          {/* F64 · rename user-facing · alinea al PRD vocab (era "Product Catalog"). */}
+          <h1 className="font-brand text-2xl font-bold tracking-tight text-foreground">Products</h1>
           <p className="text-sm text-muted-foreground">Browse products, materials and pre-configured spaces in one place.</p>
         </div>
         {headerAside && <div className="self-center">{headerAside}</div>}
       </div>
+
+      {/* F64 · TabIntroBanner · dismissible per-session · explica el 2-tab
+          framing (Products es Strata superset preview vs Library scope legacy). */}
+      <TabIntroBanner variant="products" />
 
       {selectedBrands.size === 1 && getManufacturerByName([...selectedBrands][0]) && (
         <button

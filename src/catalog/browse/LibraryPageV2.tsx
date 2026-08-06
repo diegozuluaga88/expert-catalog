@@ -29,6 +29,8 @@ import SearchCommandPalette from '../search/SearchCommandPalette'
 import SampleTrackingPanel from '../components/SampleTrackingPanel'
 // F58b.2 · widget shortcut al modal "My Setup" desde el MRL sidebar.
 import ManageSetupPanel from '../manage/ManageSetupPanel'
+// F64 · banner intro dismissible que explica el 2-tab framing (Library/Products).
+import TabIntroBanner from '../components/TabIntroBanner'
 import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
 // F51 · B.2 · P3 Miller Knoll skeleton · se renderiza cuando la URL
 // trae ?mkPreview=1 · scaffolding editable (screenshots pendientes).
@@ -218,6 +220,9 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
 
         {/* Library content */}
         <div className="scrollbar-mrl flex-1 px-6 py-6 overflow-auto">
+          {/* F64 · TabIntroBanner · dismissible per-session · explica el 2-tab
+              framing (Library = legacy scope · Products = Strata superset preview) */}
+          <TabIntroBanner variant="library" />
           {filtered.length === 0 ? (
             // F50 · Wave 2.c · empty state con ilustración del design system.
             <EmptyState>

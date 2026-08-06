@@ -356,14 +356,18 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
             // asegura que los tabs NO wrappean.
             <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 max-w-full overflow-x-auto flex-nowrap scrollbar-none"
                  style={{ scrollbarWidth: 'none' }}>
+              {/* F64 · rename tabs · align al PRD vocab (Library → Binder → Products).
+                  "MRL" → "Library" (legacy scope · discovery + sample + Binders).
+                  "Product Catalog" → "Products" (Strata Preview · superset con spec + quote).
+                  Tooltips TabInfoTrigger preservados (tienen la explicación en detalle). */}
               <button type="button" onClick={() => setMode('browse')} className={tabClass(mode === 'browse')}>
                 <LibraryBig className="h-4 w-4" />
-                MRL
+                Library
                 <TabInfoTrigger content={TAB_INFO_MRL} align="start" />
               </button>
               <button type="button" onClick={() => setMode('showroom')} className={tabClass(mode === 'showroom')}>
                 <Store className="h-4 w-4" />
-                Product Catalog
+                Products
                 <TabInfoTrigger content={TAB_INFO_PRODUCT_CATALOG} align="center" />
               </button>
               <button type="button" onClick={() => setMode('quotes')} className={tabClass(mode === 'quotes')}>
