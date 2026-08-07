@@ -21,9 +21,18 @@ import { useMyBinders } from './useMyBinders'
 import { ToastContainer, useToast } from '../../components/AuthToast'
 import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } from 'strata-design-system'
 // F50 · Etapa 9-ext · v2 · command palette compartido con el Product Catalog.
-// En el MRL busca sobre brands + categorías + tags (sin productos, sin visual
-// search, sin reranker de precios porque no aplica al indexar por fabricante).
+// F70c (2026-08-07) · el MRL ahora también consume productos + visual search
+// (P1 del PRD · search AI/visual sitewide). Al abrir un producto desde el
+// palette se resuelve el brand y se navega al ManufacturerPage.
 import SearchCommandPalette from '../search/SearchCommandPalette'
+// F70c · visual search modal · el MRL ahora expone el "upload image · find
+// similar" que hasta ahora solo vivía en Products. Al abrir un resultado
+// se navega al brand del producto.
+import VisualSearchModal from '../search/VisualSearchModal'
+// F70c · productos unificados para el índice del search palette del MRL.
+// La NL query ("chairs under $500") ahora devuelve productos reales, no
+// solo brands. Se filtra por el tab activo (products vs materials).
+import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
 // F50 · sample flow (MRL adapt · 2026-08-03) · v2 · widget del sidebar +
 // slide-over completo para el flujo de tracking.
 import SampleTrackingPanel from '../components/SampleTrackingPanel'
@@ -92,8 +101,10 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   // hamburger que abre este drawer full-height desde la izquierda.
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   // F50 · Etapa 9-ext · v2 · command palette del MRL. Reusa el mismo
-  // componente que el Product Catalog · sin productos, sin visual search.
+  // componente que el Product Catalog.
+  // F70c · ahora también con productos + visual search (P1 PRD sitewide).
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
+  const [visualSearchOpen, setVisualSearchOpen] = useState(false)
   // F50 · sample flow (MRL adapt) · v2 · state del slide-over tracking
   // que abre el widget del sidebar.
   const [trackingOpen, setTrackingOpen] = useState(false)
@@ -120,6 +131,25 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   }, [viewMode])
 
   const baseList = activeTab === 'products' ? PRODUCTS_MANUFACTURERS : MATERIALS_MANUFACTURERS
+
+  // F70c · productos que alimentan el palette + visual search del MRL.
+  // Filtramos por el tab activo (materials vs products) usando isMaterial.
+  // La resolución productId → brand vive inline en onOpenProduct abajo.
+  const scopedProducts = activeTab === 'materials'
+    ? UNIFIED_PRODUCTS.filter(p => p.isMaterial)
+    : UNIFIED_PRODUCTS.filter(p => !p.isMaterial)
+
+  // F70c · handler compartido palette + visual · resuelve el brand del
+  // producto (p.brand === Manufacturer.name) y navega al ManufacturerPage
+  // via onSelectManufacturer. Fallback silencioso si el brand no está en
+  // el baseList del tab activo (ej. producto material buscado en products
+  // tab · edge case).
+  const openProductByBrand = (productId: string) => {
+    const product = scopedProducts.find(p => p.id === productId)
+    if (!product?.brand) return
+    const brand = baseList.find(m => m.name === product.brand)
+    if (brand) onSelectManufacturer(brand)
+  }
 
   const filtered = baseList.filter(m => {
     const matchesSearch = search === '' || m.name.toLowerCase().includes(search.toLowerCase())
@@ -260,17 +290,19 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
         </aside>
       )}
 
-      {/* F50 · Etapa 9-ext · v2 · AI search palette del MRL library. Sin
-          productos, sin visual (el índice del MRL es por fabricante · no
-          tiene sentido subir imagen para buscar brands). Aplica category
-          + tags al filtro del sidebar cuando el user acepta la interpretación. */}
+      {/* F50 · Etapa 9-ext · v2 · AI search palette del MRL library.
+          F70c (2026-08-07) · P1 PRD search AI/visual sitewide.
+          Antes: products=[], showVisualSearch=false, onOpenProduct no-op.
+          Ahora: alimentado con UNIFIED_PRODUCTS scoped al tab (products vs
+          materials), visual search enabled, y onOpenProduct resuelve el
+          brand del producto y navega al ManufacturerPage. */}
       <SearchCommandPalette
         open={searchPaletteOpen}
         onClose={() => setSearchPaletteOpen(false)}
-        products={[]}
+        products={scopedProducts}
         manufacturers={baseList}
-        showVisualSearch={false}
-        placeholder='Search brands, categories · try "quickship chairs"'
+        showVisualSearch={true}
+        placeholder='Search brands, products · try "quickship chairs under $600"'
         initialQuery={search}
         onApplyStructuredFilters={(f) => {
           if (f.text !== undefined) setSearch(f.text)
@@ -280,12 +312,25 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
           if (f.category && (f.text ?? '') === '') setSearch(f.category)
         }}
         onApplyFreeText={(t) => setSearch(t)}
-        onOpenProduct={() => { /* no-op · MRL no tiene detail de producto */ }}
+        onOpenProduct={openProductByBrand}
         onOpenBrand={(name) => {
           const brand = baseList.find((m) => m.name === name)
           if (brand) onSelectManufacturer(brand)
         }}
         onOpenCategory={(cat) => setSelectedCategory(cat)}
+        onOpenVisualSearch={() => {
+          setSearchPaletteOpen(false)
+          setVisualSearchOpen(true)
+        }}
+      />
+      {/* F70c · Visual search "upload image → find similar" · alineado
+          con Products tab. Al abrir un resultado se resuelve el brand
+          y se navega al ManufacturerPage (misma UX que el palette NL). */}
+      <VisualSearchModal
+        open={visualSearchOpen}
+        onClose={() => setVisualSearchOpen(false)}
+        products={scopedProducts}
+        onOpenProduct={openProductByBrand}
       />
 
       {/* F50 · sample flow (MRL adapt) · v2 · slide-over completo de
