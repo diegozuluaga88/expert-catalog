@@ -206,7 +206,7 @@ El path corto (heart → modal → inline create) sí está en budget (4 clicks)
 
 ## Recomendaciones de optimización
 
-### 4a · Long path del NEW BINDER · UX improvement
+### 4a · Long path del NEW BINDER · UX improvement · ✅ APLICADA (F69)
 
 Al hacer click en **NEW BINDER** del sidebar y crear el binder,
 actualmente el user queda mirando el sidebar sin acción next. Add
@@ -214,11 +214,18 @@ un toast o tip:
 > "New binder created · click the ♥ on any product to add it to
 > **{binder name}**."
 
-Alternativa más agresiva: auto-abrir un pequeño hint arrow al ♥ del
-primer product visible del grid post-creation.
+**Estado F69** · aplicado en
+`src/catalog/showroom/ShowroomPageV2.tsx` en el onClick del button
+NEW BINDER · dispatch `addToast('success', ...)` post-createCollection
+con `label: 'Got it'` action button.
 
-**Impact:** reduce fricción cognitiva sin cambiar el flow (sigue
-6 clicks pero el user sabe qué hacer next · zero abandonment).
+**Impact:** el flow sigue 6 clicks pero el user sabe qué hacer next ·
+zero abandonment. El path corto via ♥ (4 clicks) sigue disponible
+para quien prefiera.
+
+Alternativa más agresiva (no aplicada): auto-abrir un pequeño hint
+arrow al ♥ del primer product visible del grid post-creation ·
+scope mayor · innecesario si el toast ya guía.
 
 ### Sample request from ProductDetailPage · 5 clicks borderline
 

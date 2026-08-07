@@ -1218,7 +1218,16 @@ export default function ShowroomPageV2({ headerAside }: ShowroomPageV2Props = {}
                     placeholder: 'e.g. Lounge Chairs',
                     submitLabel: 'Create binder',
                   })
-                  if (name) createCollection(name)
+                  if (!name) return
+                  createCollection(name)
+                  // F69 · post-creation tip · reduce abandonment del user que
+                  // no encuentra qué hacer next (audit F68 flow #4). Toast
+                  // guía al heart-flow que es el path corto (4 clicks vs 6).
+                  addToast(
+                    'success',
+                    `Binder "${name}" created · click the ♥ on any product to add it here.`,
+                    { label: 'Got it', onClick: () => {} },
+                  )
                 }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
