@@ -1,11 +1,13 @@
-// F71b · Notification bell + badge (2026-08-07)
-// ────────────────────────────────────────────────
-// Drop-in reemplazo del Bell estático del Navbar. Muestra badge con conteo
-// de unread + abre el NotificationsPanel en un popover click-outside-close.
+// F71b · Notification bell trigger (2026-08-07)
+// F71b.1 refactor · alinea con el pattern visual del ActionCenter del DS:
+// - Small red dot indicator (no badge con conteo · el conteo se ve dentro
+//   del panel · misma decisión que el ActionCenter canonical)
+// - Popover fixed centered top (95vw mobile · 600px lg) para acomodar el
+//   panel más grande estilo Action Center
+// - z-index alto para escapar del navbar sticky
 //
-// No usa HeadlessUI Menu porque el panel tiene su propia scroll area + focus
-// interactivo (Read all, Clear all, list items) que se rompe con Menu.Item.
-// Click-outside implementado con listener mousedown + ref.
+// El click-outside/escape close se mantiene simple (sin HeadlessUI Popover
+// para no acoplar el trigger al layout · el panel es responsivo por sí solo).
 
 import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
@@ -15,14 +17,16 @@ import NotificationsPanel from './NotificationsPanel'
 export default function NotificationBell() {
     const { unreadCount } = useNotifications()
     const [open, setOpen] = useState(false)
-    const wrapperRef = useRef<HTMLDivElement>(null)
+    const buttonRef = useRef<HTMLButtonElement>(null)
+    const panelRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         if (!open) return
         const handleClickOutside = (e: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-                setOpen(false)
-            }
+            const target = e.target as Node
+            if (buttonRef.current?.contains(target)) return
+            if (panelRef.current?.contains(target)) return
+            setOpen(false)
         }
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false)
@@ -35,34 +39,45 @@ export default function NotificationBell() {
         }
     }, [open])
 
-    const displayCount = unreadCount > 9 ? '9+' : String(unreadCount)
-
     return (
-        <div ref={wrapperRef} className="relative">
+        <>
             <button
+                ref={buttonRef}
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                aria-label={unreadCount > 0 ? `Notifications · ${unreadCount} unread` : 'Notifications'}
+                aria-label={unreadCount > 0 ? `Action center · ${unreadCount} unread` : 'Action center'}
                 aria-expanded={open}
                 className="relative flex items-center justify-center h-9 w-9 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-                title="Notifications"
+                title="Action Center"
             >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
                     <span
-                        className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground border-2 border-background"
+                        className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-background"
                         aria-hidden="true"
-                    >
-                        {displayCount}
-                    </span>
+                    />
                 )}
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-[80] mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <NotificationsPanel onClose={() => setOpen(false)} />
-                </div>
+                <>
+                    {/* Backdrop · click cierra el panel (mobile-friendly).
+                        Sin blur para no interferir con el resto del navbar. */}
+                    <div
+                        className="fixed inset-0 z-[79] bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-150"
+                        aria-hidden="true"
+                        onClick={() => setOpen(false)}
+                    />
+                    <div
+                        ref={panelRef}
+                        className="fixed top-[80px] left-1/2 -translate-x-1/2 z-[80] animate-in fade-in slide-in-from-top-2 duration-200"
+                        role="dialog"
+                        aria-label="Action Center"
+                    >
+                        <NotificationsPanel onClose={() => setOpen(false)} />
+                    </div>
+                </>
             )}
-        </div>
+        </>
     )
 }
