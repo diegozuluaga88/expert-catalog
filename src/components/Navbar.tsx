@@ -3,7 +3,11 @@ import { useAuth } from '../context/AuthContext'
 import { useCatalogVersion } from '../context/CatalogVersionContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Menu as MenuIcon, X as XIcon, BarChart3 } from 'lucide-react'
+import { ScanEye, MessageSquare, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Menu as MenuIcon, X as XIcon, BarChart3 } from 'lucide-react'
+// F71b · delivery notifications hub · bell + dropdown con eventos de
+// shipped/delivered persistentes. Reemplaza el <Bell> estático que había
+// en el navbar sin dropdown ni badge.
+import NotificationBell from '../catalog/notifications/NotificationBell'
 // F56b · HeadlessUI Dialog para el mobile drawer que colapsa las 4
 // nav tabs top-level en <md · focus trap + escape gratis.
 import { Dialog, Transition } from '@headlessui/react'
@@ -260,13 +264,8 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                             <MessageSquare className="w-4 h-4" />
                         </button>
 
-                        {/* Bell */}
-                        <button
-                            className="flex items-center justify-center h-9 w-9 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-                            title="Notifications"
-                        >
-                            <Bell className="w-4 h-4" />
-                        </button>
+                        {/* F71b · Bell con badge unread + dropdown de notifications */}
+                        <NotificationBell />
 
                         {/* Theme Toggle */}
                         <button

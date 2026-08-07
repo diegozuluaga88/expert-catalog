@@ -32,6 +32,10 @@ import { useSampleRequests } from './browse/useSampleRequests'
 // y Samples · si solo hay uno con content, va directo sin tabs bar.
 import WorkspaceDrawer from './components/WorkspaceDrawer'
 import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
+// F71b · delivery notifications hub · escuchamos NOTIFICATION_CLICK_EVENT
+// para que el bell del Navbar (que dispatcha este event al click) abra
+// el SampleTrackingSlideOver cuando la notif es de un sample.
+import { NOTIFICATION_CLICK_EVENT, type NotificationClickDetail } from './notifications/NotificationsPanel'
 // F58b.1 · modal My Setup montado al shell para que pueda abrirse desde
 // cualquier mode (MRL sidebar ManageSetupPanel · ManufacturerInfoBarV2 ·
 // Product Catalog CTA) via el event `expert-hub:open-setup-modal`.
@@ -200,15 +204,27 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
         filterByBrands: detail?.filterByBrands,
       })
     }
+    // F71b · click en notification de sample-shipped/delivered · abre el
+    // SampleTrackingSlideOver. Los eventos de otro kind (ej. 'info') no
+    // hacen nada acá · el consumer del kind los maneja.
+    const toNotificationClick = (evt: Event) => {
+      const detail = (evt as CustomEvent<NotificationClickDetail>).detail
+      const kind = detail?.notification?.kind
+      if (kind === 'sample-shipped' || kind === 'sample-delivered') {
+        setSampleTrackingOpen(true)
+      }
+    }
     window.addEventListener('expert-hub:navigate-to-mrl', toMRL)
     window.addEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
     window.addEventListener('expert-hub:navigate-to-showroom-inspiration', toShowroomInspiration)
     window.addEventListener('expert-hub:open-setup-modal', toOpenSetup)
+    window.addEventListener(NOTIFICATION_CLICK_EVENT, toNotificationClick)
     return () => {
       window.removeEventListener('expert-hub:navigate-to-mrl', toMRL)
       window.removeEventListener('expert-hub:navigate-to-showroom-materials', toShowroomMaterials)
       window.removeEventListener('expert-hub:navigate-to-showroom-inspiration', toShowroomInspiration)
       window.removeEventListener('expert-hub:open-setup-modal', toOpenSetup)
+      window.removeEventListener(NOTIFICATION_CLICK_EVENT, toNotificationClick)
     }
   }, [])
 
