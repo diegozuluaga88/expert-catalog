@@ -21,8 +21,11 @@ import SessionExpiryModal from "./components/SessionExpiryModal"
 import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
 // F58b.3 · MyDealerInfoPage ya no es page top-level · su content se
 // embebe en la tab Manufacturers del modal My Setup (CatalogImportModal).
+// F67 · Manufacturer insights dashboard · demo del "View as manufacturer"
+// del PRD Section 05 · accessible desde el user menu del Navbar.
+import ManufacturerInsightsPage from "./catalog/insights/ManufacturerInsightsPage"
 
-type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail'
+type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail' | 'manufacturer-insights'
 
 export interface ConvertedDocument {
   id: string
@@ -147,6 +150,15 @@ function App() {
         return (
           <AckDetail
             onBack={() => setCurrentPage('transactions')}
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+            onNavigateToWorkspace={() => setCurrentPage('transactions')}
+          />
+        )
+      case 'manufacturer-insights':
+        return (
+          <ManufacturerInsightsPage
+            onBack={() => setCurrentPage('catalog')}
             onLogout={handleLogout}
             onNavigate={handleNavigate}
             onNavigateToWorkspace={() => setCurrentPage('transactions')}

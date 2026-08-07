@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCatalogVersion } from '../context/CatalogVersionContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Menu as MenuIcon, X as XIcon } from 'lucide-react'
+import { ScanEye, MessageSquare, Bell, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Menu as MenuIcon, X as XIcon, BarChart3 } from 'lucide-react'
 // F56b · HeadlessUI Dialog para el mobile drawer que colapsa las 4
 // nav tabs top-level en <md · focus trap + escape gratis.
 import { Dialog, Transition } from '@headlessui/react'
@@ -322,6 +322,17 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                                             modal "My Setup" (tab Manufacturers) que
                                             se abre desde Product Catalog CTA o el
                                             ManageSetupPanel del MRL sidebar. */}
+                                        {/* F67 · View as manufacturer · abre el
+                                            ManufacturerInsightsPage · demo del
+                                            PRD Section 05 · role toggle simulado. */}
+                                        <button
+                                            onClick={() => { setIsUserMenuOpen(false); onNavigate('manufacturer-insights') }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
+                                        >
+                                            <BarChart3 className="h-4 w-4" />
+                                            View as manufacturer
+                                        </button>
+                                        <div className="my-1 border-t border-border" />
                                         <button
                                             onClick={() => { setIsUserMenuOpen(false); setShowChangePassword(true); }}
                                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
