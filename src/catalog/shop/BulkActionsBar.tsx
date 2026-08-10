@@ -63,9 +63,9 @@ export default function BulkActionsBar({
           <span className={actionLabel}>Compare</span>
         </button>
 
-        <button type="button" onClick={onAddToFavorites} title="Save selected products to your favorites" aria-label="Save selected products to your favorites" className={actionBtn}>
+        <button type="button" onClick={onAddToFavorites} title="Save selected products to a binder" aria-label="Save selected products to a binder" className={actionBtn}>
           <Heart className="h-4 w-4" />
-          <span className={actionLabel}>Save to Favorites</span>
+          <span className={actionLabel}>Save to Binder</span>
         </button>
 
         <div className="relative">

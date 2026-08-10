@@ -134,6 +134,20 @@ export function useNotifications(): UseNotificationsReturn {
         return () => window.removeEventListener(NOTIFICATION_CHANGE_EVENT, handler)
     }, [tenantSlug])
 
+    // F72.3 · cross-tab sync via native storage event (fires on other tabs when
+    // localStorage changes in this tab). Solo react a nuestro key del tenant
+    // activo · el bell count se actualiza sin reload.
+    useEffect(() => {
+        const targetKey = STORAGE_KEY + tenantSlug
+        const handler = (e: StorageEvent) => {
+            if (e.key === targetKey) {
+                setNotifications(loadNotifications(tenantSlug))
+            }
+        }
+        window.addEventListener('storage', handler)
+        return () => window.removeEventListener('storage', handler)
+    }, [tenantSlug])
+
     // Bridge · escucha SAMPLE_STATUS_CHANGE_EVENT y crea notifications.
     // Solo la primera instancia montada crea las notifs · las demás sincronizan
     // via NOTIFICATION_CHANGE_EVENT. Sin lock global · si dos instancias corren

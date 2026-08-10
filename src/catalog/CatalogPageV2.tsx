@@ -88,6 +88,9 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   // F50 · sample flow (2026-08-03) · state del SampleTrackingSlideOver
   // global · lo abren tanto el mini drawer como el widget del sidebar.
   const [sampleTrackingOpen, setSampleTrackingOpen] = useState(false)
+  // F72.3 · deep-link · cuando el user click una notif del Action Center,
+  // guardamos el requestId acá y lo pasamos al slide-over para scroll-into-view.
+  const [sampleFocusRequestId, setSampleFocusRequestId] = useState<string | null>(null)
   // F50 · Add-another-material · el ShowroomPageV2 publica su taxonomy
   // actual via CustomEvent 'expert-hub:showroom-taxonomy-changed'. Lo
   // usamos para saber si el user ya está en la vista de materiales y
@@ -207,10 +210,13 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
     // F71b · click en notification de sample-shipped/delivered · abre el
     // SampleTrackingSlideOver. Los eventos de otro kind (ej. 'info') no
     // hacen nada acá · el consumer del kind los maneja.
+    // F72.3 · si la notif trae requestId, lo pasamos al slide-over como
+    // focusRequestId para hacer scroll-into-view al card correspondiente.
     const toNotificationClick = (evt: Event) => {
       const detail = (evt as CustomEvent<NotificationClickDetail>).detail
       const kind = detail?.notification?.kind
       if (kind === 'sample-shipped' || kind === 'sample-delivered') {
+        setSampleFocusRequestId(detail?.notification?.requestId ?? null)
         setSampleTrackingOpen(true)
       }
     }
@@ -459,13 +465,14 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
       />
       <SampleTrackingSlideOver
         open={sampleTrackingOpen}
-        onClose={() => setSampleTrackingOpen(false)}
+        onClose={() => { setSampleTrackingOpen(false); setSampleFocusRequestId(null) }}
         onSubmitted={(count) => {
           addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
         }}
         onBrowseCatalog={handleBrowseCatalogForSamples}
         onBrowseMRL={handleBrowseMRLForSamples}
         currentContext={sampleBrowseContext}
+        focusRequestId={sampleFocusRequestId}
       />
 
       {/* F50 · Etapa 10.d (MRL adapt) · v2 · modal Add-to-project global

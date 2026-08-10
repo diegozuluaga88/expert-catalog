@@ -10,7 +10,7 @@
 // Skills · Nielsen H1 (Visibility of status) + Refactoring UI · Hierarchy
 // (sections claras: qué falta enviar vs qué está en camino).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Package, Truck, CheckCircle2, X, ExternalLink, Plus, Minus, Send, MapPin, Pencil, Trash2, ChevronDown, Store, LibraryBig } from 'lucide-react'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
@@ -47,9 +47,13 @@ interface SampleTrackingSlideOverProps {
      *  el slide-over (y mantiene el contexto). Si viene de otra vista
      *  (My Selection · My Projects) sí se muestra el dropdown para elegir. */
     currentContext?: 'catalog-materials' | 'catalog-other' | 'mrl' | 'other'
+    /** F72.3 · deep-link scroll · cuando el slide-over se abre desde el
+     *  Action Center con notificación de un request específico, scroll el
+     *  card correspondiente en vista + highlight momentáneo. */
+    focusRequestId?: string | null
 }
 
-export default function SampleTrackingSlideOver({ open, onClose, onSubmitted, onBrowseCatalog, onBrowseMRL, currentContext = 'other' }: SampleTrackingSlideOverProps) {
+export default function SampleTrackingSlideOver({ open, onClose, onSubmitted, onBrowseCatalog, onBrowseMRL, currentContext = 'other', focusRequestId }: SampleTrackingSlideOverProps) {
     const {
         requests,
         draftItems,
@@ -66,6 +70,21 @@ export default function SampleTrackingSlideOver({ open, onClose, onSubmitted, on
 
     const [editingShipTo, setEditingShipTo] = useState(false)
     const [draftShipToLocal, setDraftShipToLocal] = useState<SampleRequestShipTo>(draftShipTo)
+
+    // F72.3 · deep-link scroll cuando llega focusRequestId (típicamente desde
+    // el Action Center). Defer al próximo tick para que el slide-over ya haya
+    // renderado el DOM · scroll suave y usa location.hash para el :target ring.
+    useEffect(() => {
+        if (!open || !focusRequestId) return
+        const timer = window.setTimeout(() => {
+            const el = document.getElementById(`sample-request-${focusRequestId}`)
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                window.history.replaceState(null, '', `#sample-request-${focusRequestId}`)
+            }
+        }, 250)
+        return () => window.clearTimeout(timer)
+    }, [open, focusRequestId])
 
     // Cuando cambia el draftShipTo externo, sincroniza el local (si no se
     // está editando activamente).
@@ -512,7 +531,11 @@ interface RequestRowProps {
 function RequestRow({ request, onDelete, onAdvance }: RequestRowProps) {
     const canAdvance = request.status !== 'delivered'
     return (
-        <li className="group rounded-xl border border-border bg-card p-3">
+        <li
+            className="group rounded-xl border border-border bg-card p-3 target:ring-2 target:ring-primary target:ring-offset-2 target:ring-offset-background"
+            id={`sample-request-${request.id}`}
+            data-request-id={request.id}
+        >
             <div className="flex items-start gap-3">
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
                     <img src={request.productImage} alt={request.productName} className="h-full w-full object-cover" />
@@ -572,10 +595,10 @@ function RequestRow({ request, onDelete, onAdvance }: RequestRowProps) {
                             <button
                                 type="button"
                                 onClick={() => onAdvance(request.id)}
-                                title="Simulate carrier update (backend stub)"
+                                title="Simulate a carrier update (mock)"
                                 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
                             >
-                                Simulate → {request.status === 'pending' ? 'shipped' : 'delivered'}
+                                Mark as {request.status === 'pending' ? 'shipped' : 'delivered'}
                             </button>
                         </div>
                     )}

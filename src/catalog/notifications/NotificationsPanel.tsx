@@ -17,6 +17,7 @@
 
 import { useMemo, useState } from 'react'
 import { clsx } from 'clsx'
+import { useDialogs } from '../../components/dialogs/DialogsContext'
 import {
     Search as SearchIcon,
     X as XIcon,
@@ -57,6 +58,19 @@ interface NotificationsPanelProps {
 
 export default function NotificationsPanel({ onClose }: NotificationsPanelProps) {
     const { notifications, markRead, markAllRead, clearAll } = useNotifications()
+    const { confirm } = useDialogs()
+
+    // F72.3 · Clear all pide confirmación DS antes de vaciar el histórico.
+    const handleClearAll = async () => {
+        const ok = await confirm({
+            title: 'Clear all notifications?',
+            description: `This removes ${notifications.length} ${notifications.length === 1 ? 'notification' : 'notifications'} from your history. This action cannot be undone.`,
+            confirmLabel: 'Clear all',
+            cancelLabel: 'Cancel',
+            danger: true,
+        })
+        if (ok) clearAll()
+    }
     const [activeTab, setActiveTab] = useState('all')
     const [searchQuery, setSearchQuery] = useState('')
     const [searchOpen, setSearchOpen] = useState(false)
@@ -146,9 +160,10 @@ export default function NotificationsPanel({ onClose }: NotificationsPanelProps)
                         </button>
                         <button
                             type="button"
-                            onClick={clearAll}
+                            onClick={handleClearAll}
                             disabled={isEmpty}
                             title="Clear all"
+                            aria-label="Clear all notifications"
                             className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         >
                             <Trash2 className="h-4 w-4" aria-hidden="true" />
