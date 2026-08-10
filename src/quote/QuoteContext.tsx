@@ -98,7 +98,7 @@ export interface QuoteDraft {
     status: QuoteDraftStatus
     createdAt: string
     updatedAt: string
-    /** Reference number user-friendly · `Q-2026-001-SPECIALT` */
+    /** Reference number user-friendly · `Q-{year}-001-SPECIALT` (year dynamic) */
     referenceNumber?: string
 }
 
@@ -178,7 +178,8 @@ function generateId(prefix: string): string {
 function generateReferenceNumber(tenantSlug: string, draftCount: number): string {
     const seq = (draftCount + 1).toString().padStart(3, '0')
     const tenantPart = tenantSlug.toUpperCase().replace(/-/g, '').slice(0, 8)
-    return `Q-2026-${seq}-${tenantPart}`
+    const year = new Date().getFullYear()
+    return `Q-${year}-${seq}-${tenantPart}`
 }
 
 /**
