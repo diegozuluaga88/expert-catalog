@@ -7,8 +7,6 @@
  * CAUTION: This will modify your source files. Commit your changes first!
  */
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

@@ -9,8 +9,6 @@
  * This script prevents drift between visual documentation and token source files.
  */
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
