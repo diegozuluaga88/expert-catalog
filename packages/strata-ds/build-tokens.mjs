@@ -1,6 +1,4 @@
 // Simple token builder - generates CSS variables and TypeScript from JSON tokens
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
