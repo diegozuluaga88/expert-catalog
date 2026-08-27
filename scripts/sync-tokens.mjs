@@ -7,7 +7,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuration
-const STRATA_ROOT = path.resolve(__dirname, '../../../../Strata Design System');
+// OJO con la ruta de origen. Dentro de "Strata Design System" hay DOS carpetas
+// de tokens y solo una es la fuente de verdad:
+//
+//   Strata Design System/src/styles/tokens/            <- copia antigua, NO usar
+//   Strata Design System/strata-ds/src/styles/tokens/  <- canonica
+//
+// La canonica es la que generan `npm run tokens:figma` (scripts/figma-tokens.mjs)
+// y la que siembra las variables de Figma. Corregido el 2026-08-26.
+const STRATA_ROOT = path.resolve(__dirname, '../../../../Strata Design System/strata-ds');
 const CATALYST_ROOT = path.resolve(__dirname, '../');
 
 const MAPPINGS = [

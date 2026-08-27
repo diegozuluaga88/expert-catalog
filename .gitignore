@@ -31,3 +31,5 @@ yarn-error.log*
 *.sln
 *.sw?
 _catalog_ref/
+.vercel
+.env*
