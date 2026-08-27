@@ -13,6 +13,11 @@ import { PackageSearch, Menu as MenuIcon, X as XIcon } from 'lucide-react'
 import { Dialog as HeadlessDialog } from '@headlessui/react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufacturers'
+// Fix filtro de categorías (2026-08-10) · el sidebar muestra las genéricas
+// del referente (Seating, Casegoods, Acoustic…) y el seed tiene nombres de
+// línea de producto (Chairs, Axyl, Seating & Collaboration…). El mapa
+// traduce entre ambos · antes el match era exacto y daba 0/24 en Products.
+import { matchesCategoryAlias } from '../data/categoryAliases'
 import ShelfView from '../components/ShelfViewV2'
 import GridView from '../components/GridView'
 import FilterSidebar from '../components/FilterSidebar'
@@ -155,7 +160,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
     const matchesSearch = search === '' || m.name.toLowerCase().includes(search.toLowerCase())
     const matchesCategory =
       selectedCategory === null ||
-      m.categories.some(c => c.name === selectedCategory)
+      matchesCategoryAlias(m.categories.map(c => c.name), selectedCategory)
     // MRL Fase 8 · OR logic entre tags · manufacturer pasa si tiene al menos
     // uno de los tags activos. Cuando activeTags está vacío no filtra.
     const matchesTags =

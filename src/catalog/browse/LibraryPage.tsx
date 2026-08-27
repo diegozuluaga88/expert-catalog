@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufacturers'
+// Fix filtro de categorías (2026-08-10) · aplicado también a V1 porque el
+// CatalogVersionContext arranca en 'v1' cuando localStorage está vacío · un
+// stakeholder que abre la demo por primera vez aterriza acá, no en V2.
+import { matchesCategoryAlias } from '../data/categoryAliases'
 import ShelfView from '../components/ShelfView'
 import GridView from '../components/GridView'
 import FilterSidebar from '../components/FilterSidebar'
@@ -47,7 +51,7 @@ export default function LibraryPage({ onSelectManufacturer }: LibraryPageProps) 
     const matchesSearch = search === '' || m.name.toLowerCase().includes(search.toLowerCase())
     const matchesCategory =
       selectedCategory === null ||
-      m.categories.some(c => c.name === selectedCategory)
+      matchesCategoryAlias(m.categories.map(c => c.name), selectedCategory)
     // MRL Fase 8 · OR logic entre tags · manufacturer pasa si tiene al menos
     // uno de los tags activos. Cuando activeTags está vacío no filtra.
     const matchesTags =
