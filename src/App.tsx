@@ -10,24 +10,28 @@ import CollectionShareView from "./catalog/browse/CollectionShareView"
 // Reemplaza los window.prompt/window.confirm nativos.
 import { DialogsProvider } from "./components/dialogs/DialogsContext"
 import SessionExpiryModal from "./components/SessionExpiryModal"
-import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
 // F67 · Manufacturer insights dashboard · demo del "View as manufacturer"
 // del PRD Section 05 · accessible desde el user menu del Navbar.
 import ManufacturerInsightsPage from "./catalog/insights/ManufacturerInsightsPage"
 
-// MRL scope cleanup (2026-08-27) · Capa 1 · se retiraron las páginas que
-// venían del proyecto Strata del que este repo se forkeó y que ninguna
-// fuente de scope menciona: OCRTracking, Transactions, OrderDetail,
-// AckDetail y FeedbackBoard. Ver strata-docs/09-mrl-uwh/DIAGNOSIS.md §3.1.
+// MRL scope cleanup (2026-08-27) · el App quedó en dos páginas.
 //
-// El landing pasa de 'ocr-tracking' a 'catalog' · un stakeholder que abre
-// el link aterriza en el producto, no en una pantalla de tracking de OCR
-// (UX-REVIEW.md · hallazgo H4-1, severidad 4 · falla el Trunk Test).
-// MRL scope cleanup (2026-08-27) · Capa 2 · V1 y el CatalogVersionContext
-// se retiraron. El provider arrancaba en 'v1' con localStorage vacío, así
-// que quien abría el link por primera vez veía una versión distinta de la
-// que veía el resto del equipo — dos productos detrás de una URL
-// (UX-REVIEW.md · H4-2, severidad 4). Ahora hay una sola versión.
+// Capa 1 · se retiraron OCRTracking, Transactions, OrderDetail, AckDetail
+//   y FeedbackBoard · venían del proyecto Strata del que este repo se
+//   forkeó y ninguna fuente de scope las menciona.
+//   El landing pasa de 'ocr-tracking' a 'catalog' · un stakeholder que
+//   abría el link aterrizaba en una pantalla de tracking de OCR y no podía
+//   decir qué producto era (UX-REVIEW.md · H4-1, severidad 4 · falla la
+//   primera pregunta del Trunk Test).
+//
+// Capa 2a · V1 y el CatalogVersionContext · el provider arrancaba en 'v1'
+//   con localStorage vacío, así que quien abría el link por primera vez
+//   veía una versión distinta de la que veía el resto del equipo — dos
+//   productos detrás de una URL (UX-REVIEW.md · H4-2, severidad 4).
+//
+// Capa 2c · EditQuoteItemPanel, con el resto de quote/.
+//
+// Ver strata-docs/09-mrl-uwh/DIAGNOSIS.md §3 y PROPOSAL.md.
 type Page = 'catalog' | 'manufacturer-insights'
 
 function App() {
@@ -108,11 +112,6 @@ function App() {
           onExtend={refreshSession}
           onLogout={handleLogout}
         />
-        {/* Phase 3 polish · panel global para editar variants de un item del cart.
-            Aparece cuando user click "Edit" en el drawer o en My Quotes detail.
-            Scoped al catalog ya que es relevante solo en ese contexto.
-            MRL scope cleanup · sale en Capa 2 junto con quote/ (MRL no cotiza). */}
-        {currentPage === 'catalog' && <EditQuoteItemPanel />}
       </div>
     </DialogsProvider>
   )

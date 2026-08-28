@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LibraryBig, FolderKanban } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import type { Manufacturer, Category, Product } from './types'
@@ -14,27 +14,21 @@ import ProjectsPage from './projects/ProjectsPage'
 import AddToProjectModal from './projects/AddToProjectModal'
 import { useProjects } from './projects/useProjects'
 import { useToast, ToastContainer } from '../components/AuthToast'
-import { useSampleRequests } from './browse/useSampleRequests'
-import WorkspaceDrawer from './components/WorkspaceDrawer'
-import SampleTrackingSlideOver from './components/SampleTrackingSlideOver'
-// F71b · delivery notifications hub · escuchamos NOTIFICATION_CLICK_EVENT
-// para que el bell del Navbar abra el SampleTrackingSlideOver.
-import { NOTIFICATION_CLICK_EVENT, type NotificationClickDetail } from './notifications/NotificationsPanel'
 // F58b.1 · modal My Setup montado al shell para que pueda abrirse desde
 // cualquier mode via el event `expert-hub:open-setup-modal`.
 import CatalogImportModal, { type ManageTab } from './manage/CatalogImportModal'
 
-// MRL scope cleanup (2026-08-27) · Capa 2b · se retiraron los tabs
-// "Products" y "My Selection".
+// MRL scope cleanup (2026-08-27) · el shell quedó en dos modos.
 //
-// · Products (ShowroomPageV2) era el superset "Strata Preview" · spec,
-//   pricing y quote drafts sobre el flujo de descubrimiento. Jeff nombró
-//   cinco áreas de MVP y esa no es una de ellas (SOW v5 §1).
-// · My Selection era el flujo de cotización. MRL no cotiza · no aparece
-//   en ninguna de las 67 filas del Decision Log.
+// Capa 2b · se retiraron "Products" (superset Strata Preview · spec,
+//   pricing y quote drafts) y "My Selection" (cotización · MRL no cotiza).
+// Capa 2d · se retiró el flujo de samples · Sample Ordering se movió a
+//   Phase 2 (Decision Log NEW-7, que Jeff repitió tres veces) y el SOW v5
+//   §22 lo lista Out of Scope.
 //
-// Quedan Library y My Projects. "New Library/Binder UX" y "Project Tool"
-// sí son dos de las cinco áreas del MVP.
+// Quedan Library y My Projects · dos de las cinco áreas del MVP que Jeff
+// nombró: "Search, new Library/Binder UX, new Reporting, Project Tool,
+// and Dealer Left Tab" (SOW v5 §1).
 // Ver strata-docs/09-mrl-uwh/PROPOSAL.md.
 type CatalogMode = 'browse' | 'projects'
 type BrowsePage = 'library' | 'manufacturer' | 'category' | 'product'
@@ -63,50 +57,8 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
   const [addToProjectProduct, setAddToProjectProduct] = useState<Product | null>(null)
   const { projects, createProject, addItem: addItemToProject } = useProjects()
   const { toasts, addToast, dismissToast } = useToast()
-  // F50 · sample flow · state del SampleTrackingSlideOver global.
-  const [sampleTrackingOpen, setSampleTrackingOpen] = useState(false)
-  // F72.3 · deep-link · cuando el user click una notif del Action Center,
-  // guardamos el requestId acá y lo pasamos al slide-over para scroll-into-view.
-  const [sampleFocusRequestId, setSampleFocusRequestId] = useState<string | null>(null)
   // F58b.1 · My Setup modal · single instance al nivel del shell.
   const [setupModal, setSetupModal] = useState<{ open: boolean; initialTab?: ManageTab; filterByBrands?: string[] }>({ open: false })
-  const { addToDraft: addSampleToDraft, draftItems: sampleDraftItems } = useSampleRequests()
-  // Flag transitorio · se setea cuando el user hace click en "Browse ..."
-  // desde el slide-over y se limpia cuando el effect detecta que
-  // draftItems.length aumentó.
-  const reopenSampleDrawerRef = useRef(false)
-  const draftItemsCountRef = useRef(sampleDraftItems.length)
-
-  const handleRequestSampleFromMRL = (product: Product) => {
-    const firstColor = product.colorways?.[0]
-    // F51 · A.3 · derivamos isMaterial del manufacturer del nav actual ·
-    // los productos del MRL vienen sin el flag `isMaterial`. Si el
-    // manufacturer produce materials o both, todos sus productos son
-    // finishes por definición.
-    const treatAsMaterial = product.isMaterial === true
-      || nav.manufacturer?.type === 'materials'
-      || nav.manufacturer?.type === 'both'
-    const created = addSampleToDraft({
-      productId: product.id,
-      productName: product.name,
-      productBrand: product.brand,
-      productImage: product.images[0],
-      colorwayName: firstColor?.name,
-      colorwayHex: firstColor?.hex,
-      qty: 1,
-      isMaterial: treatAsMaterial,
-    })
-    if (!created) {
-      addToast('info', `Sample requests are for finishes only · ${product.name} is not a finish.`)
-      return
-    }
-    // MRL scope cleanup · el CTA del toast abría el tab Product Catalog ·
-    // ahora abre el slide-over directamente.
-    addToast('success', `${product.name} added to sample draft.`, {
-      label: 'Review draft',
-      onClick: () => setSampleTrackingOpen(true),
-    })
-  }
 
   useEffect(() => {
     const toMRL = () => {
@@ -122,48 +74,13 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
         filterByBrands: detail?.filterByBrands,
       })
     }
-    // F71b · click en notification de sample-shipped/delivered · abre el
-    // SampleTrackingSlideOver. F72.3 · si trae requestId, scroll-into-view.
-    const toNotificationClick = (evt: Event) => {
-      const detail = (evt as CustomEvent<NotificationClickDetail>).detail
-      const kind = detail?.notification?.kind
-      if (kind === 'sample-shipped' || kind === 'sample-delivered') {
-        setSampleFocusRequestId(detail?.notification?.requestId ?? null)
-        setSampleTrackingOpen(true)
-      }
-    }
     window.addEventListener('expert-hub:navigate-to-mrl', toMRL)
     window.addEventListener('expert-hub:open-setup-modal', toOpenSetup)
-    window.addEventListener(NOTIFICATION_CLICK_EVENT, toNotificationClick)
     return () => {
       window.removeEventListener('expert-hub:navigate-to-mrl', toMRL)
       window.removeEventListener('expert-hub:open-setup-modal', toOpenSetup)
-      window.removeEventListener(NOTIFICATION_CLICK_EVENT, toNotificationClick)
     }
   }, [])
-
-  // F50 · Add-another-material · si el user vino del slide-over al catálogo
-  // via "Browse ...", auto-reabre el slide-over apenas agregue al draft.
-  useEffect(() => {
-    const prev = draftItemsCountRef.current
-    draftItemsCountRef.current = sampleDraftItems.length
-    if (reopenSampleDrawerRef.current && sampleDraftItems.length > prev) {
-      setSampleTrackingOpen(true)
-      reopenSampleDrawerRef.current = false
-    }
-  }, [sampleDraftItems.length])
-
-  // MRL scope cleanup · con Products retirado, el único destino de browse
-  // para samples es la Library. El dropdown de "Add another material" ya
-  // no tiene dos opciones que ofrecer.
-  const handleBrowseMRLForSamples = () => {
-    reopenSampleDrawerRef.current = true
-    setSampleTrackingOpen(false)
-    if (mode !== 'browse') {
-      setMode('browse')
-      setNav({ page: 'library' })
-    }
-  }
 
   const tabClass = (active: boolean) =>
     // F56.1 · whitespace-nowrap + flex-shrink-0 asegura que los tabs no
@@ -209,7 +126,6 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
               })
             }
             onAddToProject={(p) => setAddToProjectProduct(p)}
-            onRequestSample={handleRequestSampleFromMRL}
           />
         ) : null
       case 'product':
@@ -226,7 +142,6 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
               navigate({ page: 'manufacturer', manufacturer: nav.manufacturer })
             }
             onAddToProject={(p) => setAddToProjectProduct(p)}
-            onRequestSample={handleRequestSampleFromMRL}
           />
         ) : null
       default:
@@ -261,23 +176,6 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
         </div>
         {mode === 'browse' ? renderBrowse() : <ProjectsPage />}
       </div>
-
-      {/* MRL scope cleanup · el WorkspaceDrawer queda solo con la mitad de
-          samples · el carrito sale con quote/ en la Capa 2c. */}
-      <WorkspaceDrawer
-        onOpenSampleTracking={() => setSampleTrackingOpen(true)}
-        hideCart
-      />
-      <SampleTrackingSlideOver
-        open={sampleTrackingOpen}
-        onClose={() => { setSampleTrackingOpen(false); setSampleFocusRequestId(null) }}
-        onSubmitted={(count) => {
-          addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
-        }}
-        onBrowseMRL={handleBrowseMRLForSamples}
-        currentContext={mode === 'browse' ? 'mrl' : 'other'}
-        focusRequestId={sampleFocusRequestId}
-      />
 
       {/* F50 · Etapa 10.d · modal Add-to-project global para el flujo MRL. */}
       <AddToProjectModal

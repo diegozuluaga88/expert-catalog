@@ -38,14 +38,10 @@ import VisualSearchModal from '../search/VisualSearchModal'
 // La NL query ("chairs under $500") ahora devuelve productos reales, no
 // solo brands. Se filtra por el tab activo (products vs materials).
 import { UNIFIED_PRODUCTS } from '../showroom/data/unifiedProducts'
-// F50 · sample flow (MRL adapt · 2026-08-03) · v2 · widget del sidebar +
-// slide-over completo para el flujo de tracking.
-import SampleTrackingPanel from '../components/SampleTrackingPanel'
 // F58b.2 · widget shortcut al modal "My Setup" desde el MRL sidebar.
 import ManageSetupPanel from '../manage/ManageSetupPanel'
 // F64 · banner intro dismissible que explica el 2-tab framing (Library/Products).
 import TabIntroBanner from '../components/TabIntroBanner'
-import SampleTrackingSlideOver from '../components/SampleTrackingSlideOver'
 // F51 · B.2 · P3 Miller Knoll skeleton · se renderiza cuando la URL
 // trae ?mkPreview=1 · scaffolding editable (screenshots pendientes).
 import LibraryPageV2MK from './LibraryPageV2MK'
@@ -110,9 +106,6 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   // F70c · ahora también con productos + visual search (P1 PRD sitewide).
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
   const [visualSearchOpen, setVisualSearchOpen] = useState(false)
-  // F50 · sample flow (MRL adapt) · v2 · state del slide-over tracking
-  // que abre el widget del sidebar.
-  const [trackingOpen, setTrackingOpen] = useState(false)
   useEffect(() => {
     const isEditableTarget = (t: EventTarget | null): boolean => {
       if (!(t instanceof HTMLElement)) return false
@@ -199,7 +192,6 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
         {/* F58b.2 · ManageSetupPanel · shortcut al modal My Setup
             (Catalogs · Manufacturers · Buying preferences) desde el MRL. */}
         <ManageSetupPanel />
-        <SampleTrackingPanel onOpenTracking={() => setTrackingOpen(true)} />
       </>}
     />
   )
@@ -336,31 +328,6 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
         onClose={() => setVisualSearchOpen(false)}
         products={scopedProducts}
         onOpenProduct={openProductByBrand}
-      />
-
-      {/* F50 · sample flow (MRL adapt) · v2 · slide-over completo de
-          tracking que abre el widget del sidebar. Reusa el mismo hook
-          global por el CustomEvent pub/sub. */}
-      <SampleTrackingSlideOver
-        open={trackingOpen}
-        onClose={() => setTrackingOpen(false)}
-        onSubmitted={(count) => {
-          addToast('success', `${count} ${count === 1 ? 'sample request submitted' : 'sample requests submitted'} · you will be notified when they ship.`)
-        }}
-        // F51 fix (2026-08-04) · wire de callbacks contextuales para el
-        // empty state CTA + dropdown "Add another material". Ya estamos
-        // en MRL, así que onBrowseMRL solo cierra el slide-over (context
-        // 'mrl' hace el CTA directo "Continue browsing MRL Library").
-        // onBrowseCatalog sale del MRL via CustomEvent que CatalogPageV2
-        // escucha (setMode 'showroom' + taxonomy=materials).
-        onBrowseCatalog={() => {
-          setTrackingOpen(false)
-          window.dispatchEvent(new CustomEvent('expert-hub:navigate-to-showroom-materials'))
-        }}
-        onBrowseMRL={() => {
-          setTrackingOpen(false)
-        }}
-        currentContext="mrl"
       />
 
       {/* Toast container · muestra feedback de My Binders toggle */}
