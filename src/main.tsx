@@ -12,8 +12,8 @@ import { ThemeProvider } from 'strata-design-system'
 // que nombró Jeff (SOW v5 §1).
 //
 // TenantProvider sigue dentro de AuthProvider porque los hooks per-tenant
-// que quedan —useCollections, useProjects, useSearchHistory,
-// useNotifications, tenantPreferences— resuelven su slug vía useTenant.
+// que quedan —useProjects, useSearchHistory, useNotifications,
+// tenantPreferences— resuelven su slug vía useTenant.
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

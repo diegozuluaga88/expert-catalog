@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
 import Login from "./Login"
 import CatalogPageV2 from "./catalog/CatalogPageV2"
-// F50 · Etapa 8 (P7 share) · vista read-only pública que se activa cuando
-// la URL trae `?share=...&sig=...`. NO requiere login (patrón "send to
-// end client"). Se intercala antes del login-check del App.
-import CollectionShareView from "./catalog/browse/CollectionShareView"
 // F50 · sweep DS · provider global de prompt/confirm modales DS-compliant.
 // Reemplaza los window.prompt/window.confirm nativos.
 import { DialogsProvider } from "./components/dialogs/DialogsContext"
@@ -37,22 +33,11 @@ type Page = 'catalog' | 'manufacturer-insights'
 function App() {
   const { user, initialLoading, signOut, showSessionWarning, refreshSession } = useAuth()
   const [currentPage, setCurrentPage] = useState<Page>('catalog')
-  // F50 · Etapa 8 · si la URL trae `?share=`, activa la vista compartida.
-  // Se mantiene en state para que el "Back to catalog" pueda limpiar el
-  // param sin recargar. Se hidrata una sola vez al mount.
-  const [shareParams, setShareParams] = useState<URLSearchParams | null>(() => {
-    if (typeof window === 'undefined') return null
-    const p = new URLSearchParams(window.location.search)
-    return p.get('share') ? p : null
-  })
-  useEffect(() => {
-    // Cuando el user sale del share view, limpia el param del URL sin
-    // reload (history.replaceState) · la próxima navegación es limpia.
-    if (!shareParams && typeof window !== 'undefined' && window.location.search.includes('share=')) {
-      const clean = window.location.pathname
-      window.history.replaceState({}, '', clean)
-    }
-  }, [shareParams])
+  // MRL scope cleanup · se retira la vista `?share=` de colecciones.
+  // Compartir sí es scope (NEW-10), pero del **proyecto**, con visores,
+  // notificación de apertura y heat map — y el Project Tool ya tiene su
+  // propio link. Esto compartía colecciones de producto, cuya única
+  // superficie de creación era el Showroom retirado. Ver UX-REVIEW H3-2.
 
   const handleNavigate = (page: string) => {
     // MRL scope cleanup · las páginas retiradas ya no son destinos válidos ·
@@ -68,17 +53,6 @@ function App() {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  // F50 · Etapa 8 · vista pública read-only cuando la URL trae `?share=`.
-  // Se muestra antes del login-check para que un destinatario sin cuenta
-  // pueda ver la colección.
-  if (shareParams) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <CollectionShareView search={shareParams} onExit={() => setShareParams(null)} />
       </div>
     )
   }
