@@ -67,10 +67,11 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [isCatalogVersionOpen])
 
+    // MRL scope cleanup (2026-08-27) · Capa 1 · se retiraron los tabs
+    // OCR Tracking, Transactions y Feedback · venían del proyecto Strata
+    // del que este repo se forkeó y ninguna fuente de scope los menciona.
+    // Ver strata-docs/09-mrl-uwh/DIAGNOSIS.md §3.1.
     const tabs: { name: string; label: string; page: string; icon: any; hidden?: boolean }[] = [
-        { name: 'OCR', label: 'OCR Tracking', page: 'ocr-tracking', icon: ScanEye },
-        { name: 'Transactions', label: 'Transactions', page: 'transactions', icon: Receipt },
-        { name: 'Feedback', label: 'Feedback', page: 'feedback', icon: MessageSquare },
         { name: 'Catalog', label: 'Catalog', page: 'catalog', icon: Boxes },
     ]
     const visibleTabs = tabs.filter(t => !t.hidden)
