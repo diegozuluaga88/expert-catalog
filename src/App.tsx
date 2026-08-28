@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
-import { CatalogVersionProvider } from './context/CatalogVersionContext'
 import Login from "./Login"
-import CatalogPage from "./catalog/CatalogPage"
 import CatalogPageV2 from "./catalog/CatalogPageV2"
-import { useCatalogVersion } from './context/CatalogVersionContext'
 // F50 · Etapa 8 (P7 share) · vista read-only pública que se activa cuando
 // la URL trae `?share=...&sig=...`. NO requiere login (patrón "send to
 // end client"). Se intercala antes del login-check del App.
@@ -26,17 +23,12 @@ import ManufacturerInsightsPage from "./catalog/insights/ManufacturerInsightsPag
 // El landing pasa de 'ocr-tracking' a 'catalog' · un stakeholder que abre
 // el link aterriza en el producto, no en una pantalla de tracking de OCR
 // (UX-REVIEW.md · hallazgo H4-1, severidad 4 · falla el Trunk Test).
+// MRL scope cleanup (2026-08-27) · Capa 2 · V1 y el CatalogVersionContext
+// se retiraron. El provider arrancaba en 'v1' con localStorage vacío, así
+// que quien abría el link por primera vez veía una versión distinta de la
+// que veía el resto del equipo — dos productos detrás de una URL
+// (UX-REVIEW.md · H4-2, severidad 4). Ahora hay una sola versión.
 type Page = 'catalog' | 'manufacturer-insights'
-
-// F49 · componente interno que lee el context de CatalogVersion para elegir
-// entre v1 (actual) y v2 (refactor UX). Necesita vivir dentro del Provider,
-// por eso está separado del App root.
-function CatalogPageSwitcher({ onLogout, onNavigate }: { onLogout: () => void; onNavigate: (p: string) => void }) {
-  const { version } = useCatalogVersion()
-  return version === 'v2'
-    ? <CatalogPageV2 onLogout={onLogout} onNavigate={onNavigate} />
-    : <CatalogPage onLogout={onLogout} onNavigate={onNavigate} />
-}
 
 function App() {
   const { user, initialLoading, signOut, showSessionWarning, refreshSession } = useAuth()
@@ -78,15 +70,12 @@ function App() {
 
   // F50 · Etapa 8 · vista pública read-only cuando la URL trae `?share=`.
   // Se muestra antes del login-check para que un destinatario sin cuenta
-  // pueda ver la colección. Vive dentro del CatalogVersionProvider para
-  // habilitar el Import a colecciones (que sí requiere tenant activo).
+  // pueda ver la colección.
   if (shareParams) {
     return (
-      <CatalogVersionProvider>
-        <div className="min-h-screen bg-background text-foreground">
-          <CollectionShareView search={shareParams} onExit={() => setShareParams(null)} />
-        </div>
-      </CatalogVersionProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <CollectionShareView search={shareParams} onExit={() => setShareParams(null)} />
+      </div>
     )
   }
 
@@ -106,13 +95,12 @@ function App() {
           />
         )
       default:
-        return <CatalogPageSwitcher onLogout={handleLogout} onNavigate={handleNavigate} />
+        return <CatalogPageV2 onLogout={handleLogout} onNavigate={handleNavigate} />
     }
   }
 
   return (
-    <CatalogVersionProvider>
-      <DialogsProvider>
+    <DialogsProvider>
       <div className="min-h-screen bg-background text-foreground">
         {renderPage()}
         <SessionExpiryModal
@@ -126,8 +114,7 @@ function App() {
             MRL scope cleanup · sale en Capa 2 junto con quote/ (MRL no cotiza). */}
         {currentPage === 'catalog' && <EditQuoteItemPanel />}
       </div>
-      </DialogsProvider>
-    </CatalogVersionProvider>
+    </DialogsProvider>
   )
 }
 

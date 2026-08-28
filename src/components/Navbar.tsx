@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useCatalogVersion } from '../context/CatalogVersionContext'
 import { useTheme } from 'strata-design-system'
 import { useTenant } from '../TenantContext'
-import { ScanEye, MessageSquare, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Receipt, Menu as MenuIcon, X as XIcon, BarChart3 } from 'lucide-react'
+import { MessageSquare, Moon, Sun, LogOut, ChevronDown, Building2, Check, KeyRound, Boxes, Menu as MenuIcon, X as XIcon, BarChart3 } from 'lucide-react'
 // F71b · delivery notifications hub · bell + dropdown con eventos de
 // shipped/delivered persistentes. Reemplaza el <Bell> estático que había
 // en el navbar sin dropdown ni badge.
@@ -18,7 +17,7 @@ import ChangePasswordModal from './auth/ChangePasswordModal'
 // se eliminaron · el signal se movió al ManageSetupPanel del MRL sidebar
 // (y al badge del tab Manufacturers del modal My Setup).
 
-type NavTab = 'OCR' | 'Feedback'
+type NavTab = 'Catalog'
 
 interface NavbarProps {
     onLogout: () => void;
@@ -27,25 +26,23 @@ interface NavbarProps {
     onNavigate: (page: any) => void;
 }
 
-export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: NavbarProps) {
+export default function Navbar({ onLogout, activeTab = 'Catalog', onNavigate }: NavbarProps) {
     const { theme, toggleTheme } = useTheme()
     const { user } = useAuth()
     const { selectedTenants, tenants, toggleTenant, selectAll } = useTenant()
 
-    // F49 · v1 (actual) vs v2 (refactor UX) · el dropdown del tab "Catalog"
-    // permite a los stakeholders comparar la versión estable con la que va
-    // avanzando el refactor sin bloquear ninguna de las dos.
-    const { version: catalogVersion, setVersion: setCatalogVersion } = useCatalogVersion()
+    // MRL scope cleanup (2026-08-27) · Capa 2 · el dropdown de versión del
+    // catálogo se eliminó junto con V1. Había dos productos distintos detrás
+    // de una misma URL, y quien abría sin localStorage previo veía V1
+    // (UX-REVIEW.md · H4-2, severidad 4).
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
     const [showChangePassword, setShowChangePassword] = useState(false)
     const [isTenantOpen, setIsTenantOpen] = useState(false)
-    const [isCatalogVersionOpen, setIsCatalogVersionOpen] = useState(false)
     // F56b · mobile nav drawer · abre las 4 nav tabs en fullscreen dialog
     // cuando la viewport es <md (el pill fixed no cabe con logo + tabs +
     // avatar + acciones · antes overflow-clippeaba).
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
     const tenantRef = useRef<HTMLDivElement>(null)
-    const catalogVersionRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -56,16 +53,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
         if (isTenantOpen) document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [isTenantOpen])
-
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (catalogVersionRef.current && !catalogVersionRef.current.contains(e.target as Node)) {
-                setIsCatalogVersionOpen(false)
-            }
-        }
-        if (isCatalogVersionOpen) document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [isCatalogVersionOpen])
 
     // MRL scope cleanup (2026-08-27) · Capa 1 · se retiraron los tabs
     // OCR Tracking, Transactions y Feedback · venían del proyecto Strata
@@ -161,79 +148,6 @@ export default function Navbar({ onLogout, activeTab = 'OCR', onNavigate }: Navb
                         {visibleTabs.map(tab => {
                             const isActive = activeTab === tab.name
                             const Icon = tab.icon
-                            // F49 · el tab "Catalog" abre un dropdown de versiones
-                            // (v1 actual · v2 refactor UX) en vez de navegar directo.
-                            if (tab.name === 'Catalog') {
-                                return (
-                                    <div key={tab.name} className="relative" ref={catalogVersionRef}>
-                                        <button
-                                            onClick={() => setIsCatalogVersionOpen(!isCatalogVersionOpen)}
-                                            className={`relative flex items-center justify-center h-9 px-3 rounded-full transition-all duration-300 group overflow-hidden ${
-                                                isActive
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'hover:bg-white/90 dark:hover:bg-zinc-800/90 text-muted-foreground hover:text-foreground hover:shadow-sm'
-                                            }`}
-                                            aria-haspopup="menu"
-                                            aria-expanded={isCatalogVersionOpen}
-                                        >
-                                            <span className="relative z-10"><Icon className="w-5 h-5" /></span>
-                                            <span className={`ml-2 text-sm font-bold whitespace-nowrap transition-all duration-300 ease-in-out ${
-                                                isActive ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100'
-                                            }`}>
-                                                {tab.label}
-                                            </span>
-                                            <ChevronDown className={`ml-1 h-3 w-3 shrink-0 transition-transform ${isCatalogVersionOpen ? 'rotate-180' : ''} ${
-                                                isActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'
-                                            }`} />
-                                        </button>
-
-                                        {isCatalogVersionOpen && (
-                                            <div
-                                                className="absolute right-1/2 translate-x-1/2 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-lg z-50 p-1 animate-in fade-in slide-in-from-top-2 duration-200"
-                                                role="menu"
-                                            >
-                                                <div className="px-3 py-2 border-b border-border mb-1">
-                                                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Catalog version</span>
-                                                </div>
-                                                {(['v1', 'v2'] as const).map(v => {
-                                                    const isSelected = catalogVersion === v
-                                                    const label = v === 'v1' ? 'v1 (actual)' : 'v2 (refactor UX)'
-                                                    const sub = v === 'v1'
-                                                        ? '5 sub-tabs · MRL · Dealer · Figma · Product Catalog · My Selection'
-                                                        : 'Sin Figma/Dealer · 3 sub-tabs (MRL · Product Catalog · My Selection)'
-                                                    return (
-                                                        <button
-                                                            key={v}
-                                                            role="menuitemradio"
-                                                            aria-checked={isSelected}
-                                                            onClick={() => {
-                                                                setCatalogVersion(v)
-                                                                setIsCatalogVersionOpen(false)
-                                                                onNavigate(tab.page)
-                                                            }}
-                                                            className="w-full flex items-start gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors text-left"
-                                                        >
-                                                            <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                                                                isSelected ? 'bg-primary border-primary' : 'border-border'
-                                                            }`}>
-                                                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className={`text-sm ${isSelected ? 'text-foreground font-semibold' : 'text-foreground font-medium'}`}>
-                                                                    {label}
-                                                                </div>
-                                                                <div className="text-[10px] text-muted-foreground leading-snug mt-0.5">
-                                                                    {sub}
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    )
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            }
                             return (
                                 <button
                                     key={tab.name}
