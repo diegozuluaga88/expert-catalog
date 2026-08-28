@@ -13,7 +13,7 @@
 //   "Systems Casegoods") · Nielsen H2 · match real world.
 // - Nombre debajo del binder ELIMINADO · Nielsen H8 · aesthetic +
 //   H6 · recognition. En vez, tooltip on hover con `manufacturer.name`.
-// - Círculo pasa a stateful (My Binders) con hitbox amplio (Fitts).
+// - Círculo pasa a stateful (Custom Library) con hitbox amplio (Fitts).
 // - Shadow-glow DS-aligned al hover (dark mode).
 //
 // Tooltip pattern · CSS-only (group-hover) espejo del TabInfoTooltip
@@ -29,7 +29,7 @@ interface BinderSpineProps {
   label?: string
   /** MRL Fase 3 · override del size que viene de `manufacturer.size`. */
   size?: 'sm' | 'md' | 'lg'
-  /** MRL Fase 3 · estado "en My Binders" para el fill del círculo. */
+  /** MRL Fase 3 · estado "en Custom Library" para el fill del círculo. */
   isInMyBinders?: boolean
   /** MRL Fase 3 · callback del toggle · dispara `stopPropagation`. */
   onToggleBinder?: (id: string) => void
@@ -138,12 +138,12 @@ export default function BinderSpine({
             )}
           </div>
 
-          {/* Bottom circle · stateful My Binders toggle.
+          {/* Bottom circle · stateful Custom Library toggle.
               Hitbox amplio (p-2) para Fitts · círculo visible se queda w-5 h-5. */}
           <button
             type="button"
             onClick={handleToggleClick}
-            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from My Binders` : `Add ${manufacturer.name} to My Binders`}
+            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from Custom Library` : `Add ${manufacturer.name} to Custom Library`}
             className="group/dot absolute bottom-1 left-1/2 -translate-x-1/2 p-2 rounded-full"
             style={{ color: manufacturer.textColor }}
           >
@@ -168,7 +168,7 @@ export default function BinderSpine({
               role="tooltip"
               className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[70] whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 invisible transition-opacity duration-150 delay-200 group-hover/dot:opacity-100 group-hover/dot:visible"
             >
-              {isInMyBinders ? 'Remove from My Binders' : 'Add to My Binders'}
+              {isInMyBinders ? 'Remove from Custom Library' : 'Add to Custom Library'}
             </span>
           </button>
         </div>

@@ -21,11 +21,11 @@ import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription, Emp
 interface ShelfViewV2Props {
   manufacturers: Manufacturer[]
   onSelect: (m: Manufacturer) => void
-  /** MRL Fase 3 · pipe hacia BinderLibrary para feedback del My Binders toggle. */
+  /** MRL Fase 3 · pipe hacia BinderLibrary para feedback del Custom Library toggle. */
   onToast?: (type: ToastType, message: string, action?: ToastAction) => void
-  /** MRL Fase 4 · si true, filtra el shelf a solo los IDs de My Binders. */
+  /** MRL Fase 4 · si true, filtra el shelf a solo los IDs de Custom Library. */
   showMyBindersOnly?: boolean
-  /** MRL Fase 4 · Set de IDs guardados en My Binders (viene del hook a
+  /** MRL Fase 4 · Set de IDs guardados en Custom Library (viene del hook a
    *  través de LibraryPage · Fase 6 lo wire desde el sidebar). */
   myBinderIds?: Set<string>
   /** MRL Fase 4 · callback del chip para limpiar el filtro. */
@@ -42,7 +42,7 @@ export default function ShelfViewV2({
   myBinderIds,
   onClearFilter,
 }: ShelfViewV2Props) {
-  // Aplicar filtro My Binders si está activo · precede al expand por
+  // Aplicar filtro Custom Library si está activo · precede al expand por
   // binderCount para que las copias también se filtren correctamente.
   const filtered = showMyBindersOnly && myBinderIds
     ? manufacturers.filter(m => myBinderIds.has(m.id))
@@ -74,12 +74,12 @@ export default function ShelfViewV2({
       {/* Chip de filtro activo · Nielsen H1 · visibility of system status */}
       {showMyBindersOnly && (
         <div className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-sm font-medium text-foreground">
-          <span>Filtered · My Binders ({filterCount})</span>
+          <span>Filtered · Custom Library ({filterCount})</span>
           {onClearFilter && (
             <button
               type="button"
               onClick={onClearFilter}
-              aria-label="Clear My Binders filter"
+              aria-label="Clear Custom Library filter"
               className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-foreground/10 transition-colors"
             >
               <X className="h-3 w-3" strokeWidth={2.5} />
@@ -124,7 +124,7 @@ export default function ShelfViewV2({
           <EmptyStateTitle>No binders to show</EmptyStateTitle>
           <EmptyStateDescription>
             {showMyBindersOnly
-              ? "You haven't saved any binders to My Binders yet · click the circle on any binder to add it."
+              ? "You haven't saved any binders to Custom Library yet · click the circle on any binder to add it."
               : 'Try adjusting your search or category filter.'}
           </EmptyStateDescription>
           {showMyBindersOnly && onClearFilter && (
