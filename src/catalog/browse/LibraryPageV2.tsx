@@ -9,7 +9,7 @@
 //     search, tags) es idéntica a v1.
 
 import { useState, useEffect } from 'react'
-import { PackageSearch, Menu as MenuIcon, X as XIcon } from 'lucide-react'
+import { Menu as MenuIcon, X as XIcon } from 'lucide-react'
 import { Dialog as HeadlessDialog } from '@headlessui/react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import { PRODUCTS_MANUFACTURERS, MATERIALS_MANUFACTURERS } from '../data/manufacturers'
@@ -24,7 +24,8 @@ import FilterSidebar from '../components/FilterSidebar'
 import MRLSidebarAds from '../components/MRLSidebarAds'
 import { useMyBinders } from './useMyBinders'
 import { ToastContainer, useToast } from '../../components/AuthToast'
-import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } from 'strata-design-system'
+import LibraryEmptyState from '../components/LibraryEmptyState'
+import { MOCK_PRODUCT_CATEGORIES, MOCK_MATERIAL_CATEGORIES } from '../data/mockCategories'
 // F50 · Etapa 9-ext · v2 · command palette compartido con el Product Catalog.
 // F70c (2026-08-07) · el MRL ahora también consume productos + visual search
 // (P1 del PRD · search AI/visual sitewide). Al abrir un producto desde el
@@ -246,15 +247,29 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
           <TabIntroBanner variant="library" />
           {filtered.length === 0 ? (
             // F50 · Wave 2.c · empty state con ilustración del design system.
-            <EmptyState>
-              <EmptyStateIcon>
-                <PackageSearch className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-              </EmptyStateIcon>
-              <EmptyStateTitle>No manufacturers found</EmptyStateTitle>
-              <EmptyStateDescription>
-                Try adjusting your filters or search.
-              </EmptyStateDescription>
-            </EmptyState>
+            <LibraryEmptyState
+              baseList={baseList}
+              search={search}
+              selectedCategory={selectedCategory}
+              activeTags={activeTags}
+              showMyBindersOnly={showMyBindersOnly}
+              myBinderIds={myBinderIds}
+              categoryCandidates={(activeTab === 'products' ? MOCK_PRODUCT_CATEGORIES : MOCK_MATERIAL_CATEGORIES).map(c => c.name)}
+              onClearSearch={() => setSearch('')}
+              onClearCategory={() => setSelectedCategory(null)}
+              onClearTags={() => setActiveTags(new Set())}
+              onClearBinders={() => setShowMyBindersOnly(false)}
+              onClearAll={() => {
+                setSearch('')
+                setSelectedCategory(null)
+                setActiveTags(new Set())
+                setShowMyBindersOnly(false)
+              }}
+              onSelectCategory={(name) => {
+                setSelectedCategory(name)
+                setSearch('')
+              }}
+            />
           ) : viewMode === 'shelf' ? (
             <ShelfView
               manufacturers={filtered}
