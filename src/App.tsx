@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
-import { CatalogVersionProvider, useCatalogVersion } from './context/CatalogVersionContext'
+import { CatalogVersionProvider } from './context/CatalogVersionContext'
 import Login from "./Login"
-import OCRTracking from "./OCRTracking"
-import FeedbackBoard from "./FeedbackBoard"
 import CatalogPage from "./catalog/CatalogPage"
 import CatalogPageV2 from "./catalog/CatalogPageV2"
+import { useCatalogVersion } from './context/CatalogVersionContext'
 // F50 · Etapa 8 (P7 share) · vista read-only pública que se activa cuando
 // la URL trae `?share=...&sig=...`. NO requiere login (patrón "send to
 // end client"). Se intercala antes del login-check del App.
@@ -13,27 +12,21 @@ import CollectionShareView from "./catalog/browse/CollectionShareView"
 // F50 · sweep DS · provider global de prompt/confirm modales DS-compliant.
 // Reemplaza los window.prompt/window.confirm nativos.
 import { DialogsProvider } from "./components/dialogs/DialogsContext"
-import Transactions from "./Transactions"
-import OrderDetail from "./OrderDetail"
-import AckDetail from "./AckDetail"
-import Navbar from "./components/Navbar"
 import SessionExpiryModal from "./components/SessionExpiryModal"
 import EditQuoteItemPanel from "./quote/EditQuoteItemPanel"
-// F58b.3 · MyDealerInfoPage ya no es page top-level · su content se
-// embebe en la tab Manufacturers del modal My Setup (CatalogImportModal).
 // F67 · Manufacturer insights dashboard · demo del "View as manufacturer"
 // del PRD Section 05 · accessible desde el user menu del Navbar.
 import ManufacturerInsightsPage from "./catalog/insights/ManufacturerInsightsPage"
 
-type Page = 'ocr-tracking' | 'feedback' | 'catalog' | 'transactions' | 'order-detail' | 'ack-detail' | 'manufacturer-insights'
-
-export interface ConvertedDocument {
-  id: string
-  vendor: string
-  name: string
-  type: 'po' | 'ack'
-  tab: 'orders' | 'acknowledgments'
-}
+// MRL scope cleanup (2026-08-27) · Capa 1 · se retiraron las páginas que
+// venían del proyecto Strata del que este repo se forkeó y que ninguna
+// fuente de scope menciona: OCRTracking, Transactions, OrderDetail,
+// AckDetail y FeedbackBoard. Ver strata-docs/09-mrl-uwh/DIAGNOSIS.md §3.1.
+//
+// El landing pasa de 'ocr-tracking' a 'catalog' · un stakeholder que abre
+// el link aterriza en el producto, no en una pantalla de tracking de OCR
+// (UX-REVIEW.md · hallazgo H4-1, severidad 4 · falla el Trunk Test).
+type Page = 'catalog' | 'manufacturer-insights'
 
 // F49 · componente interno que lee el context de CatalogVersion para elegir
 // entre v1 (actual) y v2 (refactor UX). Necesita vivir dentro del Provider,
@@ -47,8 +40,7 @@ function CatalogPageSwitcher({ onLogout, onNavigate }: { onLogout: () => void; o
 
 function App() {
   const { user, initialLoading, signOut, showSessionWarning, refreshSession } = useAuth()
-  const [currentPage, setCurrentPage] = useState<Page>('ocr-tracking')
-  const [convertedDoc, setConvertedDoc] = useState<ConvertedDocument | null>(null)
+  const [currentPage, setCurrentPage] = useState<Page>('catalog')
   // F50 · Etapa 8 · si la URL trae `?share=`, activa la vista compartida.
   // Se mantiene en state para que el "Back to catalog" pueda limpiar el
   // param sin recargar. Se hidrata una sola vez al mount.
@@ -66,22 +58,14 @@ function App() {
     }
   }, [shareParams])
 
-  // F58b.3 · listener 'expert-hub:navigate-to-dealer-info' removido ·
-  // el ManufacturerInfoBarV2 ahora dispara 'expert-hub:open-setup-modal'
-  // que el CatalogPageV2 shell escucha para abrir el modal My Setup en
-  // la tab Manufacturers con filter pre-seteado.
-
   const handleNavigate = (page: string) => {
-    setCurrentPage(page as Page)
+    // MRL scope cleanup · las páginas retiradas ya no son destinos válidos ·
+    // cualquier navegación desconocida cae al catálogo en vez de romper.
+    setCurrentPage(page === 'manufacturer-insights' ? 'manufacturer-insights' : 'catalog')
   }
 
   const handleLogout = () => {
     signOut()
-  }
-
-  const handleConvertFromOCR = (doc: ConvertedDocument) => {
-    setConvertedDoc(doc)
-    setCurrentPage('transactions')
   }
 
   if (initialLoading) {
@@ -112,66 +96,17 @@ function App() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'feedback':
-        return <FeedbackBoard onLogout={handleLogout} onNavigate={handleNavigate} />
-      case 'catalog':
-        return <CatalogPageSwitcher onLogout={handleLogout} onNavigate={handleNavigate} />
-      case 'transactions':
-        return (
-          <>
-            <Navbar
-              onLogout={handleLogout}
-              activeTab="Transactions"
-              onNavigateToWorkspace={() => setCurrentPage('transactions')}
-              onNavigate={handleNavigate}
-            />
-            <Transactions
-              onLogout={handleLogout}
-              onNavigateToDetail={(type: string) => {
-                if (type === 'order-detail') setCurrentPage('order-detail')
-                if (type === 'ack-detail') setCurrentPage('ack-detail')
-              }}
-              onNavigateToWorkspace={() => setCurrentPage('transactions')}
-              onNavigate={handleNavigate}
-              convertedDoc={convertedDoc}
-            />
-          </>
-        )
-      case 'order-detail':
-        return (
-          <OrderDetail
-            onBack={() => setCurrentPage('transactions')}
-            onLogout={handleLogout}
-            onNavigate={handleNavigate}
-            onNavigateToWorkspace={() => setCurrentPage('transactions')}
-          />
-        )
-      case 'ack-detail':
-        return (
-          <AckDetail
-            onBack={() => setCurrentPage('transactions')}
-            onLogout={handleLogout}
-            onNavigate={handleNavigate}
-            onNavigateToWorkspace={() => setCurrentPage('transactions')}
-          />
-        )
       case 'manufacturer-insights':
         return (
           <ManufacturerInsightsPage
             onBack={() => setCurrentPage('catalog')}
             onLogout={handleLogout}
             onNavigate={handleNavigate}
-            onNavigateToWorkspace={() => setCurrentPage('transactions')}
+            onNavigateToWorkspace={() => setCurrentPage('catalog')}
           />
         )
       default:
-        return (
-          <OCRTracking
-            onLogout={handleLogout}
-            onNavigate={handleNavigate}
-            onConvertDocument={handleConvertFromOCR}
-          />
-        )
+        return <CatalogPageSwitcher onLogout={handleLogout} onNavigate={handleNavigate} />
     }
   }
 
@@ -185,18 +120,10 @@ function App() {
           onExtend={refreshSession}
           onLogout={handleLogout}
         />
-        {/* Phase 3 Fix #11 · Mini-cart drawer global · slide-in tras Add to Selection.
-            onViewQuote · navega a Catalog y dispara evento para abrir el tab
-            "My Selection" dentro.
-            Mount permanente (Diego ask · fix FAB no aparece) · el componente
-            internamente retorna null cuando no hay cart items · así garantizamos
-            que cuando se agreguen items desde el catalog el drawer/FAB sea
-            visible inmediatamente sin importar la página activa. */}
-        {/* Diego · el cart/FAB se monta dentro de CatalogPage y solo en los tabs
-            Product Catalog (showroom) + My Selection (quotes). Ver CatalogPage.tsx. */}
         {/* Phase 3 polish · panel global para editar variants de un item del cart.
             Aparece cuando user click "Edit" en el drawer o en My Quotes detail.
-            También scoped al catalog ya que es relevante solo en ese contexto. */}
+            Scoped al catalog ya que es relevante solo en ese contexto.
+            MRL scope cleanup · sale en Capa 2 junto con quote/ (MRL no cotiza). */}
         {currentPage === 'catalog' && <EditQuoteItemPanel />}
       </div>
       </DialogsProvider>
