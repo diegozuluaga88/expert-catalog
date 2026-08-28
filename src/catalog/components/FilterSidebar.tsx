@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { PanelLeft, PanelLeftClose } from 'lucide-react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import ViewToggle from './ViewToggle'
 import { MOCK_PRODUCT_CATEGORIES, MOCK_MATERIAL_CATEGORIES } from '../data/mockCategories'
 import { useMyBinders } from '../browse/useMyBinders'
+import { matchesCategoryAlias } from '../data/categoryAliases'
 
 interface FilterSidebarProps {
   manufacturers: Manufacturer[]
@@ -109,6 +110,31 @@ export default function FilterSidebar({
   // que recordar que existe detrás de un checkbox (Nielsen H6).
   const { myBinderIds } = useMyBinders()
   const savedManufacturers = manufacturers.filter(m => myBinderIds.has(m.id))
+
+  // Diego ask (2026-08-28) · las categorías se cuentan contra el seed real
+  // y las que no devuelven ninguna marca no se muestran.
+  //
+  // Antes venían de mockCategories con counts inventados calcados del
+  // referente ("Education 5903", "Outdoor 2922"). 19 de 24 no tenían ni una
+  // marca detrás: el clic prometía miles y entregaba un shelf vacío. Es el
+  // callejón sin salida que Jeff dice no querer ("we never want to have a
+  // Zero result or dead end" · SEARCH-11) y el hallazgo H3-4 del UX-REVIEW.
+  //
+  // Extiende la decisión del análisis heurístico de julio, que ya ocultaba
+  // las categorías con mockCount === 0 (H8) · ahora el criterio es el dato
+  // real en vez del mock. Se auto-mantiene: cuando entre seed nuevo o la
+  // migración traiga datos, las categorías reaparecen solas con su conteo.
+  const backedCategories = useMemo(() => {
+    const source = activeTab === 'products' ? MOCK_PRODUCT_CATEGORIES : MOCK_MATERIAL_CATEGORIES
+    return source
+      .map(({ name }) => ({
+        name,
+        count: manufacturers.filter(m =>
+          matchesCategoryAlias(m.categories.map(c => c.name), name),
+        ).length,
+      }))
+      .filter(c => c.count > 0)
+  }, [activeTab, manufacturers])
 
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
@@ -306,23 +332,22 @@ export default function FilterSidebar({
         )}
       </FilterSection>
 
-      {/* CATEGORY · MRL Fase 9 · lista mock que replica el referente MRL
-          (~24 categorías genéricas con counts inflados en Products, 6 en
-          Materials). Al ser mock, las categorías del referente NO matchean
-          con los `manufacturer.categories[].name` reales del seed · click
-          en una filtra a vacío por design (empty state ya cubre el UX).
-          Sirve para simular la escala visual de la biblioteca del referente. */}
-      <FilterSection label="Category" open={categoryOpen} onToggle={() => setCategoryOpen(o => !o)}>
-        {(activeTab === 'products' ? MOCK_PRODUCT_CATEGORIES : MOCK_MATERIAL_CATEGORIES).map(({ name, count }) => (
-          <CheckItem
-            key={name}
-            label={name}
-            count={count}
-            checked={selectedCategory === name}
-            onChange={() => onCategoryChange(selectedCategory === name ? null : name)}
-          />
-        ))}
-      </FilterSection>
+      {/* CATEGORY · solo las que devuelven marcas, con su conteo real.
+          Ver el cálculo de backedCategories arriba. La sección entera se
+          oculta si ninguna tiene respaldo · un acordeón vacío es ruido. */}
+      {backedCategories.length > 0 && (
+        <FilterSection label="Category" open={categoryOpen} onToggle={() => setCategoryOpen(o => !o)}>
+          {backedCategories.map(({ name, count }) => (
+            <CheckItem
+              key={name}
+              label={name}
+              count={count}
+              checked={selectedCategory === name}
+              onChange={() => onCategoryChange(selectedCategory === name ? null : name)}
+            />
+          ))}
+        </FilterSection>
+      )}
 
       {/* COLOR */}
       <FilterSection label="Color" open={colorOpen} onToggle={() => setColorOpen(o => !o)}>
