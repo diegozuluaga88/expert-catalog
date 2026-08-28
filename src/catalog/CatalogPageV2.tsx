@@ -142,6 +142,16 @@ export default function CatalogPageV2({ onLogout, onNavigate }: CatalogPageProps
               navigate({ page: 'manufacturer', manufacturer: nav.manufacturer })
             }
             onAddToProject={(p) => setAddToProjectProduct(p)}
+            // Find Similar · el match puede ser de otra marca y otra
+            // categoría, así que se navega con el contexto completo.
+            onSelectSimilar={(m) =>
+              navigate({
+                page: 'product',
+                manufacturer: m.manufacturer,
+                category: m.category,
+                product: m.rawProduct,
+              })
+            }
           />
         ) : null
       default:

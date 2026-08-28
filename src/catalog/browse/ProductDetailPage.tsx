@@ -31,6 +31,8 @@ import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
 import { enrichProductForDetail } from '../data/mockProductFallbacks'
 import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 import { skuForProduct } from './catalogSku'
+import SimilarProducts from './SimilarProducts'
+import type { SimilarMatch } from './findSimilar'
 
 // MRL Product Detail P9 (2026-07-10) · Diego pidió integrar las 2 tab bars
 // (info-panel + primaria Images/Parts/Options) en una sola · unificamos
@@ -54,6 +56,10 @@ interface ProductDetailPageProps {
   /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · si llega Y el
    *  producto es material, muestra botón "Request sample" al lado. */
   onRequestSample?: (p: Product) => void
+  /** Find Similar (SOW §9.1) · si llega, se renderea la sección de
+   *  productos similares al pie. Sin handler no se muestra: una lista de
+   *  resultados que no lleva a ninguna parte es peor que no tenerla. */
+  onSelectSimilar?: (m: SimilarMatch) => void
 }
 
 function EmptyState({ label }: { label: string }) {
@@ -117,7 +123,7 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 }
 
 export default function ProductDetailPage({
-  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject, onRequestSample,
+  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject, onRequestSample, onSelectSimilar,
 }: ProductDetailPageProps) {
   // F50 · sample flow fix · igual que CategoryPage · derivamos del
   // manufacturer.type porque los productos del MRL vienen sin isMaterial.
@@ -638,6 +644,19 @@ export default function ProductDetailPage({
             )}
           </div>
         </div>
+
+        {/* Find Similar (SOW §9.1) · al pie, después de que el usuario
+            ya vio de qué se trata este producto. Antes del contenido
+            competiría con él; ésta es la salida natural cuando el
+            producto no termina de convencer. */}
+        {onSelectSimilar && (
+          <SimilarProducts
+            product={product}
+            category={category}
+            manufacturer={rawManufacturer}
+            onSelect={onSelectSimilar}
+          />
+        )}
       </div>
     </div>
     </div>
