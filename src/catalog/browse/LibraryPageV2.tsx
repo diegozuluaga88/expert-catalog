@@ -181,6 +181,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
       activeTags={activeTags}
       onTagsChange={setActiveTags}
       onSearchClick={() => setSearchPaletteOpen(true)}
+      onSelectManufacturer={onSelectManufacturer}
       bottomSlot={<>
         {/* F58b.2 · ManageSetupPanel · shortcut al modal My Setup
             (Catalogs · Manufacturers · Buying preferences) desde el MRL. */}
