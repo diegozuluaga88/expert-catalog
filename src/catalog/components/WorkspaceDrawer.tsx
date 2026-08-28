@@ -31,8 +31,11 @@ import { useSampleRequests, type SampleRequest } from '../browse/useSampleReques
 import CartContent from '../../quote/CartContent'
 
 interface WorkspaceDrawerProps {
-    /** Callback para navegar al sub-tab My Selection (QuotesPageV2). */
-    onViewSelection: () => void
+    /** Callback para navegar al sub-tab My Selection (QuotesPageV2).
+     *  MRL scope cleanup (2026-08-27) · Capa 2b · pasa a opcional · el tab
+     *  My Selection se retiró (MRL no cotiza) y con `hideCart` esta prop
+     *  no se usa. El carrito completo sale con quote/ en la Capa 2c. */
+    onViewSelection?: () => void
     /** Callback para abrir el SampleTrackingSlideOver. */
     onOpenSampleTracking: () => void
     /** F65 · scope cleanup · cuando true, la sección Selection del cart
@@ -212,7 +215,7 @@ export default function WorkspaceDrawer({ onViewSelection, onOpenSampleTracking,
                 <CartContent
                     justAddedIds={lastAdded ? new Set(lastAdded.addedItems.map((i) => i.id)) : undefined}
                     onViewSelection={() => {
-                        onViewSelection()
+                        onViewSelection?.()
                         handleClose()
                     }}
                 />
