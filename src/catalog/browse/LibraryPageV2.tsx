@@ -45,9 +45,6 @@ import TabIntroBanner from '../components/TabIntroBanner'
 // F51 · B.2 · P3 Miller Knoll skeleton · se renderiza cuando la URL
 // trae ?mkPreview=1 · scaffolding editable (screenshots pendientes).
 import LibraryPageV2MK from './LibraryPageV2MK'
-// F58a.1 · panel Inspiration en la sidebar del MRL · reemplaza el
-// sub-tab Inspiration que existía a nivel CatalogPageV2.
-import InspirationPanel from '../spaces/InspirationPanel'
 
 interface LibraryPageV2Props {
   onSelectManufacturer: (m: Manufacturer) => void
@@ -81,7 +78,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   })
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  // MRL Fase 6 (2026-07-09) · state del filtro "My Binders" · owned aquí y
+  // MRL Fase 6 (2026-07-09) · state del filtro "Custom Library" · owned aquí y
   // propagado tanto a FilterSidebar (checkbox) como a ShelfView (aplica el
   // filtro + renderiza el chip). Es de sesión, no persiste en localStorage.
   const [showMyBindersOnly, setShowMyBindersOnly] = useState(false)
@@ -94,7 +91,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
   // + seed inicial de 3 IDs. Se propaga `myBinderIds` a ShelfView para filtrar.
   const { myBinderIds } = useMyBinders()
   // MRL Fase 3 (2026-07-09) · toast global de la page para el feedback de
-  // My Binders toggle. Se propaga como prop a ShelfView → BinderLibrary.
+  // Custom Library toggle. Se propaga como prop a ShelfView → BinderLibrary.
   const { toasts, addToast, dismissToast } = useToast()
 
   // F50 · Wave 5 · v2 · drawer mobile del FilterSidebar. En desktop la
@@ -185,10 +182,6 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
       onTagsChange={setActiveTags}
       onSearchClick={() => setSearchPaletteOpen(true)}
       bottomSlot={<>
-        {/* F58a.1 · InspirationPanel · widget nuevo para acceder al toggle
-            Inspiration del Product Catalog desde el MRL sin tener que
-            navegar out. Collapsed by default para no empujar los filtros. */}
-        <InspirationPanel />
         {/* F58b.2 · ManageSetupPanel · shortcut al modal My Setup
             (Catalogs · Manufacturers · Buying preferences) desde el MRL. */}
         <ManageSetupPanel />
@@ -330,7 +323,7 @@ export default function LibraryPageV2({ onSelectManufacturer }: LibraryPageV2Pro
         onOpenProduct={openProductByBrand}
       />
 
-      {/* Toast container · muestra feedback de My Binders toggle */}
+      {/* Toast container · muestra feedback de Custom Library toggle */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   )

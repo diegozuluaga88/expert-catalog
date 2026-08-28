@@ -89,7 +89,7 @@ export default function BinderWide({
           <button
             type="button"
             onClick={handleToggleClick}
-            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from My Binders` : `Add ${manufacturer.name} to My Binders`}
+            aria-label={isInMyBinders ? `Remove ${manufacturer.name} from Custom Library` : `Add ${manufacturer.name} to Custom Library`}
             className="group/dot relative p-2 rounded-full"
             style={{ color: manufacturer.textColor }}
           >
@@ -109,7 +109,7 @@ export default function BinderWide({
               role="tooltip"
               className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 z-[70] whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 invisible transition-opacity duration-150 delay-200 group-hover/dot:opacity-100 group-hover/dot:visible"
             >
-              {isInMyBinders ? 'Remove from My Binders' : 'Add to My Binders'}
+              {isInMyBinders ? 'Remove from Custom Library' : 'Add to Custom Library'}
             </span>
           </button>
         </div>

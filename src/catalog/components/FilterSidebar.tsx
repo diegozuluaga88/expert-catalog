@@ -16,9 +16,9 @@ interface FilterSidebarProps {
   onSearchChange: (v: string) => void
   viewMode: ViewMode
   onViewModeChange: (v: ViewMode) => void
-  /** MRL Fase 6 · state del filtro "My Binders" (owned por LibraryPage). */
+  /** MRL Fase 6 · state del filtro "Custom Library" (owned por LibraryPage). */
   showMyBindersOnly?: boolean
-  /** MRL Fase 6 · toggle del filtro "My Binders". */
+  /** MRL Fase 6 · toggle del filtro "Custom Library". */
   onMyBindersToggle?: () => void
   /** MRL Fase 8 · Set de tags activos (quickship, gsa, cet, cil) owned por
    *  LibraryPage · filtra el shelf por intersect con `manufacturer.tags`. */
@@ -221,10 +221,10 @@ export default function FilterSidebar({
       <FilterSection label="Tags" open={tagsOpen} onToggle={() => setTagsOpen(o => !o)}>
         {activeTab === 'products' ? (
           <>
-            {/* MRL Fase 6 · "My Binders" wire real al hook useMyBinders via LibraryPage.
+            {/* MRL Fase 6 · "Custom Library" wire real al hook useMyBinders via LibraryPage.
                 Diego ask · en el contexto de MRL "binders" y "favoritos" son lo mismo. */}
             <CheckItem
-              label="My Binders"
+              label="Custom Library"
               checked={showMyBindersOnly}
               onChange={() => onMyBindersToggle?.()}
             />
@@ -238,7 +238,7 @@ export default function FilterSidebar({
         ) : (
           <>
             <CheckItem
-              label="My Binders"
+              label="Custom Library"
               checked={showMyBindersOnly}
               onChange={() => onMyBindersToggle?.()}
             />
@@ -295,9 +295,9 @@ export default function FilterSidebar({
       {/* BINDER FILTERS · duplicado del UI del referente · usa el mismo `activeTags`
           state que Tags para que un click acá se refleje en ambos accordions. */}
       <FilterSection label="Binder Filters" open={binderOpen} onToggle={() => setBinderOpen(o => !o)}>
-        {/* MRL Fase 6 · mismo wire real al hook (mirror del Tags · My Binders). */}
+        {/* MRL Fase 6 · mismo wire real al hook (mirror del Tags · Custom Library). */}
         <CheckItem
-          label="My Binders"
+          label="Custom Library"
           checked={showMyBindersOnly}
           onChange={() => onMyBindersToggle?.()}
         />
