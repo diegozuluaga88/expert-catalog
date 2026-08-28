@@ -1,73 +1,53 @@
-# React + TypeScript + Vite
+# expert-catalog — prototipo MRL
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Prototipo de catálogo para el programa **MRL** (*My Resource Library*), construido sobre el Strata Design System.
 
-Currently, two official plugins are available:
+> 📸 El estado previo al recorte de scope está congelado en **[`mrl-exploration`](https://github.com/diegozuluaga88/mrl-exploration)**. Este repo es el que recibe el trabajo.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Alcance
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+El prototipo se organiza alrededor de las **cinco áreas del MVP** que nombró Jeff en el SOW v5: *Search, new Library/Binder UX, new Reporting, Project Tool y Dealer Left Tab*.
 
-## Expanding the ESLint configuration
+Hoy cubre dos superficies:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Library** — el árbol de binders y el estante, navegación `Library → Binder → Category → Product`
+- **My Projects** — el Project Tool, con rooms, zones e items
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+En agosto de 2026 se retiraron 168 archivos que venían del proyecto del que se copió y no tenían respaldo en ninguna fuente del cliente: tracking de OCR, transacciones, órdenes, acknowledgements, cotización, generative UI, y la V1 del catálogo.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Documentación
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+La fuente de verdad vive en `strata-docs/09-mrl-uwh/`:
+
+| Documento | Para qué |
+|---|---|
+| `STATUS.md` | **Empezar acá** · estado vivo: etapas, qué falta, bloqueos y quién los destraba |
+| `SCOPE-CONSOLIDATED.md` | Qué se construye y qué no, con fuente por fila |
+| `PROPOSAL.md` | La versión nueva, por las cinco áreas de Jeff |
+| `UX-REVIEW.md` | Revisión heurística con severidad |
+| `IMPLEMENTATION.md` | El recorte ejecutado, con sus números |
+
+## Correr el proyecto
+
+```bash
+npm install
+npm run dev              # http://localhost:8086
+npm run build
+npm run scan:security    # obligatorio antes de commitear
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Requiere `npm install` también dentro de `packages/strata-ds` — el design system vendorizado usa Tailwind v4 mientras la raíz usa v3. Si el build falla con `postcss-import: Unknown word "use strict"`, casi siempre es `node_modules` desactualizado, no el repo.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Antes de commitear
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+⚠️ **Este repositorio tuvo tres inyecciones de payload ofuscado.** Hay un scanner y un hook de pre-commit.
+
+- **Nunca `git add -A`.** Stagear archivo por archivo.
+- Revisar el diff de cualquier `.mjs`, `.cjs`, `postcss.config` o script de build antes de agregarlo.
+- `npm run build` regenera seis archivos de tokens en `packages/strata-ds/` con diff vacío — solo cambio de CRLF. Descartar con `git checkout -- packages/`.
+
+## Design System
+
+Las reglas están en `CLAUDE.md` y en el MCP server `strata-ds`. Regla de oro: **tokens semánticos siempre** (`bg-background`, `text-foreground`, `text-success`), nunca colores hardcodeados ni clases Tailwind raw para estados.
