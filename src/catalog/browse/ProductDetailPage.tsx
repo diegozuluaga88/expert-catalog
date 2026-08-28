@@ -33,6 +33,7 @@ import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 import { skuForProduct } from './catalogSku'
 import SimilarProducts from './SimilarProducts'
 import type { SimilarMatch } from './findSimilar'
+import VerifiedAttributes from '../components/VerifiedAttributes'
 
 // MRL Product Detail P9 (2026-07-10) · Diego pidió integrar las 2 tab bars
 // (info-panel + primaria Images/Parts/Options) en una sola · unificamos
@@ -333,6 +334,11 @@ export default function ProductDetailPage({
             <div className="py-6">
                 {activeTab === 'overview' && (
                   <div>
+                    {/* Atributos de tres estados (SOW §9.3) · van primero
+                        porque son criterios de decisión: un hospital que
+                        necesita 24/7 lo resuelve acá, no leyendo features. */}
+                    <VerifiedAttributes product={product} />
+
                     {hasStdFeatures && (
                       <FeatureList
                         title="Standard Features"
