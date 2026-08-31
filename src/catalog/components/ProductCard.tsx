@@ -1,5 +1,6 @@
 import { FolderPlus, Package } from 'lucide-react'
 import type { Product } from '../types'
+import CustomItemBadge from './CustomItemBadge'
 
 interface ProductCardProps {
   product: Product
@@ -50,6 +51,13 @@ export default function ProductCard({ product, onClick, onAddToProject, onReques
             📦
           </div>
         )}
+
+        {/* US-013 · el indicador custom tiene que viajar con el ítem a
+            resultados y listas, no vivir solo en el registro. Arriba a
+            la izquierda porque las acciones de hover ocupan la derecha. */}
+        <div className="absolute left-2 top-2 z-10">
+          <CustomItemBadge product={product} onImage />
+        </div>
 
         {/* Colorways count badge · Diego a11y ask (2026-07-10):
             border-white / text-white / bg-black eran raw · reemplazados

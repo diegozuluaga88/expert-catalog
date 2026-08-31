@@ -42,6 +42,8 @@ import { useDialogs } from '../../components/dialogs/DialogsContext'
 // F52 · E · botón "Dealer terms" del toolbar · abre modal con
 // MyDealerInfoPage en modo contextual filtrado a los brands presentes.
 import ProjectDealerTermsModal from './ProjectDealerTermsModal'
+import CustomItemBadge from '../components/CustomItemBadge'
+import CustomQuantityWarning from '../components/CustomQuantityWarning'
 
 interface ProjectDetailViewProps {
     project: Project
@@ -903,8 +905,9 @@ function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemov
                 onDragStart()
             }}
             onDragEnd={onDragEnd}
-            className="group flex cursor-grab items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 hover:border-foreground/20 active:cursor-grabbing"
+            className="group cursor-grab rounded-md border border-border bg-background px-2 py-1.5 hover:border-foreground/20 active:cursor-grabbing"
         >
+          <div className="flex items-center gap-2">
             <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
                 {product ? (
                     <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
@@ -916,9 +919,13 @@ function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemov
                 <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground truncate">
                     {product?.brand ?? '—'}
                 </p>
-                <p className="text-xs font-semibold text-foreground truncate">
-                    {product?.name ?? 'Missing product'}
-                </p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">
+                        {product?.name ?? 'Missing product'}
+                    </p>
+                    {/* US-013 · el indicador también en la vista de lista. */}
+                    {product && <CustomItemBadge product={product} />}
+                </div>
                 {item.notes && (
                     <p className="mt-0.5 text-[10px] italic text-muted-foreground truncate">{item.notes}</p>
                 )}
@@ -964,6 +971,13 @@ function ItemRow({ item, product, onIncrement, onDecrement, onEditNotes, onRemov
             >
                 <Trash2 className="h-3 w-3" />
             </button>
+          </div>
+
+          {/* US-013 · la advertencia vive junto a la cantidad que la
+              dispara, y se queda mientras la cantidad siga alta. No es
+              un diálogo: los diálogos se descartan sin leer, y este
+              aviso existe para el caso en que alguien va en automático. */}
+          {product && <CustomQuantityWarning product={product} quantity={item.qty} variant="inline" />}
         </li>
     )
 }
