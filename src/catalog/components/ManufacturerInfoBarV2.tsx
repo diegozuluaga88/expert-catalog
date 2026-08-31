@@ -20,7 +20,7 @@
 // para el dealer).
 
 import { ArrowTopRightOnSquareIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline'
-import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake, Lock, Pencil, Check, X as XIcon } from 'lucide-react'
+import { CreditCard, Truck, Percent, MessageSquare, Clock, UserCog, Handshake, Pencil, Check, X as XIcon } from 'lucide-react'
 import type { Manufacturer } from '../types'
 import { useState } from 'react'
 import { useTenant } from '../../TenantContext'
@@ -195,15 +195,19 @@ function DealerRelationshipSection({
                     )}
                 </div>
             </div>
-            {/* F65.2b · role-gate chip · marca visualmente que esta sección
-                está restringida a ciertos roles dentro del dealer (demo
-                purposes · no enforcement real). Alinea con la disclosure
-                "Private info · not visible to other dealers" del <p> abajo. */}
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                title="Only Dealer Admin, Sales Rep and Purchaser roles can see this section. Other dealer users (design staff, viewers) don't have access.">
-                <Lock className="h-2.5 w-2.5" aria-hidden="true" />
-                Restricted · Dealer Admin · Sales Rep · Purchaser
-            </div>
+            {/* MRL scope cleanup (2026-08-28) · se retiró el chip
+                "Restricted · Dealer Admin · Sales Rep · Purchaser".
+                Anunciaba una restricción por rol que no existe · su propio
+                comentario lo admitía ("demo purposes · no enforcement real")
+                y era un <div> con un title, sin filtrar nada.
+                Hallazgo H3-1 del UX-REVIEW, severidad 3 · la visibilidad del
+                estado del sistema es peor cuando miente que cuando falta:
+                enseña al usuario que los indicadores de permiso no
+                significan nada (Nielsen H1).
+                Vuelve cuando exista gating real · ROLE-1 define la matriz y
+                ROLE-9 exige que el enforcement viva en la capa de datos, no
+                en la UI. La línea de abajo se conserva porque sí es cierta:
+                describe el alcance del dato, no un permiso. */}
             <p className="mb-3 text-[11px] text-muted-foreground">
                 Private info for <span className="font-semibold text-foreground">{dealerName}</span> with this manufacturer. Not visible to other dealers.
             </p>

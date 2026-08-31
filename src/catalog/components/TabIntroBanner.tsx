@@ -11,9 +11,9 @@
 // del F64 approval.
 
 import { useState, useEffect } from 'react'
-import { X, LibraryBig, Sparkles } from 'lucide-react'
+import { X, LibraryBig } from 'lucide-react'
 
-type BannerVariant = 'library' | 'products'
+type BannerVariant = 'library'
 
 interface TabIntroBannerProps {
     variant: BannerVariant
@@ -24,16 +24,14 @@ interface TabIntroBannerProps {
  *  próximo browser session · demo-friendly, no permanente. */
 const STORAGE_KEY = (v: BannerVariant) => `tab-intro-banner-dismissed-${v}`
 
+// MRL scope cleanup (2026-08-27) · la variante 'products' salió con su tab.
+// La de library mencionaba sample requests, que se movieron a Phase 2
+// (Decision Log NEW-7 · SOW §22), y "favorites", que es vocabulario nuestro.
 const COPY: Record<BannerVariant, { title: string; body: string; Icon: typeof LibraryBig }> = {
     library: {
         title: 'The MRL you know · modernized',
-        body: 'Browse binders and request finish samples · same core flow, cleaner surface. Curate your own binders (formerly favorites) via the ♥ on any product.',
+        body: 'Browse manufacturer binders and drill into their products. Keep the brands you work with in your Custom Library via the ♥ on any binder.',
         Icon: LibraryBig,
-    },
-    products: {
-        title: 'Preview · what MRL could do with Strata capabilities',
-        body: 'Explore products with spec-building, pricing rules, dealer terms and quote drafts · this is a demo of the superset Strata can add on top of MRL discovery.',
-        Icon: Sparkles,
     },
 }
 

@@ -1,9 +1,11 @@
 // Fase 6.2 · TabInfoTooltip (2026-07-07 refactor)
-// English-only content + tab role chip (Reference vs Current version).
-// Reference tabs (MRL, Dealer/Quote, Figma) are legacy sections kept for
-// context on how the current catalog was built. The Product Catalog tab
-// is the consolidated Current version that inherits UI + features from
-// the reference tabs. My Selection is the live workspace.
+// Popover explicativo por tab · qué es, de dónde salen los datos, cómo
+// está estructurado y qué hace.
+//
+// MRL scope cleanup (2026-08-27) · quedaban los TabInfo de los tabs
+// retirados (Dealer/Quote, Figma, Products, My Selection) y el contenido
+// de Library describía features que ya no existen. Sobreviven los dos
+// tabs que sí son áreas del MVP · Library y My Projects.
 
 import type { ReactNode } from 'react'
 import { Info, Check } from 'lucide-react'
@@ -154,112 +156,38 @@ export default function TabInfoTooltip({ content, children }: { content: TabInfo
    ═══════════════════════════════════════════════════════════════════════ */
 
 export const TAB_INFO_MRL: TabInfo = {
-    title: 'Library · MRL legacy scope',
-    role: 'reference',
-    whatYouSee:
-        'The MRL you know · modernized. Discovery + sample request + your saved Binders. Aligns to the PRD literal (no specification, no quoting, no pricing).',
-    dataSource:
-        'MANUFACTURERS registry · same brand binders as MRL classic + your tenant-scoped Binders (formerly Favorites · renamed F63).',
-    structure:
-        'Sidebar with Binders + Filters + My Setup shortcut · Grid or Shelf view toggle · Brand card → Binder page → Product detail.',
-    features: [
-        'Grid + Shelf view · bookshelf metaphor preserved (F61)',
-        'Binders section (F63) · your saved product groupings per tenant',
-        'My Setup panel · dealer terms + preferences (F58b · consolidated)',
-        'Sample requests · finishes only guard (per PRD Section 01)',
-        'Inspiration panel (F58a) · reference installations with tagged products',
-        'Modernized card design · hero image + hover overlays (F62)',
-    ],
-}
-
-export const TAB_INFO_DEALER_QUOTE: TabInfo = {
-    title: 'Dealer / Quote · Manage Catalogs',
-    role: 'reference',
-    whatYouSee:
-        'Admin panel for the dealer to manage imported catalogs and buying preferences.',
-    dataSource:
-        'catalogs.ts (reactive mock) + Preferences per tenant in localStorage.',
-    structure:
-        'Catalog card grid + 2-tab modal · Catalogs and Preferences.',
-    features: [
-        'Sync management with delta reporting',
-        'Preferences · brand priorities, delivery zones',
-        'Status · Active / Update Avail. / Out of Sync',
-        'Import and disconnect with confirmation',
-    ],
-}
-
-export const TAB_INFO_FIGMA: TabInfo = {
-    title: 'Figma · Product Catalog (original design)',
-    role: 'reference',
-    whatYouSee:
-        'View aligned with the original Figma design · grid with filter sidebar.',
-    dataSource:
-        'shop/data/products.ts · 12 curated dealer products.',
-    structure:
-        'Sidebar filters + main grid (8 items per page) + sort dropdown.',
-    features: [
-        'Filter sidebar · Category, Brand, Features, Price',
-        'Sort · 7 options including History-First',
-        'Product cards with visible SKU and colorways',
-        'Multi-line quote builder in the detail modal',
-    ],
-}
-
-export const TAB_INFO_PRODUCT_CATALOG: TabInfo = {
-    title: 'Products · Strata Preview',
+    title: 'Library',
     role: 'current',
     whatYouSee:
-        'Superset preview · what MRL could do with Strata capabilities. Adds spec-building, pricing rules, dealer terms, admin config and quote drafts on top of the discovery flow.',
+        'Browse manufacturer binders and drill into their products. One of the five MVP areas Jeff named · "new Library/Binder UX".',
     dataSource:
-        'unifiedProducts + SPACE_TYPES (Inspiration · F58a) + custom Binders + dealer relationships + tenant preferences (localStorage per tenant).',
+        'MANUFACTURERS registry · the same brand binders as MRL classic, plus your tenant-scoped Custom Library.',
     structure:
-        '3-way toggle (Products / Materials / Inspiration) + Grid or Shelf view + density selector · sidebar with Binders + Filters · My Setup 4-tab modal for admin.',
+        'Sidebar with Custom Library + Filters · Grid or Shelf view toggle · Brand card → Binder → Category → Product.',
     features: [
-        'Grid + Shelf view (F61) · click binder = drill-in filter',
-        'Brand profile slide-over · quick look without leaving flow (F59+F60)',
-        'Category multi-select from brand profile · Apply filter (F60)',
-        'My Setup modal (F58b) · Add · Catalogs · Manufacturers · Preferences',
-        'Dealer edit notes + add manufacturer relationships (F58c)',
-        'Inspiration mode (F58a) · photos with clickable product tags',
-        'Sample requests + tracking pipeline (finishes only)',
-        'Tenant preferences · approved brands · compliance · sustainability',
+        'Grid + Shelf view · bookshelf metaphor preserved',
+        'Custom Library · the brands you keep, scoped per tenant',
+        'Search palette + visual search · upload an image, find similar',
+        'Modernized card design · hero image + hover overlays',
     ],
 }
 
 export const TAB_INFO_MY_PROJECTS: TabInfo = {
-    title: 'My Projects · Project Builder',
+    title: 'My Projects',
     role: 'current',
     whatYouSee:
-        'Project canvas · organize products into rooms and zones for a specific job. RFP-response vehicle per Laura · one shareable link per project. Aligns to PRD P2 (Project Tool · confirmed drag-drop).',
+        'Organize products into rooms and zones for a specific job, and share the result. One of the five MVP areas Jeff named · "Project Tool".',
     dataSource:
-        'useProjects hook · per-tenant projects in localStorage · products dragged from Library or Products tabs.',
+        'useProjects hook · per-tenant projects in localStorage · products added from the Library.',
     structure:
         'Project list + canvas view · rooms as containers · zones as sub-groups · products as draggable cards from binders.',
     features: [
-        'Drag-and-drop from binders (F51 sprint B) · "easy enough for 80-year-old"',
+        'Drag-and-drop from binders · "easy enough for 80-year-old"',
         'Multi-project per tenant · switch context anytime',
         'Rooms + zones structure · organize by physical space',
         'Add-to-project modal from any product card',
         'localStorage persistence · survives refresh',
-        'Future · hub with contacts + docs + timeline (PRD FLAG 3 · needs Jeff validation)',
+        'Pending · vertical-scroll and lookbook presentations, plus activity heat map, viewer notifications and click counts (Decision Log NEW-10)',
     ],
 }
 
-export const TAB_INFO_MY_SELECTION: TabInfo = {
-    title: 'My Selection · Draft submissions',
-    role: 'current',
-    whatYouSee:
-        'Active tenant\'s draft selections · multi-line items, auto-filled buyer info, submit flow. Part of the Strata superset (Products tab flow) · NOT in scope for Library. Neutral about downstream intent (Quote / PO / RFQ) — the dealer decides after submission.',
-    dataSource:
-        'QuoteContext · multi-draft per tenant in `expert-hub-quotes-{slug}` localStorage.',
-    structure:
-        '2-col · drafts list + detail with Buyer info + Line items + Totals · Reference number Q-YYYY-NNN-TENANT.',
-    features: [
-        'Multi-draft · N parallel selections per tenant',
-        'Auto-filled buyer info (user + tenant)',
-        'Toggle Flat list / By Space Setting grouping',
-        'Reference number Q-YYYY-NNN-TENANT auto-generated',
-        'localStorage persistence · survives refresh',
-    ],
-}
