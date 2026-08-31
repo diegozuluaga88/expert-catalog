@@ -31,6 +31,10 @@ import ManufacturerInfoBar from '../components/ManufacturerInfoBar'
 import { enrichProductForDetail } from '../data/mockProductFallbacks'
 import { enrichManufacturerForDetail } from '../data/mockBrandFallbacks'
 import { skuForProduct } from './catalogSku'
+import SimilarProducts from './SimilarProducts'
+import type { SimilarMatch } from './findSimilar'
+import VerifiedAttributes from '../components/VerifiedAttributes'
+import CustomItemBadge from '../components/CustomItemBadge'
 
 // MRL Product Detail P9 (2026-07-10) · Diego pidió integrar las 2 tab bars
 // (info-panel + primaria Images/Parts/Options) en una sola · unificamos
@@ -54,6 +58,10 @@ interface ProductDetailPageProps {
   /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · si llega Y el
    *  producto es material, muestra botón "Request sample" al lado. */
   onRequestSample?: (p: Product) => void
+  /** Find Similar (SOW §9.1) · si llega, se renderea la sección de
+   *  productos similares al pie. Sin handler no se muestra: una lista de
+   *  resultados que no lleva a ninguna parte es peor que no tenerla. */
+  onSelectSimilar?: (m: SimilarMatch) => void
 }
 
 function EmptyState({ label }: { label: string }) {
@@ -117,7 +125,7 @@ function FeatureList({ title, items, note }: { title: string; items: string[]; n
 }
 
 export default function ProductDetailPage({
-  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject, onRequestSample,
+  manufacturer: rawManufacturer, category, product: rawProduct, onBack, onGoToLibrary, onGoToManufacturer, onAddToProject, onRequestSample, onSelectSimilar,
 }: ProductDetailPageProps) {
   // F50 · sample flow fix · igual que CategoryPage · derivamos del
   // manufacturer.type porque los productos del MRL vienen sin isMaterial.
@@ -300,6 +308,12 @@ export default function ProductDetailPage({
               <h1 className="text-4xl font-bold text-foreground leading-tight tracking-tight">
                 {product.name}
               </h1>
+              {/* US-013 · en el registro va junto al nombre, no enterrado
+                  en las specs: si el ítem es custom, eso cambia cómo se
+                  lee todo lo demás de la página. */}
+              <div className="mt-2">
+                <CustomItemBadge product={product} size="md" />
+              </div>
             </div>
 
             {/* Description · siempre visible arriba de las tabs (referente).
@@ -327,6 +341,11 @@ export default function ProductDetailPage({
             <div className="py-6">
                 {activeTab === 'overview' && (
                   <div>
+                    {/* Atributos de tres estados (SOW §9.3) · van primero
+                        porque son criterios de decisión: un hospital que
+                        necesita 24/7 lo resuelve acá, no leyendo features. */}
+                    <VerifiedAttributes product={product} />
+
                     {hasStdFeatures && (
                       <FeatureList
                         title="Standard Features"
@@ -638,6 +657,19 @@ export default function ProductDetailPage({
             )}
           </div>
         </div>
+
+        {/* Find Similar (SOW §9.1) · al pie, después de que el usuario
+            ya vio de qué se trata este producto. Antes del contenido
+            competiría con él; ésta es la salida natural cuando el
+            producto no termina de convencer. */}
+        {onSelectSimilar && (
+          <SimilarProducts
+            product={product}
+            category={category}
+            manufacturer={rawManufacturer}
+            onSelect={onSelectSimilar}
+          />
+        )}
       </div>
     </div>
     </div>

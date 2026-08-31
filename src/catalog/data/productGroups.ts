@@ -1,3 +1,10 @@
+// ⚠️ MRL scope cleanup (2026-08-27) · sin consumidor por ahora.
+// Se conserva por la misma razón que finishes.ts y options.ts: es la
+// única implementación que tenemos de la jerarquía Section →
+// ProductType → ProductGroup del silver schema, que es el contrato
+// con backend (docs/silver-schema-alignment.md). Los bundles de Space
+// Types que lo motivaron sí se retiraron.
+//
 // Fase 1 · Sections + ProductTypes + ProductGroups + product stubs (2026-07-06).
 // Seed data alineado con el silver schema de Notion (Strata Product Data
 // Management) · replica la jerarquía Catalogue → Section → ProductGroup →

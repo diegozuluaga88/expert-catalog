@@ -1,3 +1,11 @@
+// ⚠️ MRL scope cleanup (2026-08-27) · sin consumidor por ahora.
+// Se conserva a propósito: es modelo del silver schema, no UI del
+// prototipo retirado. Lo reclama el scope · finishes es US-020 de UW
+// (FinishType dropdown gestionado + FabricValue libre), options es
+// P1.3.a, y tenantVisibility es el patrón multi-tenant de DATA-6.
+// Vuelve a tener consumidor cuando se construyan las superficies
+// nuevas. Ver strata-docs/09-mrl-uwh/PROPOSAL.md.
+//
 // Fase P1.3.a · OptionMaster + OptionGroupValue seed (2026-07-06)
 //
 // Modelo de opciones configurables alineado con el silver schema (grupos

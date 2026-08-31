@@ -1,9 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { PanelLeft, PanelLeftClose } from 'lucide-react'
 import type { Manufacturer, LibraryTab, ViewMode } from '../types'
 import ViewToggle from './ViewToggle'
 import { MOCK_PRODUCT_CATEGORIES, MOCK_MATERIAL_CATEGORIES } from '../data/mockCategories'
+import { useMyBinders } from '../browse/useMyBinders'
+import { matchesCategoryAlias } from '../data/categoryAliases'
 
 interface FilterSidebarProps {
   manufacturers: Manufacturer[]
@@ -16,9 +18,9 @@ interface FilterSidebarProps {
   onSearchChange: (v: string) => void
   viewMode: ViewMode
   onViewModeChange: (v: ViewMode) => void
-  /** MRL Fase 6 · state del filtro "My Binders" (owned por LibraryPage). */
+  /** MRL Fase 6 · state del filtro "Custom Library" (owned por LibraryPage). */
   showMyBindersOnly?: boolean
-  /** MRL Fase 6 · toggle del filtro "My Binders". */
+  /** MRL Fase 6 · toggle del filtro "Custom Library". */
   onMyBindersToggle?: () => void
   /** MRL Fase 8 · Set de tags activos (quickship, gsa, cet, cil) owned por
    *  LibraryPage · filtra el shelf por intersect con `manufacturer.tags`. */
@@ -35,10 +37,12 @@ interface FilterSidebarProps {
    *  este handler (en vez de escribir directo al state). Se usa para wire
    *  el input al AI search palette como trigger único. v1 no lo pasa. */
   onSearchClick?: () => void
-  /** F50 · sample flow (MRL adapt · 2026-08-03) · v2 · slot opcional
-   *  al final del sidebar (después de todos los filtros). Se usa para
-   *  aterrizar el SampleTrackingPanel. v1 no lo pasa. */
+  /** Slot opcional al final del sidebar, después de todos los filtros. */
   bottomSlot?: ReactNode
+  /** Diego ask (2026-08-28) · si viene, cada marca de la Custom Library
+   *  es clicable y abre su binder. Sin él la sección se sigue mostrando
+   *  pero solo como lectura. */
+  onSelectManufacturer?: (m: Manufacturer) => void
 }
 
 const SWATCH_COLORS = [
@@ -99,7 +103,39 @@ export default function FilterSidebar({
   topSlot,
   onSearchClick,
   bottomSlot,
+  onSelectManufacturer,
 }: FilterSidebarProps) {
+  // Diego ask (2026-08-28) · la Custom Library sube por encima de los
+  // filtros. Es lo que el usuario curó, no un filtro más · verla vale más
+  // que recordar que existe detrás de un checkbox (Nielsen H6).
+  const { myBinderIds } = useMyBinders()
+  const savedManufacturers = manufacturers.filter(m => myBinderIds.has(m.id))
+
+  // Diego ask (2026-08-28) · las categorías se cuentan contra el seed real
+  // y las que no devuelven ninguna marca no se muestran.
+  //
+  // Antes venían de mockCategories con counts inventados calcados del
+  // referente ("Education 5903", "Outdoor 2922"). 19 de 24 no tenían ni una
+  // marca detrás: el clic prometía miles y entregaba un shelf vacío. Es el
+  // callejón sin salida que Jeff dice no querer ("we never want to have a
+  // Zero result or dead end" · SEARCH-11) y el hallazgo H3-4 del UX-REVIEW.
+  //
+  // Extiende la decisión del análisis heurístico de julio, que ya ocultaba
+  // las categorías con mockCount === 0 (H8) · ahora el criterio es el dato
+  // real en vez del mock. Se auto-mantiene: cuando entre seed nuevo o la
+  // migración traiga datos, las categorías reaparecen solas con su conteo.
+  const backedCategories = useMemo(() => {
+    const source = activeTab === 'products' ? MOCK_PRODUCT_CATEGORIES : MOCK_MATERIAL_CATEGORIES
+    return source
+      .map(({ name }) => ({
+        name,
+        count: manufacturers.filter(m =>
+          matchesCategoryAlias(m.categories.map(c => c.name), name),
+        ).length,
+      }))
+      .filter(c => c.count > 0)
+  }, [activeTab, manufacturers])
+
   const [collapsed, setCollapsed] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(true)
   const [categoryOpen, setCategoryOpen] = useState(true)
@@ -201,6 +237,66 @@ export default function FilterSidebar({
         </div>
       </div>
 
+      {/* CUSTOM LIBRARY · Diego ask (2026-08-28) · va antes de los filtros.
+          Solo se renderiza si hay marcas guardadas · una sección vacía en la
+          posición más visible del sidebar sería ruido. */}
+      {savedManufacturers.length > 0 && (
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              Custom Library
+            </p>
+            <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+              {savedManufacturers.length}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-0.5 mb-2">
+            {savedManufacturers.map(m => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => onSelectManufacturer?.(m)}
+                disabled={!onSelectManufacturer}
+                className="group flex items-center gap-2 text-left text-sm py-1 px-2 rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default disabled:hover:bg-transparent"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 shrink-0 rounded-sm border border-border"
+                  style={{ backgroundColor: m.bgColor }}
+                />
+                <span className="min-w-0 truncate">{m.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {onMyBindersToggle && (
+            <CheckItem
+              label="Show only these"
+              checked={showMyBindersOnly}
+              onChange={() => onMyBindersToggle()}
+            />
+          )}
+        </div>
+      )}
+
+      {/* BINDER FILTERS · Diego ask (2026-08-28) · sube al bloque superior,
+          debajo de "Select your library". Filtra binders, así que pertenece
+          con lo demás que habla de binders · no al final, después de Category
+          y Color, que filtran producto.
+          Comparte `activeTags` con la sección Tags · un click acá se refleja
+          en ambos accordions (duplicación del referente · anotada en
+          UX-REVIEW.md como H3-2). */}
+      <FilterSection label="Binder Filters" open={binderOpen} onToggle={() => setBinderOpen(o => !o)}>
+        <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
+        {activeTab === 'products' && (
+          <>
+            <CheckItem label="GSA" checked={hasTag('gsa')} onChange={() => toggleTag('gsa')} />
+            <CheckItem label="CET Extension" checked={hasTag('cet')} onChange={() => toggleTag('cet')} />
+          </>
+        )}
+      </FilterSection>
+
       {/* FILTER BY label */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Filter by</p>
@@ -221,13 +317,6 @@ export default function FilterSidebar({
       <FilterSection label="Tags" open={tagsOpen} onToggle={() => setTagsOpen(o => !o)}>
         {activeTab === 'products' ? (
           <>
-            {/* MRL Fase 6 · "My Binders" wire real al hook useMyBinders via LibraryPage.
-                Diego ask · en el contexto de MRL "binders" y "favoritos" son lo mismo. */}
-            <CheckItem
-              label="My Binders"
-              checked={showMyBindersOnly}
-              onChange={() => onMyBindersToggle?.()}
-            />
             {/* MRL Fase 8 · wire real al filtro por tags · Set compartido con
                 Binder Filters (mismo state, dos entry points UI del referente). */}
             <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
@@ -237,34 +326,28 @@ export default function FilterSidebar({
           </>
         ) : (
           <>
-            <CheckItem
-              label="My Binders"
-              checked={showMyBindersOnly}
-              onChange={() => onMyBindersToggle?.()}
-            />
             {/* Materials · solo QuickShip aplica (lead-time programs). */}
             <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
           </>
         )}
       </FilterSection>
 
-      {/* CATEGORY · MRL Fase 9 · lista mock que replica el referente MRL
-          (~24 categorías genéricas con counts inflados en Products, 6 en
-          Materials). Al ser mock, las categorías del referente NO matchean
-          con los `manufacturer.categories[].name` reales del seed · click
-          en una filtra a vacío por design (empty state ya cubre el UX).
-          Sirve para simular la escala visual de la biblioteca del referente. */}
-      <FilterSection label="Category" open={categoryOpen} onToggle={() => setCategoryOpen(o => !o)}>
-        {(activeTab === 'products' ? MOCK_PRODUCT_CATEGORIES : MOCK_MATERIAL_CATEGORIES).map(({ name, count }) => (
-          <CheckItem
-            key={name}
-            label={name}
-            count={count}
-            checked={selectedCategory === name}
-            onChange={() => onCategoryChange(selectedCategory === name ? null : name)}
-          />
-        ))}
-      </FilterSection>
+      {/* CATEGORY · solo las que devuelven marcas, con su conteo real.
+          Ver el cálculo de backedCategories arriba. La sección entera se
+          oculta si ninguna tiene respaldo · un acordeón vacío es ruido. */}
+      {backedCategories.length > 0 && (
+        <FilterSection label="Category" open={categoryOpen} onToggle={() => setCategoryOpen(o => !o)}>
+          {backedCategories.map(({ name, count }) => (
+            <CheckItem
+              key={name}
+              label={name}
+              count={count}
+              checked={selectedCategory === name}
+              onChange={() => onCategoryChange(selectedCategory === name ? null : name)}
+            />
+          ))}
+        </FilterSection>
+      )}
 
       {/* COLOR */}
       <FilterSection label="Color" open={colorOpen} onToggle={() => setColorOpen(o => !o)}>
@@ -292,23 +375,6 @@ export default function FilterSidebar({
         )}
       </FilterSection>
 
-      {/* BINDER FILTERS · duplicado del UI del referente · usa el mismo `activeTags`
-          state que Tags para que un click acá se refleje en ambos accordions. */}
-      <FilterSection label="Binder Filters" open={binderOpen} onToggle={() => setBinderOpen(o => !o)}>
-        {/* MRL Fase 6 · mismo wire real al hook (mirror del Tags · My Binders). */}
-        <CheckItem
-          label="My Binders"
-          checked={showMyBindersOnly}
-          onChange={() => onMyBindersToggle?.()}
-        />
-        <CheckItem label="QuickShip" checked={hasTag('quickship')} onChange={() => toggleTag('quickship')} />
-        {activeTab === 'products' && (
-          <>
-            <CheckItem label="GSA" checked={hasTag('gsa')} onChange={() => toggleTag('gsa')} />
-            <CheckItem label="CET Extension" checked={hasTag('cet')} onChange={() => toggleTag('cet')} />
-          </>
-        )}
-      </FilterSection>
         </>
       )}
       {/* F50 · sample flow (MRL adapt) · v2 · slot al final del sidebar

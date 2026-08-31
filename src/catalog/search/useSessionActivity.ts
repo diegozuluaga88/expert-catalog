@@ -6,9 +6,9 @@
 //   · viewedProductIds · últimos 20 productos que el dealer abrió · LIFO
 //   · viewedBrands     · derivado de viewedProductIds (top 5 brands)
 //
-// Los "savedBrands" (brands presentes en las colecciones del dealer) se
-// derivan afuera desde useCollections + el catalogo · este módulo se
-// enfoca solo en views para no duplicar responsabilidad.
+// Los "savedBrands" se derivan afuera desde `useMyBinders` —la Custom
+// Library del usuario— · este módulo se enfoca solo en views para no
+// duplicar responsabilidad.
 //
 // Cuando exista telemetría real (Segment / Amplitude / backend propio),
 // este módulo se convierte en wrapper de esos eventos.

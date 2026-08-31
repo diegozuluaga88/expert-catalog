@@ -8,12 +8,20 @@
 // aproximar el look del sidebar del referente, exportamos aquí la lista
 // COMPLETA que FilterSidebar renderiza en el tab Products.
 //
-// Estas categorías son de DISPLAY únicamente · click en cualquiera de
-// ellas dispara el filter en LibraryPage; los binders reales aparecen
-// solo si algún `manufacturer.categories[].name` matchea (case-sensitive)
-// con el label acá. Las que no matcheen dejan el shelf vacío (empty
-// state existente cubre el UX). Diego usará esto solo para mostrar el
-// look, no para navegar.
+// ⚠️ MRL scope cleanup (2026-08-28) · esta lista ya NO se renderiza tal
+// cual. FilterSidebar la usa como catálogo de nombres candidatos, cuenta
+// cada uno contra el seed real vía matchesCategoryAlias, y **solo muestra
+// los que devuelven al menos una marca, con su conteo real**.
+//
+// El comportamiento anterior era: mostrar las 24 con los counts de abajo.
+// 19 de 24 no tenían ninguna marca detrás, así que "Education (5903)"
+// prometía miles y entregaba un shelf vacío. Es el callejón sin salida
+// que Jeff dice no querer ("we never want to have a Zero result or dead
+// end" · SEARCH-11) y el hallazgo H3-4 del UX-REVIEW.
+//
+// El campo `count` de abajo quedó sin usar · se conserva como referencia
+// de los órdenes de magnitud del referente, útiles cuando la migración
+// traiga datos reales (DATA-9). No se muestra en la UI.
 
 export interface MockCategory {
     /** Nombre visible + valor que se emite al FilterSidebar como filter key. */

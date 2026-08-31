@@ -47,8 +47,8 @@ export default function BinderLibraryV2({
     if (!onToast) return
     // Nielsen H3 · user control + freedom · toast con Undo.
     const message = wasSaved
-      ? `Removed ${manufacturer.name} from My Binders`
-      : `Added ${manufacturer.name} to My Binders`
+      ? `Removed ${manufacturer.name} from Custom Library`
+      : `Added ${manufacturer.name} to Custom Library`
     onToast('success', message, {
       label: 'Undo',
       onClick: () => toggleBinder(id),

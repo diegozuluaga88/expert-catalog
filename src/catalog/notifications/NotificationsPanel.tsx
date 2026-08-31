@@ -89,19 +89,11 @@ export default function NotificationsPanel({ onClose }: NotificationsPanelProps)
             },
             filter: () => true,
         },
-        {
-            id: 'delivery',
-            label: 'Delivery',
-            icon: Truck,
-            colorTheme: {
-                activeBg: 'bg-emerald-500/15',
-                activeText: 'text-emerald-600 dark:text-emerald-400',
-                activeBorder: 'border-emerald-500/20',
-                badgeBg: 'bg-emerald-500/20',
-                badgeText: 'text-emerald-600 dark:text-emerald-400',
-            },
-            filter: (n) => n.kind === 'sample-shipped' || n.kind === 'sample-delivered',
-        },
+        // MRL scope cleanup (2026-08-27) · Capa 2d · el tab "Delivery"
+        // filtraba notificaciones de sample shipped/delivered. Sample
+        // Ordering salió a Phase 2 (NEW-7 · SOW §22), así que el filtro
+        // nunca volvería a coincidir y un tab siempre vacío es peor que
+        // ningún tab.
         {
             id: 'info',
             label: 'Info',
@@ -365,21 +357,11 @@ function NotificationRow({ notification: n, onOpen }: NotificationRowProps) {
 
 /* ─── Kind badge mapping ───────────────────────────────────────── */
 
-function kindBadge(kind: Notification['kind']): { label: string; classes: string; Icon: React.ElementType } {
-    if (kind === 'sample-shipped') {
-        return {
-            label: 'Shipped',
-            classes: 'text-blue-600 bg-blue-500/10 border-blue-500/20 dark:text-blue-400',
-            Icon: Truck,
-        }
-    }
-    if (kind === 'sample-delivered') {
-        return {
-            label: 'Delivered',
-            classes: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400',
-            Icon: Package,
-        }
-    }
+// MRL scope cleanup (2026-08-27) · Capa 2d · los badges de sample
+// shipped/delivered salieron con el flujo de samples. Queda 'info' hasta
+// que el Project Tool aporte sus propios kinds (NEW-10 · heat map,
+// notificación de acceso, conteo de views).
+function kindBadge(_kind: Notification['kind']): { label: string; classes: string; Icon: React.ElementType } {
     return {
         label: 'Info',
         classes: 'text-gray-600 bg-gray-500/10 border-gray-500/20 dark:text-gray-400',

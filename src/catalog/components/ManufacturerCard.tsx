@@ -2,14 +2,14 @@
 // Refactor visual · adopta el look de las Product Catalog cards
 // (ProductCatalogCardV2) para unificar el visual language entre las 2
 // tabs del catalog. Preserva prop signature actual (manufacturer + onClick)
-// + agrega opcional onToast para el feedback del My Binders overlay.
+// + agrega opcional onToast para el feedback del Custom Library overlay.
 //
 // Estructura (espeja PC card):
 //   - Wrapper article rounded-xl border bg-card hover:shadow-md
 //   - Hero aspect-4/3 · manufacturer.heroImage (object-cover + scale on
 //     hover) con fallback a color block (bgColor + label uppercase
 //     centrado usando textColor) para brands sin heroImage
-//   - Hover overlay top-right · círculo My Binders (Check icon fill on
+//   - Hover overlay top-right · círculo Custom Library (Check icon fill on
 //     saved · reusa useMyBinders del hook global) con toast Undo opcional
 //   - Body 3 rows · type chip + brand tags · brand name + tagline ·
 //     counts + palette dots decorativos
@@ -25,7 +25,7 @@ interface ManufacturerCardProps {
   manufacturer: Manufacturer
   onClick: () => void
   /** F62 · toast dispatcher opcional · si viene, el click en el círculo
-   *  My Binders dispara un success toast con action Undo (mismo pattern
+   *  Custom Library dispara un success toast con action Undo (mismo pattern
    *  que BinderLibraryV2 en el shelf view). */
   onToast?: (type: ToastType, message: string, action?: ToastAction) => void
 }
@@ -69,8 +69,8 @@ export default function ManufacturerCard({ manufacturer, onClick, onToast }: Man
     if (!onToast) return
     // Nielsen H3 · user control + freedom · toast con Undo.
     const message = wasSaved
-      ? `Removed ${manufacturer.name} from My Binders`
-      : `Added ${manufacturer.name} to My Binders`
+      ? `Removed ${manufacturer.name} from Custom Library`
+      : `Added ${manufacturer.name} to Custom Library`
     onToast('success', message, {
       label: 'Undo',
       onClick: () => toggleBinder(manufacturer.id),
@@ -123,14 +123,14 @@ export default function ManufacturerCard({ manufacturer, onClick, onToast }: Man
           </span>
         )}
 
-        {/* Hover overlay · círculo My Binders top-right */}
+        {/* Hover overlay · círculo Custom Library top-right */}
         <button
           type="button"
           data-manufacturer-overlay
           onClick={handleToggleMyBinders}
-          aria-label={saved ? `Remove ${manufacturer.name} from My Binders` : `Add ${manufacturer.name} to My Binders`}
+          aria-label={saved ? `Remove ${manufacturer.name} from Custom Library` : `Add ${manufacturer.name} to Custom Library`}
           aria-pressed={saved}
-          title={saved ? 'In My Binders' : 'Add to My Binders'}
+          title={saved ? 'In Custom Library' : 'Add to Custom Library'}
           className={`${HOVER_OVERLAY_CLS} absolute top-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 shadow-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
             saved
               ? 'bg-primary border-primary-foreground text-primary-foreground'

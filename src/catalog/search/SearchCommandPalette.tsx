@@ -35,7 +35,7 @@ import type { Product, Manufacturer } from '../types'
 import { useSearchHistory } from './useSearchHistory'
 import { useSessionActivity } from './useSessionActivity'
 import { parseNaturalQuery, hasStructuredHints, type ParsedQuery } from './nlSearchParser'
-import { useCollections } from '../browse/useCollections'
+import { useMyBinders } from '../browse/useMyBinders'
 
 export interface SearchApplyFilters {
     text: string
@@ -100,7 +100,7 @@ export default function SearchCommandPalette({
     const [query, setQuery] = useState(initialQuery)
     const { history, push: pushHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory()
     const { viewedProductIds, recordView } = useSessionActivity()
-    const { savedProductIds } = useCollections()
+    const { myBinderIds } = useMyBinders()
 
     // F50 · Etapa 9 (integración) · cuando el palette se abre, pre-carga
     // initialQuery (típicamente el search actual del showroom/library). Al
@@ -114,14 +114,24 @@ export default function SearchCommandPalette({
         }
     }, [open, initialQuery])
 
-    // Brands guardadas · derivado de los savedProductIds + catálogo.
+    // Brands guardadas · la Custom Library del usuario (ROLE-7).
+    //
+    // Antes se derivaban de `useCollections().savedProductIds`, y ese set
+    // quedó permanentemente vacío al retirar el Showroom: era la única
+    // superficie donde se podían guardar productos. O sea que el ranking
+    // personalizado —y el aviso "Ranked by your saved brands"— existían
+    // pero nunca se activaban (UX-REVIEW · H3-2).
+    //
+    // La fuente correcta es directa y es la que el scope nombra: las
+    // marcas que el usuario guardó en su Custom Library. Derivar marcas
+    // desde productos guardados era el rodeo, no el concepto.
     const savedBrands = useMemo(() => {
         const set = new Set<string>()
-        for (const p of products) {
-            if (savedProductIds.has(p.id) && p.brand) set.add(p.brand)
+        for (const m of manufacturers) {
+            if (myBinderIds.has(m.id)) set.add(m.name)
         }
         return set
-    }, [products, savedProductIds])
+    }, [manufacturers, myBinderIds])
 
     // Recent viewed product objects (para render en el bloque de recents).
     const recentViewed = useMemo(() => {
