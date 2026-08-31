@@ -34,6 +34,7 @@ import { skuForProduct } from './catalogSku'
 import SimilarProducts from './SimilarProducts'
 import type { SimilarMatch } from './findSimilar'
 import VerifiedAttributes from '../components/VerifiedAttributes'
+import CustomItemBadge from '../components/CustomItemBadge'
 
 // MRL Product Detail P9 (2026-07-10) · Diego pidió integrar las 2 tab bars
 // (info-panel + primaria Images/Parts/Options) en una sola · unificamos
@@ -307,6 +308,12 @@ export default function ProductDetailPage({
               <h1 className="text-4xl font-bold text-foreground leading-tight tracking-tight">
                 {product.name}
               </h1>
+              {/* US-013 · en el registro va junto al nombre, no enterrado
+                  en las specs: si el ítem es custom, eso cambia cómo se
+                  lee todo lo demás de la página. */}
+              <div className="mt-2">
+                <CustomItemBadge product={product} size="md" />
+              </div>
             </div>
 
             {/* Description · siempre visible arriba de las tabs (referente).
